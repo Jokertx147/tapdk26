@@ -86,6 +86,9 @@ namespace TheAirline.Helpers
             return airliner;
         }
 
+        //how many times the original number of used airliners are for sale when a game starts
+        public const int UsedAirlinerSupply = 3;
+
         public static void CreateStartUpAirliners()
         {
             int number =
@@ -96,7 +99,8 @@ namespace TheAirline.Helpers
 
             int airlines = Airlines.GetNumberOfAirlines();
 
-            number = (airlines*number)/10;
+            // the original game made airlines * types / 10 used airliners; this makes three times as many
+            number = (airlines*number*UsedAirlinerSupply)/10;
             for (int i = 0; i < number; i++)
             {
                 Airliners.AddAirliner(CreateAirliner(0));

@@ -1871,7 +1871,7 @@ namespace TheAirline.Helpers
                 Airliners.RemoveAirliner(airliner);
             }
 
-            int numberOfAirliners = oldAirliners.Count + 2*Airlines.GetNumberOfAirlines();
+            int numberOfAirliners = oldAirliners.Count + 3*Airlines.GetNumberOfAirlines();
 
             for (int i = 0; i < numberOfAirliners; i++)
             {
