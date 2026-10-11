@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Prism.Mvvm;
+using Prism.Navigation;
 using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Models.General;

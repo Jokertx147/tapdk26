@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Prism.Commands;
 using Prism.Mvvm;
+using Prism.Navigation;
 using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Infrastructure.Enums;
