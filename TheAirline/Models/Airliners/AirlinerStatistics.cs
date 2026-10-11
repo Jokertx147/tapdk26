@@ -22,7 +22,7 @@ namespace TheAirline.Models.Airliners
             _airliner = airliner;
         }
 
-        private AirlinerStatistics(SerializationInfo info, StreamingContext ctxt)
+        private AirlinerStatistics(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
         {
         }
 

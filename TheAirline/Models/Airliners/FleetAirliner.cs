@@ -51,7 +51,7 @@ namespace TheAirline.Models.Airliners
                 Airliner.Owner = Airliner.Airline;
         }
 
-        private FleetAirliner(SerializationInfo info, StreamingContext ctxt)
+        private FleetAirliner(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
         {
             if (Version == 1)
                 Data = new OperatingData();
