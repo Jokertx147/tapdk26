@@ -21,11 +21,11 @@
                     <Grid>
                         <TextBlock Text="{Binding Type,Converter={StaticResource TextUnderscoreConverter}}"
                                    FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
-                        <Button HorizontalAlignment="Right" Tag="{Binding}" Content="Remove" Padding="6 0"
-                                Click="btnRemoveClass_Click" Background="Transparent" Foreground="White"
+                        <Button HorizontalAlignment="Right" Tag="{Binding}" Content="Remove"
+                                Click="btnRemoveClass_Click"
                                 ToolTip="Remove this class; its seats go back to economy">
                             <Button.Style>
-                                <Style TargetType="Button">
+                                <Style TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
                                     <Setter Property="Visibility" Value="Visible" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Type}" Value="EconomyClass">
