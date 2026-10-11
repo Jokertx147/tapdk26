@@ -120,6 +120,7 @@
 
   <!-- Images are loaded through pack URIs such as /TheAirline;component/Resources/images/... -->
   <ItemGroup>
+    <Resource Include="TheAirline.ico" />
     <Resource Include="Resources\images\add.png" />
     <Resource Include="Resources\images\Airplane.png" />
     <Resource Include="Resources\images\AirplanePin.png" />

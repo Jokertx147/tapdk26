@@ -101,3 +101,5 @@ Third build: three errors, now addressed but not yet re-built.
 
 - **`UseSqlCe`**: `AirlineContext` now uses SQLite (`Airline.db` in the Documents\theairlineproject folder). Nothing created the database before, so `AppState` calls `EnsureCreated()` and adds a default `Settings` row on first run (Language stays empty, so the language page shows first). The old SQL CE migrations are not used by this path and still need regenerating if migrations are wanted.
 - **`BinaryFormatter`** (SYSLIB0011): `FileSerializer` in `SerializedLoadSaveHelpers.cs` now uses `DataContractSerializer` with every concrete `[Serializable]` type as a known type and object references preserved. Old binary `.sav` files no longer load. Saving and loading is untested at runtime.
+
+First run: the app reached `MainWindow` and crashed on `Icon="TheAirline.ico"` ("Cannot locate resource"). The icon is now a WPF `Resource` item. Prism and DryIoc resolution of the shell works.
