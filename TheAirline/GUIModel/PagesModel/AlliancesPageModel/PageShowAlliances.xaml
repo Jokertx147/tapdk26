@@ -29,7 +29,7 @@
 
                                         <TextBlock Margin="5 0 0 0" VerticalAlignment="Bottom">
                                             <Hyperlink Tag="{Binding}" Click="clName_Click">
-                                                <Run Text="{Binding Name}" />
+                                                <Run Text="{Binding Name, Mode=OneWay}" />
                                             </Hyperlink>
                                         </TextBlock>
                                     </WrapPanel>

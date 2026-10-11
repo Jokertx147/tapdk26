@@ -74,7 +74,7 @@
                                         </TextBlock>
                                     </TextBlock.ToolTip>
                                     <Hyperlink Tag="{Binding}" Click="lnkAirliner_Click">
-                                        <Run Text="{Binding Airliner.Type.Name}" />
+                                        <Run Text="{Binding Airliner.Type.Name, Mode=OneWay}" />
                                     </Hyperlink>
                                 </TextBlock>
                             </DataTemplate>

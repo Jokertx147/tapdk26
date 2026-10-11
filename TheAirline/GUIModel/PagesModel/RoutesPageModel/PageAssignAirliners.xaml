@@ -149,7 +149,7 @@
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Bottom">
                                         <Hyperlink Tag="{Binding}" Click="hlAirliner_Click">
-                                            <Run Text="{Binding Airliner.Name}" />
+                                            <Run Text="{Binding Airliner.Name, Mode=OneWay}" />
                                         </Hyperlink>
                                     </TextBlock>
                                 </DataTemplate>

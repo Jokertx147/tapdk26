@@ -40,7 +40,7 @@
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Bottom">
                                 <Hyperlink Tag="{Binding}" Click="lnkPilot_Click">
-                                    <Run Text="{Binding Profile.Name}" />
+                                    <Run Text="{Binding Profile.Name, Mode=OneWay}" />
                                 </Hyperlink>
                             </TextBlock>
                         </DataTemplate>

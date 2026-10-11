@@ -128,3 +128,6 @@ Data loading problems found through `startup.log` (the old loaders catch and swa
 - `LoadMajorDestinations` crashed on airports that had failed to load; it now skips them.
 - One aircraft type allows 4 classes but only 1 to 3 class layouts exist; the class count is clamped to 3 and falls back to the 1 class layout instead of crashing.
 - `GameDataLoader` logs the counts it loaded, so a partly loaded game is visible. A healthy load should show far more than 56 airports.
+
+First look at the in-game screens: the Staff (pilots) screen crashed with "A TwoWay or OneWayToSource binding cannot work on the read-only property 'Name'". `Run.Text` binds two-way by default and modern WPF throws when the source property is read-only. All 19 `<Run Text="{Binding ...}">` bindings in the XAML now say `Mode=OneWay`. Other controls that bind two-way by default (TextBox.Text, CheckBox.IsChecked, ComboBox.SelectedItem) to read-only properties will fail the same way; the fix is the same, add `Mode=OneWay`.
+Also fixed: `Names.SetupNames` looped forever (it never read the next line), which froze game creation at the pilots step.

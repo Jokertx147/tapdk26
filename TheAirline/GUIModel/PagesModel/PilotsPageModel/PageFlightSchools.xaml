@@ -122,7 +122,7 @@
                                         <DataTemplate>
                                             <TextBlock VerticalAlignment="Bottom">
                                                 <Hyperlink Tag="{Binding}" Click="lnkFlightSchool_Click">
-                                                    <Run Text="{Binding Name}" />
+                                                    <Run Text="{Binding Name, Mode=OneWay}" />
                                                 </Hyperlink>
                                             </TextBlock>
                                         </DataTemplate>

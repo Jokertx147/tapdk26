@@ -238,7 +238,7 @@
                                             <DataTemplate>
                                                 <TextBlock VerticalAlignment="Bottom">
                                                     <Hyperlink Tag="{Binding}" Click="btnChangeInstructor_Click">
-                                                        <Run Text="{Binding Instructor.Profile.Name}" />
+                                                        <Run Text="{Binding Instructor.Profile.Name, Mode=OneWay}" />
                                                     </Hyperlink>
                                                     <TextBlock.ToolTip>
                                                         <TextBlock VerticalAlignment="Bottom" FontWeight="Bold"

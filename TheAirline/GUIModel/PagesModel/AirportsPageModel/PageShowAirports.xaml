@@ -138,7 +138,7 @@
                             <DataTemplate>
                                 <TextBlock VerticalAlignment="Bottom" Margin="5 0 0 0">
                                     <Hyperlink Tag="{Binding Airport}" Click="clName_Click">
-                                        <Run Text="{Binding Airport.Profile.Name}" />
+                                        <Run Text="{Binding Airport.Profile.Name, Mode=OneWay}" />
                                     </Hyperlink>
                                 </TextBlock>
                             </DataTemplate>

@@ -104,7 +104,7 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                     <Hyperlink Tag="{Binding}" Click="lnkNews_Click">
-                                                        <Run Text="{Binding News.Subject}" />
+                                                        <Run Text="{Binding News.Subject, Mode=OneWay}" />
                                                     </Hyperlink>
                                                 </TextBlock>
                                             </DataTemplate>
