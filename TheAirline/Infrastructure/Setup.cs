@@ -40,6 +40,29 @@ namespace TheAirline.Infrastructure
         private static readonly Random Rnd = new Random();
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+        // the loaders catch and swallow their own exceptions, so also write them to startup.log where they can be found
+        private static void LogError(string message, params object[] args)
+        {
+            try
+            {
+                var text = args != null && args.Length > 0 && !(args[0] is Exception)
+                    ? string.Format(message, args)
+                    : message;
+                var ex = args?.OfType<Exception>().FirstOrDefault();
+                StartupLog.Write("LOADER ERROR: " + text + (ex != null ? "\n" + ex : ""));
+                Logger.Error(ex, text);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void LogError(Exception e)
+        {
+            StartupLog.Write("LOADER ERROR: " + e);
+            Logger.Error(e);
+        }
+
         #endregion
 
         #region Public Methods and Operators
@@ -461,7 +484,7 @@ namespace TheAirline.Infrastructure
                 //file.WriteLine(e.StackTrace);
                 //file.Close();
 
-                Logger.Error("Failed to setup game", e);
+                LogError("Failed to setup game", e);
                 SetupError = e;
                 return;
             }
@@ -1996,7 +2019,7 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading Airliner configurations", e);
+                LogError("Error loading Airliner configurations", e);
             }
         }
 
@@ -2019,7 +2042,7 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading airliners", e);
+                LogError("Error loading airliners", e);
             }
         }
 
@@ -2258,8 +2281,8 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading airliner {0}", id);
-                Logger.Error(e);
+                LogError("Error loading airliner {0}", id);
+                LogError(e);
             }
         }
 
@@ -2289,8 +2312,8 @@ namespace TheAirline.Infrastructure
                 //file.WriteLine(e.ToString());
                 //file.WriteLine(e.StackTrace);
                 //file.Close();
-                Logger.Error("Error loading airline: {0}", f);
-                Logger.Error(e);
+                LogError("Error loading airline: {0}", f);
+                LogError(e);
             }
         }
 
@@ -2784,8 +2807,8 @@ namespace TheAirline.Infrastructure
                 file.Close();
                  * */
 
-                Logger.Error("Airport {0} failing to load", id);
-                Logger.Error(e);
+                LogError("Airport {0} failing to load", id);
+                LogError(e);
             }
         }
 
@@ -2845,8 +2868,8 @@ namespace TheAirline.Infrastructure
                 file.Close();
                  * */
 
-                Logger.Error("Alliance {0} failing to load", path);
-                Logger.Error(e);
+                LogError("Alliance {0} failing to load", path);
+                LogError(e);
             }
         }
 
@@ -3325,8 +3348,8 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading holiday {0}", id);
-                Logger.Error(e);
+                LogError("Error loading holiday {0}", id);
+                LogError(e);
             }
         }
 
@@ -3375,7 +3398,7 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading destinations", e);
+                LogError("Error loading destinations", e);
             }
 
             foreach (Airport airport in Airports.GetAllAirports())
@@ -3422,8 +3445,8 @@ namespace TheAirline.Infrastructure
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Error loading destination {0}", id);
-                    Logger.Error(e);
+                    LogError("Error loading destination {0}", id);
+                    LogError(e);
                 }
             }
         }
@@ -3966,7 +3989,7 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading scenario", e);
+                LogError("Error loading scenario", e);
             }
         }
 
@@ -4007,7 +4030,7 @@ namespace TheAirline.Infrastructure
             }
             catch (Exception e)
             {
-                Logger.Error("Error loading configurations", e);
+                LogError("Error loading configurations", e);
             }
         }
 
@@ -4204,7 +4227,7 @@ namespace TheAirline.Infrastructure
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("Error loading unions", e);
+                        LogError("Error loading unions", e);
                     }
                 }
         }
