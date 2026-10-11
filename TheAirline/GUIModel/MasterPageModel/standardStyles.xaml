@@ -4,8 +4,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:c="clr-namespace:TheAirline.GUIModel.CustomControlsModel.FilterableListView"
                     xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
-                    xmlns:Microsoft_Windows_Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
-                    xmlns:metroChart="clr-namespace:De.TorstenMandelkow.MetroChart;assembly=De.TorstenMandelkow.MetroChart">
+                    xmlns:Microsoft_Windows_Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2">
     <!--brushes-->
     <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#004A7F" />
     <SolidColorBrush x:Key="BackgroundTransparentBrush" Color="#004A7F" Opacity="0.95" />
@@ -1649,41 +1648,5 @@ and change the color of the selected bullet into a darker gray for better highli
         </StackPanel>
     </DataTemplate>
 
-    <!--charts-->
-    <Style x:Key="MinimalChartStyle" TargetType="metroChart:ChartBase">
-
-        <Setter Property="Height" Value="300" />
-        <Setter Property="Width" Value="300" />
-        <Setter Property="Background" Value="Transparent" />
-
-
-    </Style>
-    <Style TargetType="metroChart:ChartTitle" x:Key="ChartTitleStyle">
-        <Setter Property="FontSize" Value="16" />
-        <Setter Property="FontFamily" Value="Calibri" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="metroChart:ChartTitle">
-                    <StackPanel Margin="0 0 0 5">
-                        <TextBlock Text="{TemplateBinding Property=Title}" />
-                    </StackPanel>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-    <metroChart:ResourceDictionaryCollection x:Key="CustomColors">
-        <ResourceDictionary>
-            <SolidColorBrush x:Key="Brush1" Color="#FF5B9BD5" />
-        </ResourceDictionary>
-        <ResourceDictionary>
-            <SolidColorBrush x:Key="Brush2" Color="#FFED7D31" />
-        </ResourceDictionary>
-        <ResourceDictionary>
-            <SolidColorBrush x:Key="Brush3" Color="#FFA5A5A5" />
-        </ResourceDictionary>
-        <ResourceDictionary>
-            <SolidColorBrush x:Key="Brush4" Color="#FFFFC000" />
-        </ResourceDictionary>
-        <!-- add more values with a different key -->
-    </metroChart:ResourceDictionaryCollection>
+    
 </ResourceDictionary>

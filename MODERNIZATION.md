@@ -26,7 +26,7 @@ Status: **the project files are converted, but nothing has been built or compile
 | `NLog` 4.3 | 1 file | `NLog` current. Keep `NLog.config`. |
 | `Extended.Wpf.Toolkit` 2.9 | 1 XAML, 1 `.cs` | Current `Extended.Wpf.Toolkit` (Xceed, community edition). |
 | `Xceed.Wpf.AvalonDock*`, `Xceed.Wpf.DataGrid` loose DLLs | Referenced in the csproj, little or no direct use found | Remove the DLLs. Re-add `Dirkster.AvalonDock` only if a compile error shows it is needed. |
-| `De.TorstenMandelkow.MetroChart.dll` (checked-in binary) | 4 XAML files | Replace with LiveCharts2 or OxyPlot and rework those 4 charts. |
+| `De.TorstenMandelkow.MetroChart.dll` | Done: replaced by built-in `ColumnChart`, `PieChart` and `GaugeChart` controls (`GUIModel/CustomControlsModel/Charts`). The DLL is no longer referenced. |
 | `WpfLocalizeExtension` 2.3.2 + `XAMLMarkupExtensions` | 7 XAML files (`xmlns:lex`) | `WpfLocalizeExtension` current (supports modern .NET). Check the xmlns URI. |
 | `WPFTaskDialog` 1.7.1 | 3 `.cs` files, `Infrastructure/Services/TaskDialogService.cs` | `TaskDialog` from `Ookii.Dialogs.Wpf` or a plain `MessageBox`. |
 | `MathNet.Numerics` 3.11 | No source usage found | Remove, or bump if a build error says it is needed. |
@@ -82,7 +82,7 @@ Expected first-build errors, roughly in the order to fix them:
 1. **Prism and MEF**: `AirlineBootstrapper.cs` uses `MefBootstrapper`, which does not exist in Prism 9. `EnterpriseLoggerAdapter.cs` uses Enterprise Library. Both need rewriting. The 7 view models, `CloseGameEvent.cs` and `MainWindow.xaml.cs` also use Prism and may need small namespace fixes.
 2. **EF Core**: `Db/AirlineContext.cs` calls `UseSqlCe`, and the files in `Migrations/` use the 2016 preview API. Switch to `UseSqlite` and regenerate the migrations.
 3. **Dialogs**: `TaskDialogService.cs` and 2 view models use `WPFTaskDialog`, which may not run on modern .NET. `Ookii.Dialogs.Wpf` is the usual replacement.
-4. **Charts**: the checked-in MetroChart DLL is referenced as a .NET Framework binary. It may compile but fail at runtime. 4 XAML files use it.
+4. **Charts**: done, see above.
 5. **Package versions**: `Extended.Wpf.Toolkit`, `WpfLocalizeExtension` and `Prism.Wpf` use floating major versions chosen without access to NuGet. If one does not restore, pick the nearest published major version.
 
 Not yet checked: that the old `.sav` save files still load, and that the XAML renders the same under the modern WPF theme.

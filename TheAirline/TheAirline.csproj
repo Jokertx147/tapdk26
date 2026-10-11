@@ -44,13 +44,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Checked-in .NET Framework binary. Replace with a current chart library later. -->
-    <Reference Include="De.TorstenMandelkow.MetroChart">
-      <HintPath>..\Resource\De.TorstenMandelkow.MetroChart.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\TheAirline.Data\TheAirline.Data.csproj" />
   </ItemGroup>
 

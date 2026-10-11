@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:chart="clr-namespace:De.TorstenMandelkow.MetroChart;assembly=De.TorstenMandelkow.MetroChart"
+      xmlns:chart="clr-namespace:TheAirline.GUIModel.CustomControlsModel.Charts"
       xmlns:airline="clr-namespace:TheAirline.ViewModels.Airline"
       mc:Ignorable="d"
       d:DesignHeight="300" d:DesignWidth="300"
@@ -29,18 +29,7 @@
                 </WrapPanel>
                 <StackPanel>
 
-                    <chart:ClusteredColumnChart  Width="600" Height="400" SeriesSource="{Binding}"
-                                            Palette="{StaticResource CustomColors}" ChartTitleStyle="{StaticResource ChartTitleStyle}" Background="Transparent" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineFinances 1021'}" Margin="10 0 0 0" Foreground="White" Name="cccDOR">
-                        <chart:ClusteredColumnChart.SeriesTemplate>
-                            <DataTemplate>
-                                <chart:ChartSeries
-			                                SeriesTitle="{Binding Path=DisplayName}"
-                                            DisplayMember="Key"
-                                            ValueMember="Value"
-                                            ItemsSource="{Binding Path=Items}" />
-                            </DataTemplate>
-                        </chart:ClusteredColumnChart.SeriesTemplate>
-                    </chart:ClusteredColumnChart>
+                    <chart:ColumnChart Width="600" Height="400" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineFinances 1021'}" Margin="10 0 0 0" Foreground="White" Name="cccDOR" />
 
                 </StackPanel>
             </StackPanel>

@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-       xmlns:chart="clr-namespace:De.TorstenMandelkow.MetroChart;assembly=De.TorstenMandelkow.MetroChart" 
+       xmlns:chart="clr-namespace:TheAirline.GUIModel.CustomControlsModel.Charts" 
       Name="pageAirportDemand"
       mc:Ignorable="d"
       d:DesignHeight="300" d:DesignWidth="300"
@@ -248,54 +248,10 @@
 
             </WrapPanel>
             <WrapPanel>
-            <chart:PieChart Name="pcGates" HorizontalAlignment="Left"
-        Style="{StaticResource MinimalChartStyle}" 
-        ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="White" ChartTitleStyle="{StaticResource ChartTitleStyle}"
-                            Palette="{StaticResource CustomColors}">
-                <chart:PieChart.Series>
-                    <chart:ChartSeries
-                SeriesTitle="Gates"
-                DisplayMember="Key"
-                ValueMember="Value"
-                ItemsSource="{Binding}" />
-                </chart:PieChart.Series>
-            </chart:PieChart>
-                <chart:ClusteredColumnChart  Width="300" Height="300" SeriesSource="{Binding}"
-                                            Palette="{StaticResource CustomColors}" ChartTitleStyle="{StaticResource ChartTitleStyle}" Background="Transparent" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" Name="cccDemand">
-                    <chart:ClusteredColumnChart.SeriesTemplate>
-                        <DataTemplate>
-                            <chart:ChartSeries
-			                                SeriesTitle="{Binding Path=DisplayName}"
-                                            DisplayMember="Key"
-                                            ValueMember="Value"
-                                            ItemsSource="{Binding Path=Items}" />
-                        </DataTemplate>
-                    </chart:ClusteredColumnChart.SeriesTemplate>
-                </chart:ClusteredColumnChart>
-                <chart:PieChart Name="pcSeats" HorizontalAlignment="Left"
-        Style="{StaticResource MinimalChartStyle}" 
-        ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Foreground="White" ChartTitleStyle="{StaticResource ChartTitleStyle}" Margin="10 0 0 0"
-                            Palette="{StaticResource CustomColors}">
-                    <chart:PieChart.Series>
-                        <chart:ChartSeries
-                SeriesTitle="Gates"
-                DisplayMember="Key"
-                ValueMember="Value"
-                ItemsSource="{Binding}" />
-                    </chart:PieChart.Series>
-                </chart:PieChart>
-                <chart:PieChart Name="pcDemand" HorizontalAlignment="Left"
-        Style="{StaticResource MinimalChartStyle}" 
-        ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Foreground="White" ChartTitleStyle="{StaticResource ChartTitleStyle}" Margin="10 0 0 0"
-                            Palette="{StaticResource CustomColors}">
-                    <chart:PieChart.Series>
-                        <chart:ChartSeries
-                SeriesTitle="Gates"
-                DisplayMember="Key"
-                ValueMember="Value"
-                ItemsSource="{Binding}" />
-                    </chart:PieChart.Series>
-                </chart:PieChart>
+            <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="White" Name="pcGates" />
+                <chart:ColumnChart Width="300" Height="300" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" Name="cccDemand" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Margin="10 0 0 0" Foreground="White" Name="pcSeats" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" Name="pcDemand" />
             </WrapPanel>
         </StackPanel>
         </Grid>
