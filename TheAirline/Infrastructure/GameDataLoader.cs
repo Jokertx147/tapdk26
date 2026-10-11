@@ -32,6 +32,13 @@ namespace TheAirline.Infrastructure
                     throw new System.InvalidOperationException("Loading the game data failed: " + Setup.SetupError.Message,
                         Setup.SetupError);
                 }
+                StartupLog.Write(string.Format(
+                    "Game data loaded: {0} airports, {1} airlines, {2} airliner types, {3} standard airliner configurations, {4} airliner facilities",
+                    Models.Airports.Airports.GetAllAirports().Count,
+                    Models.Airlines.Airlines.GetAllAirlines().Count,
+                    Models.Airliners.AirlinerTypes.GetAllTypes().Count,
+                    Configurations.GetConfigurations(Configuration.ConfigurationType.Airliner).Count,
+                    Models.Airliners.AirlinerFacilities.GetFacilities(Models.Airliners.AirlinerFacility.FacilityType.Seat).Count));
                 _loaded = true;
             }
             finally
