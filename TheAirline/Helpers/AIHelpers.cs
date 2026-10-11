@@ -2126,8 +2126,8 @@ namespace TheAirline.Helpers
                 Airlines.GetAllAirlines()
                         .Where(a => a != airline && (!a.IsSubsidiary || ((SubsidiaryAirline) a).Airline != airline));
 
-            const int bestscore = 0;
-            Airline bestAirline;
+            int bestscore = 0;
+            Airline bestAirline = null;
 
             foreach (Airline tAirline in airlines)
             {
@@ -2135,6 +2135,7 @@ namespace TheAirline.Helpers
 
                 if (score > bestscore)
                 {
+                    bestscore = score;
                     bestAirline = tAirline;
                 }
             }

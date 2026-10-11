@@ -18,7 +18,7 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- Lets old .NET Framework only packages and DLLs restore; warnings point at the ones to replace. -->
     <AssetTargetFallback>$(AssetTargetFallback);net48;net472;net461;net45;net40</AssetTargetFallback>
-    <NoWarn>$(NoWarn);NU1701;MSB3277</NoWarn>
+    <NoWarn>$(NoWarn);NU1701;MSB3277;CS8981;CA1416</NoWarn>
   </PropertyGroup>
 
   <!-- Source files the old project never compiled. They were stale copies and old EF6 migrations. -->

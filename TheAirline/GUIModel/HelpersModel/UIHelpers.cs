@@ -489,7 +489,7 @@
                         {
                             meCast.Pause();
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                         }
                     }
@@ -515,7 +515,7 @@
                     {
                         meCast.Play();
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                 }

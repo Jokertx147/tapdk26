@@ -35,8 +35,6 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         private int Zoom;
         private List<Airport> AirportsList;
         private List<Route> RoutesList;
-        private GeoCoordinate ZoomCoordinates;
-        private Boolean ShowingAirports;
         //shows the pop up for an airport
         public static void ShowPopUp(Airport airport)
         {
@@ -94,7 +92,6 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         public PopUpMap(List<Airport> airports)
             : this(ImageSize * 3)
         {
-            this.ShowingAirports = true;
             this.AirportsList = airports;
 
             PrepareWorldMap();
