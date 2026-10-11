@@ -34,7 +34,13 @@ namespace TheAirline.Helpers
         {
             string fileName = AppSettings.GetCommonApplicationDataPath() + "\\saves\\" + file + ".sav";
 
+            StartupLog.Write("LoadGame: reading " + fileName + " (" + (File.Exists(fileName) ? new FileInfo(fileName).Length / 1024 + " KB" : "missing") + ")");
             var deserializedSaveObject = FileSerializer.Deserialize<SaveObject>(fileName);
+            StartupLog.Write("LoadGame: file read, " + (deserializedSaveObject == null ? "NOTHING could be read" : "restoring the game"));
+            if (deserializedSaveObject == null)
+            {
+                throw new InvalidDataException("The save file could not be read, see startup.log");
+            }
 
             /*
           
@@ -55,6 +61,7 @@ namespace TheAirline.Helpers
            version = deserializedSaveObject.saveversionnumber;
            */
             //Parrarel for loading the game
+            StartupLog.Write("LoadGame: restoring lists");
             Parallel.Invoke(
                 () =>
                     {
@@ -197,6 +204,7 @@ namespace TheAirline.Helpers
                         }
                     }); //close parallel.invoke
 
+            StartupLog.Write("LoadGame: lists restored");
             //for 0.3.9.2 and the issue with no saved facilities on a route classes
             IEnumerable<RouteClassConfiguration> emptyRouteClassesFacilities =
                 Configurations.GetConfigurations(Configuration.ConfigurationType.Routeclasses)
@@ -208,7 +216,9 @@ namespace TheAirline.Helpers
             }
 
 
+            StartupLog.Write("LoadGame: running SetupLoadedGame");
             Setup.SetupLoadedGame();
+            StartupLog.Write("LoadGame: SetupLoadedGame done");
             //Maybe this helps? But i doubt this is the best way
             Action action = () =>
                 {
@@ -222,20 +232,24 @@ namespace TheAirline.Helpers
                 };
 
 
+            StartupLog.Write("LoadGame: creating pilots");
             //create some pilots for the game
             int pilotsPool = 100*Airlines.GetAllAirlines().Count;
             GeneralHelpers.CreatePilots(pilotsPool);
             int instructorsPool = 75*Airlines.GetAllAirlines().Count;
             GeneralHelpers.CreateInstructors(instructorsPool);
 
+            StartupLog.Write("LoadGame: creating start up airliners");
             //creates some airliners for the game
             AirlinerHelpers.CreateStartUpAirliners();
 
+            StartupLog.Write("LoadGame: starting the game paused");
             //Start the game paused
             GameObjectWorker.GetInstance().StartPaused();
 
             //Task is needed this unlocks the game agian.
             Task.Factory.StartNew(action);
+            StartupLog.Write("LoadGame: finished");
         }
 
         public static void SaveGame(string name)
@@ -243,6 +257,7 @@ namespace TheAirline.Helpers
             var sw = new Stopwatch();
             sw.Start();
 
+            StartupLog.Write("SaveGame: " + name + " start");
             var so = new SaveObject();
             Parallel.Invoke(
                 () =>
@@ -332,7 +347,9 @@ namespace TheAirline.Helpers
 
             string fileName = AppSettings.GetCommonApplicationDataPath() + "\\saves\\" + name + ".sav";
 
+            StartupLog.Write("SaveGame: collected the data in " + sw.ElapsedMilliseconds + " ms, writing " + fileName);
             FileSerializer.Serialize(fileName, so);
+            StartupLog.Write("SaveGame: written, " + (File.Exists(fileName) ? new FileInfo(fileName).Length / 1024 + " KB" : "NO FILE"));
 
             sw.Stop();
             Console.WriteLine(@"Saving: {0} ms", sw.ElapsedMilliseconds);
@@ -527,6 +544,7 @@ namespace TheAirline.Helpers
             catch (Exception err)
             {
                 Console.WriteLine(err.ToString());
+                StartupLog.Write("Reading the save failed: " + err);
             }
 
             finally
@@ -565,6 +583,7 @@ namespace TheAirline.Helpers
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
+                StartupLog.Write("Writing the save failed: " + e);
             }
             finally
             {

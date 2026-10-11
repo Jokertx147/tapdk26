@@ -20,15 +20,31 @@ namespace TheAirline.ViewModels.Game
             _regionManager = regionManager;
             _taskDialog = taskDialog;
             NavigateCommand = new DelegateCommand<Uri>(Navigate);
+            LoadGameCommand = new DelegateCommand(LoadGame);
             ExitCommand = new DelegateCommand<Window>(ExitGame);
         }
 
         public DelegateCommand<Uri> NavigateCommand { get; }
         public DelegateCommand<Window> ExitCommand { get; }
+        public DelegateCommand LoadGameCommand { get; }
         public Uri NewGameUri => new Uri("/PageStartData", UriKind.Relative);
         public Uri LoadGameUri => new Uri("/PageLoadGame", UriKind.Relative);
         public Uri SettingsUri => new Uri("/PageSettings", UriKind.Relative);
         public Uri CreditsUri => new Uri("/PageCredits", UriKind.Relative);
+
+        // the load screen is one of the older Page screens, shown over the whole window
+        private void LoadGame()
+        {
+            try
+            {
+                Infrastructure.GameDataLoader.EnsureLoaded();
+                GUIModel.HelpersModel.PageNavigator.NavigateTo(new GUIModel.PagesModel.OptionsPageModel.PageLoadGame());
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Could not open the load screen:\n" + e, "TheAirline");
+            }
+        }
 
         private void Navigate(Uri view)
         {

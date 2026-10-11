@@ -67,8 +67,7 @@
         <Button Style="{StaticResource StartMenuButtonStyle}" Content="New Scenario" Margin="0 5 0 0" IsEnabled="False" />
         <Button Margin="0 5 0 0"
                 Content="{lex:Loc PageFrontMenu_201_name}"
-                Style="{StaticResource StartMenuButtonStyle}" Command="{Binding NavigateCommand}"
-                CommandParameter="{Binding LoadGameUri}" />
+                Style="{StaticResource StartMenuButtonStyle}" Command="{Binding LoadGameCommand}" />
         <Button Margin="0 5 0 0"
                 Content="{lex:Loc PageFrontMenu_202_name}"
                 Style="{StaticResource StartMenuButtonStyle}" Command="{Binding NavigateCommand}"

@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using TheAirline.GraphicsModel.UserControlModel.MessageBoxModel;
@@ -61,11 +62,9 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         private void btnLoadGame_Click(object sender, RoutedEventArgs e)
         {
+            // the wait for the running game to stop happens on the background thread below; spinning here would
+            // block the UI thread, and the game worker may need the UI thread to finish
             GameObjectWorker.GetInstance().Cancel();
-
-            while (GameObjectWorker.GetInstance().IsBusy())
-            {
-            }
 
             var file = (string)lbSaves.SelectedItem;
 
@@ -80,13 +79,41 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
                 {
                     var scLoading = UIHelpers.FindChild<SplashControl>(this, "scLoading");
 
+                    try
+                    {
+                        // the game data (airports, airliners, countries ...) must be loaded before a save can be restored
+                        TheAirline.Infrastructure.GameDataLoader.EnsureLoaded();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Could not load the game data:\n" + ex, "TheAirline");
+                        return;
+                    }
+
                     scLoading.Visibility = Visibility.Visible;
 
                     var bgWorker = new BackgroundWorker();
-                    bgWorker.DoWork += (s, x) => { SerializedLoadSaveHelpers.LoadGame(file); };
+                    bgWorker.DoWork += (s, x) =>
+                    {
+                        TheAirline.Infrastructure.StartupLog.Write("Load: waiting for the running game to stop");
+                        var waited = System.Diagnostics.Stopwatch.StartNew();
+                        while (GameObjectWorker.GetInstance().IsBusy() && waited.Elapsed < TimeSpan.FromSeconds(30))
+                        {
+                            System.Threading.Thread.Sleep(50);
+                        }
+                        TheAirline.Infrastructure.StartupLog.Write("Load: game stopped after " + waited.ElapsedMilliseconds + " ms, loading");
+                        SerializedLoadSaveHelpers.LoadGame(file);
+                    };
                     bgWorker.RunWorkerCompleted += (s, x) =>
                     {
                         scLoading.Visibility = Visibility.Collapsed;
+
+                        if (x.Error != null)
+                        {
+                            TheAirline.Infrastructure.StartupLog.Write("Load failed: " + x.Error);
+                            MessageBox.Show("Loading the game failed:\n" + x.Error, "TheAirline");
+                            return;
+                        }
 
                         HolidayYear.Clear();
 
