@@ -1728,8 +1728,7 @@ namespace TheAirline.Helpers
 
                             if (fAirliner == null)
                             {
-                                if ((Countries.GetCountryFromTailNumber(airliner.Value.Key.TailNumber)?.Name)
-                                    != airline.Profile.Country.Name)
+                                if (AirlineHelpers.NeedsNewRegistration(airline, airliner.Value.Key.TailNumber))
                                 {
                                     airliner.Value.Key.TailNumber =
                                         airline.Profile.Country.TailNumbers.GetNextTailNumber(airline);

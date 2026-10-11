@@ -200,8 +200,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
                         foreach (AirlinerMVVM airliner in selectedAirliners)
                         {
-                            if ((Countries.GetCountryFromTailNumber(airliner.Airliner.TailNumber)?.Name)
-                                != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
+                            if (AirlineHelpers.NeedsNewRegistration(GameObject.GetInstance().HumanAirline, airliner.Airliner.TailNumber))
                             {
                                 airliner.Airliner.TailNumber =
                                     GameObject.GetInstance()

@@ -155,13 +155,35 @@ namespace TheAirline.Helpers
             return fAirliner;
         }
 
+        //returns if an airliner has to be registered again for an airline: when it is registered in another country,
+        //or (US airlines) when it does not carry this airline's own N###XX registration
+        public static bool NeedsNewRegistration(Airline airline, string tailNumber)
+        {
+            Country home = airline?.Profile?.Country;
+
+            if (home?.TailNumbers == null)
+            {
+                return false;
+            }
+
+            if (home.TailNumberFormat != null && home.TailNumberFormat.StartsWith("N-")
+                && !string.IsNullOrWhiteSpace(airline.Profile.IATACode))
+            {
+                return tailNumber == null
+                       || !System.Text.RegularExpressions.Regex.IsMatch(
+                           tailNumber,
+                           "^N\\d{3,}" + System.Text.RegularExpressions.Regex.Escape(airline.Profile.IATACode) + "$");
+            }
+
+            return Countries.GetCountryFromTailNumber(tailNumber)?.Name != home.Name;
+        }
+
         public static FleetAirliner AddAirliner(Airline airline, Airliner airliner, Airport airport, Boolean leased)
         {
             // a missing home country falls back to the home airport's country
             airline.Profile.Country ??= airport?.Profile.Country;
 
-            if (airline.Profile.Country?.TailNumbers != null
-                && (Countries.GetCountryFromTailNumber(airliner.TailNumber)?.Name) != airline.Profile.Country.Name)
+            if (NeedsNewRegistration(airline, airliner.TailNumber))
             {
                 lock (airline.Profile.Country.TailNumbers)
                 {
