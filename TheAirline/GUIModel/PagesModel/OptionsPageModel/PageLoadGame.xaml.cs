@@ -44,6 +44,11 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         #region Methods
 
+        private void btnBack_Click(object sender, RoutedEventArgs e)
+        {
+            GUIModel.HelpersModel.PageNavigator.MainWindow.ShowStartMenu();
+        }
+
         private void btnDeleteGame_Click(object sender, RoutedEventArgs e)
         {
             var file = (string)lbSaves.SelectedItem;

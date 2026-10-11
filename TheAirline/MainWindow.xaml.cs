@@ -107,6 +107,11 @@ namespace TheAirline
 
         public void NavigateTo(Page page)
         {
+            // pages without their own background would show the start menu through them
+            if (page.Background == null)
+            {
+                page.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xC4, 0xC4, 0xC6));
+            }
             frmContent.Visibility = Visibility.Visible;
             frmContent.Navigate(page);
             if (frmContent.NavigationService.CanGoBack)

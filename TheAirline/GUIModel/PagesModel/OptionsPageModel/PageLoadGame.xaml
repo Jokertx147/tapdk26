@@ -10,7 +10,7 @@
       Title="PageLoadGame">
 
 
-    <StackPanel HorizontalAlignment="Center">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock
             Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageLoadSaveGame 1000'}"
             VerticalAlignment="Bottom" Style="{StaticResource SmallHeaderStyle}" />
@@ -38,6 +38,7 @@
                     </Style>
                 </Button.Style>
             </Button>
+            <Button Content="Back" Margin="5 0 0 0" Click="btnBack_Click" Style="{StaticResource StandardButtonStyle}" />
             <Button
                 Content="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageLoadSaveGame 202'}"
                 Margin="5 0 0 0" Click="btnDeleteGame_Click">
