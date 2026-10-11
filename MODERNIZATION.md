@@ -30,7 +30,7 @@ Status: **the project files are converted, but nothing has been built or compile
 | `WpfLocalizeExtension` 2.3.2 + `XAMLMarkupExtensions` | 7 XAML files (`xmlns:lex`) | `WpfLocalizeExtension` current (supports modern .NET). Check the xmlns URI. |
 | `WPFTaskDialog` 1.7.1 | 3 `.cs` files, `Infrastructure/Services/TaskDialogService.cs` | `TaskDialog` from `Ookii.Dialogs.Wpf` or a plain `MessageBox`. |
 | `MathNet.Numerics` 3.11 | No source usage found | Remove, or bump if a build error says it is needed. |
-| `Microsoft.Expression.Interactions`, `System.Windows.Interactivity` (loose DLLs) | No usage found | If needed, `Microsoft.Xaml.Behaviors.Wpf`. |
+| `Microsoft.Expression.Interactions`, `System.Windows.Interactivity` (loose DLLs) | 2 XAML files (`PageSettings`, `PageStartData`) bind events to commands through the `expression/2010/interactivity` namespace | Done: `Microsoft.Xaml.Behaviors.Wpf`, with the namespace changed to `http://schemas.microsoft.com/xaml/behaviors`. |
 | `Moq` 4.2, `Ninject` 3.2 (tests) | `TheAirline.Tests` | Current `Moq`, `xunit` or `NUnit` (match what the tests use today). |
 | `BinaryFormatter` | `Helpers/SerializedLoadSaveHelpers.cs` (1 file, old save path) | Disabled by default since .NET 8 and removed from the runtime path in later versions. Retire it. See "Save files" below. |
 
@@ -86,3 +86,5 @@ Expected first-build errors, roughly in the order to fix them:
 5. **Package versions**: `Extended.Wpf.Toolkit`, `WpfLocalizeExtension` and `Prism.Wpf` use floating major versions chosen without access to NuGet. If one does not restore, pick the nearest published major version.
 
 Not yet checked: that the old `.sav` save files still load, and that the XAML renders the same under the modern WPF theme.
+
+First build on a Windows machine (.NET SDK 10.0.401): package restore succeeded, so the floating versions resolve. The XAML stage then failed on the old Blend `Interaction.Triggers` namespace in two pages, which is now fixed. `System.Configuration.ConfigurationManager` and `System.Drawing.Common` were removed from the project because the SDK already provides them. The C# compile errors listed above have not been seen yet.
