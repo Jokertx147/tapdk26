@@ -3,6 +3,13 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ ! -f "$SRC/TheAirline.exe" ]]; then
+  echo "TheAirline.exe is not in $SRC." >&2
+  echo "Run this script from the unpacked TheAirlineProject-Linux-Wine.tar.gz, not from the source repository." >&2
+  echo "The tarball is built by the 'Windows installer' GitHub workflow (Actions tab)." >&2
+  exit 1
+fi
+
 DEST="${XDG_DATA_HOME:-$HOME/.local/share}/theairlineproject/game"
 APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 
