@@ -478,11 +478,9 @@ namespace TheAirline.Models.Airlines
 
         public double GetAverageFleetAge()
         {
-            if (Fleet.Count > 0)
-            {
-                return Fleet.Average(f => f.Airliner.Age);
-            }
-            return 0;
+            // snapshot: airlines are simulated in parallel and the fleet can change while this is read
+            var ages = Fleet.ToList().Where(f => f != null && f.Airliner != null).Select(f => f.Airliner.Age).ToList();
+            return ages.Count > 0 ? ages.Average() : 0;
         }
 
         //returns total current value of fleet
@@ -490,7 +488,8 @@ namespace TheAirline.Models.Airlines
         //returns the average value of an airliner in the fleet
         public long GetAvgFleetValue()
         {
-            return GetFleetValue()/Fleet.Count();
+            var count = Fleet.Count();
+            return count == 0 ? 0 : GetFleetValue()/count;
         }
 
         public List<Airline> GetCodesharingAirlines()
