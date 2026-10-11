@@ -506,19 +506,49 @@ namespace TheAirline.Helpers
         #endregion
     }
 
+    /// <summary>
+    ///     Finds types by name while reading and writing a save. The game stores many values (nested enums, nested classes,
+    ///     closed generics such as Period of DateTime) inside serialization info with their runtime type, so a fixed list of
+    ///     known types cannot cover them all.
+    /// </summary>
+    public sealed class SaveTypeResolver : DataContractResolver
+    {
+        private readonly System.Xml.XmlDictionary _dictionary = new System.Xml.XmlDictionary();
+
+        public override bool TryResolveType(Type type, Type declaredType, DataContractResolver knownTypeResolver,
+            out System.Xml.XmlDictionaryString typeName, out System.Xml.XmlDictionaryString typeNamespace)
+        {
+            if (!knownTypeResolver.TryResolveType(type, declaredType, null, out typeName, out typeNamespace))
+            {
+                typeNamespace = _dictionary.Add(type.Assembly.FullName);
+                typeName = _dictionary.Add(type.FullName);
+            }
+
+            return true;
+        }
+
+        public override Type ResolveName(string typeName, string typeNamespace, Type declaredType,
+            DataContractResolver knownTypeResolver)
+        {
+            var type = knownTypeResolver.ResolveName(typeName, typeNamespace, declaredType, null);
+            if (type != null)
+            {
+                return type;
+            }
+
+            var assembly = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(typeNamespace));
+            return assembly.GetType(typeName);
+        }
+    }
+
     public static class FileSerializer
     {
         //BinaryFormatter is removed from modern .NET, so saves use DataContractSerializer.
-        //Every concrete [Serializable] type of the game is registered so polymorphic members (e.g. Airport subclasses) round-trip.
-        private static readonly List<Type> KnownTypes = typeof (FileSerializer).Assembly.GetTypes()
-            .Where(t => t.IsSerializable && !t.IsAbstract && !t.IsGenericTypeDefinition && !t.IsInterface && !t.IsEnum && !t.IsNested)
-            .ToList();
-
         private static DataContractSerializer CreateSerializer(Type type)
         {
             return new DataContractSerializer(type, new DataContractSerializerSettings
             {
-                KnownTypes = KnownTypes,
+                DataContractResolver = new SaveTypeResolver(),
                 MaxItemsInObjectGraph = int.MaxValue,
                 PreserveObjectReferences = true
             });
@@ -562,23 +592,20 @@ namespace TheAirline.Helpers
                 throw new ArgumentNullException(nameof(objectToSerialize));
             }
 
-            Stream stream = null;
+            // write to a temporary file and replace the save only when that worked, so a failed save never leaves
+            // an empty or half written file behind
+            var temp = filename + ".tmp";
 
             try
             {
-                stream = File.Open(filename, FileMode.Create);
+                using (var stream = File.Open(temp, FileMode.Create))
+                {
+                    var serializer = CreateSerializer(objectToSerialize.GetType());
 
-                var serializer = CreateSerializer(objectToSerialize.GetType());
+                    serializer.WriteObject(stream, objectToSerialize);
+                }
 
-                serializer.WriteObject(stream, objectToSerialize);
-
-                /*
-                 var serializer = new DataContractSerializer(objectToSerialize.GetType(), null, 
-        0x7FFF /*maxItemsInObjectGraph, */
-                // false /*ignoreExtensionDataObject*/, 
-                // true /*preserveObjectReferences : this is where the magic happens */, 
-                // null /*dataContractSurrogate*/);
-                //serializer.WriteObject(stream, objectToSerialize);
+                File.Copy(temp, filename, true);
             }
             catch (Exception e)
             {
@@ -587,7 +614,16 @@ namespace TheAirline.Helpers
             }
             finally
             {
-                stream?.Close();
+                try
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+                catch
+                {
+                }
             }
         }
 
