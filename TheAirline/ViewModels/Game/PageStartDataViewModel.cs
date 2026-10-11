@@ -136,7 +136,21 @@ namespace TheAirline.ViewModels.Game
                 parameters.Add("player", _player.Id);
             }
 
-            _regionManager.RequestNavigate("MainContentRegion", obj, parameters);
+            try
+            {
+                _regionManager.RequestNavigate("MainContentRegion", obj, result =>
+                {
+                    if (result.Success != true)
+                    {
+                        System.Windows.MessageBox.Show("Navigation to " + obj + " failed:\n" + result.Exception,
+                            "TheAirline");
+                    }
+                }, parameters);
+            }
+            catch (Exception e)
+            {
+                System.Windows.MessageBox.Show("Navigation to " + obj + " threw:\n" + e, "TheAirline");
+            }
         }
 
         private void UpdateRegions(Continent obj)

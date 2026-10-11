@@ -1,4 +1,6 @@
 ﻿using System;
+using Prism.Ioc;
+using TheAirline.ViewModels.Game;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -27,6 +29,12 @@ namespace TheAirline.Views.Game
     /// </summary>
     public partial class PageAirlineData
     {
+        public PageAirlineData()
+        {
+            InitializeComponent();
+            DataContext = ContainerLocator.Container.Resolve<PageAirlineDataViewModel>();
+        }
+
     //    #region Fields
 
     //    private readonly StartDataObject StartData;
