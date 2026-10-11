@@ -4,5 +4,5 @@
   <profile name="Monarch Airlines" iata="ZB" color="Black" country="130" CEO="Iain Rawlinson" mentality="Safe"
            market="Global" preferedairport="MAN">
   </profile>
-  <info real="True" from="1967" to="2199" />
+  <info real="True" from="1967" to="2017" />
 </airline>

@@ -4,5 +4,5 @@
   <profile name="Air Mekong" iata="P8" color="Black" country="170" CEO="Doan Quoc Viet" mentality="Safe"
            market="Global" preferedairport="SGN">
   </profile>
-  <info real="True" from="2009" to="2199" />
+  <info real="True" from="2009" to="2013" />
 </airline>

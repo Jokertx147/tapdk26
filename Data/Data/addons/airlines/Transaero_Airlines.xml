@@ -6,7 +6,7 @@
     <narrative
       narrative="Transaero Airlines is a Russian airline that has been operating since 1990 out of Moscow's Domodedovo International Airport. It operates a a fleet of 94 Boeing aircraft to over 150 primarily Eurasian destinations." />
   </profile>
-  <info real="True" from="1990" to="2099"></info>
+  <info real="True" from="1990" to="2015"></info>
   <startdata>
     <routes>
       <route destination1="DME" destination2="SVO" opened="1990" closed="2099"></route>

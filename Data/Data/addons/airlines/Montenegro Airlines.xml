@@ -3,7 +3,7 @@
 <profile name="Montenegro Airlines" iata="YM" color="DarkSlateBlue" country="249" CEO="Daliborka Pejović" mentality="Aggressive" market="Global" preferedairport="TGD">
   <narrative narrative="Montenegro Airlines is the flag carrier of Montenegro, headquartered in Podgorica. It operates scheduled services in Europe, as well as charter flights throughout Europe during the summer months. Its primary hub is Podgorica Airport, and a second base is maintained at Tivat Airport" />
 </profile>
-<info real="True" from="1994" to="2199"></info>
+<info real="True" from="1994" to="2020"></info>
 
 <startdata>
    <airliners>

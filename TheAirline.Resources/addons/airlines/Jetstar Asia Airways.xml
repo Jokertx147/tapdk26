@@ -4,5 +4,5 @@
   <profile name="Jetstar Asia Airways" iata="3K" color="Black" country="174" CEO="Barathan Pasupathi" mentality="Safe"
            market="Local" preferedairport="SIN">
   </profile>
-  <info real="True" from="2004" to="2199" />
+  <info real="True" from="2004" to="2025" />
 </airline>

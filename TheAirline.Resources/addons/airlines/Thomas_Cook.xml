@@ -5,7 +5,7 @@
            market="Global" preferedairport="MAN">
     <narrative narrative="Thomas Cook Airlines is a newly built airlines specificaly for charters." />
   </profile>
-  <info real="True" from="2008" to="2199" />
+  <info real="True" from="2008" to="2019" />
   <startdata>
     <airliners>
       <airliner type="Boeing 757-200" early="0" late="10"></airliner>

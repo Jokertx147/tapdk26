@@ -4,5 +4,5 @@
   <profile name="Air One" iata="AP" color="Black" country="141" CEO="Skúli Mogensen" mentality="Safe" market="Global"
            preferedairport="MXP">
   </profile>
-  <info real="True" from="1983" to="2199" />
+  <info real="True" from="1983" to="2014" />
 </airline>
