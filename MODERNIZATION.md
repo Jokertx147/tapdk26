@@ -140,3 +140,8 @@ Loading a save froze the game. Causes found by reading the code: `PageLoadGame` 
 - `AssemblyVersion` pinned to `2.0.0.0` so saves stay loadable across rebuilds.
 - `DataContractSerializer` rejects `ISerializable` types lacking `[Serializable]`; added it to `BaseModel`, `Country`, `SpecialContract*`, `OperatingData/Value`.
 - `AirportStatistics`: all access to `Stats` is now under `lock (Stats)`; airlines are simulated in `Parallel.ForEach` and shared airports were corrupted by concurrent `List.Add` (null entries, NRE in `AddStatisticsValue`).
+
+## Save format: GraphSerializer
+- DataContractSerializer cannot restore circular references through the game's `ISerializable` classes (a reference to an object that is still being built arrives as null, e.g. `FleetAirliner.Airliner`). Saves now use `Helpers/GraphSerializer.cs`: it copies the fields of the object graph (like BinaryFormatter did), creates all objects first and fills them afterwards. Gzip compressed, header `TAPGRAPH2`.
+- Dictionaries and sets are rebuilt last (hash codes depend on key fields). UI objects, delegates, threads are not saved.
+- Old DataContract saves cannot be read; start a new game and save again.

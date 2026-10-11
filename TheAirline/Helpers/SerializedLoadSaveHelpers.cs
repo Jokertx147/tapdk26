@@ -556,7 +556,7 @@ namespace TheAirline.Helpers
 
     public static class FileSerializer
     {
-        //BinaryFormatter is removed from modern .NET, so saves use DataContractSerializer.
+        //BinaryFormatter is removed from modern .NET, so saves use GraphSerializer (a field based graph serializer).
         private static DataContractSerializer CreateSerializer(Type type)
         {
             return new DataContractSerializer(type, new DataContractSerializerSettings
@@ -577,11 +577,7 @@ namespace TheAirline.Helpers
 
             try
             {
-                stream = File.Open(filename, FileMode.Open);
-
-                var serializer = CreateSerializer(typeof (T));
-
-                objectToSerialize = (T) serializer.ReadObject(stream);
+                objectToSerialize = GraphSerializer.Load<T>(filename);
             }
 
             catch (Exception err)
@@ -611,12 +607,7 @@ namespace TheAirline.Helpers
 
             try
             {
-                using (var stream = File.Open(temp, FileMode.Create))
-                {
-                    var serializer = CreateSerializer(objectToSerialize.GetType());
-
-                    serializer.WriteObject(stream, objectToSerialize);
-                }
+                GraphSerializer.Save(temp, objectToSerialize);
 
                 File.Copy(temp, filename, true);
             }
