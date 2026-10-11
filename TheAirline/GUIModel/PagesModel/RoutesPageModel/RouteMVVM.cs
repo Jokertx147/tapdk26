@@ -501,7 +501,8 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
             foreach (RouteFacility.FacilityType facType in Enum.GetValues(typeof(RouteFacility.FacilityType)))
             {
 
-                if (GameObject.GetInstance().GameTime.Year >= (int)facType)
+                if (GameObject.GetInstance().GameTime.Year >= (int)facType
+                    && !RouteFacilities.IsDiscontinued(facType, GameObject.GetInstance().GameTime.Year))
                 {
                     var facs = new List<RouteFacility>();
                     foreach (RouteFacility fac in RouteFacilities.GetFacilities(facType))

@@ -683,7 +683,8 @@ namespace TheAirline.ViewModels.Airline
 
             foreach (
                 AirlineFacility facility in
-                    AirlineFacilities.GetFacilities(f => f.FromYear <= GameObject.GetInstance().GameTime.Year)
+                    AirlineFacilities.GetFacilities(f => f.FromYear <= GameObject.GetInstance().GameTime.Year
+                                                         && !AirlineFacilities.IsDiscontinued(f, GameObject.GetInstance().GameTime.Year))
                         .OrderBy(f => f.Name))
             {
                 if (Airline.Facilities.Exists(f => f.Uid == facility.Uid) || Airline.IsHuman)

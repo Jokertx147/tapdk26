@@ -116,6 +116,14 @@ namespace TheAirline.Models.Airlines
             Facilities.Clear();
         }
 
+        //printed media (the inflight magazine and the newspaper service) is gone after this year
+        public const int PrintedMediaLastYear = 2020;
+
+        public static bool IsDiscontinued(AirlineFacility facility, int year)
+        {
+            return facility != null && year > PrintedMediaLastYear && (facility.Uid == "101" || facility.Uid == "102");
+        }
+
         //returns a facility
 
         //returns the list of facilities

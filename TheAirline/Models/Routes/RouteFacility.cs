@@ -138,6 +138,13 @@ namespace TheAirline.Models.Routes
             _facilities = new List<RouteFacility>();
         }
 
+        //magazines and newspapers on the flights are gone after 2020
+        public static bool IsDiscontinued(RouteFacility.FacilityType type, int year)
+        {
+            return year > AirlineFacilities.PrintedMediaLastYear
+                   && (type == RouteFacility.FacilityType.Magazines || type == RouteFacility.FacilityType.Newspapers);
+        }
+
         //returns all facilities
 
         //Return all facilities

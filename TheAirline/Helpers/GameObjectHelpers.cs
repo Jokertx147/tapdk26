@@ -1786,8 +1786,54 @@ namespace TheAirline.Helpers
             }
         }
 
+        //removes the inflight magazine, the newspaper service and the magazines and newspapers on routes after 2020
+        private static void RemovePrintedMedia()
+        {
+            int year = GameObject.GetInstance().GameTime.Year;
+
+            if (year <= AirlineFacilities.PrintedMediaLastYear)
+            {
+                return;
+            }
+
+            foreach (Airline airline in Airlines.GetAllAirlines().ToList())
+            {
+                airline.Facilities.RemoveAll(f => AirlineFacilities.IsDiscontinued(f, year));
+
+                foreach (Route route in airline.Routes.ToList())
+                {
+                    var passengerRoute = route as PassengerRoute;
+
+                    if (passengerRoute == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (RouteAirlinerClass routeClass in passengerRoute.Classes)
+                    {
+                        foreach (RouteFacility.FacilityType type in new[]
+                        {
+                            RouteFacility.FacilityType.Magazines,
+                            RouteFacility.FacilityType.Newspapers
+                        })
+                        {
+                            RouteFacility current = routeClass.GetFacility(type);
+                            RouteFacility none = RouteFacilities.GetBasicFacility(type);
+
+                            if (current != null && none != null && current != none)
+                            {
+                                routeClass.AddFacility(none);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private static void DoMonthlyUpdate()
         {
+            RemovePrintedMedia();
+
             //Clear stats when it on monthly
             if (Infrastructure.Settings.GetInstance().ClearStats == Intervals.Monthly)
             {
