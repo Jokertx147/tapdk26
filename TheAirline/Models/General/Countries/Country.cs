@@ -8,6 +8,7 @@ using TheAirline.Infrastructure;
 namespace TheAirline.Models.General.Countries
 {
     //the class for a country
+    [System.Serializable]
     public class Country : BaseUnit
     {
         #region Constructors and Destructors
@@ -76,7 +77,7 @@ namespace TheAirline.Models.General.Countries
         //#endregion
     }
 
-    [Serializable]
+    [System.Serializable]
     //the class for a country which is a territory of another country
     public class TerritoryCountry : Country
     {

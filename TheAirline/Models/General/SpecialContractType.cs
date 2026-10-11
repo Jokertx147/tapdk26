@@ -10,6 +10,7 @@ namespace TheAirline.Models.General
 {
     /*the class for a special contract type*/
 
+    [System.Serializable]
     public class SpecialContractType : BaseModel
     {
         public SpecialContractType(string name, string text, long payment, bool asbonus, long penalty, bool isfixeddate)
@@ -76,6 +77,7 @@ namespace TheAirline.Models.General
 
     /*the class for a contract route*/
 
+    [System.Serializable]
     public class SpecialContractRoute : BaseModel
     {
         public SpecialContractRoute(Airport destination1, Airport destination2, long passengers, Route.RouteType routetype, bool bothways)
@@ -120,6 +122,7 @@ namespace TheAirline.Models.General
 
     /*the class for a requirement for a contract*/
 
+    [System.Serializable]
     public class ContractRequirement : BaseModel
     {
         public enum RequirementType

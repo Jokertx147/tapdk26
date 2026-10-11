@@ -9,6 +9,7 @@ namespace TheAirline.Models.General
 {
     /*the class for a speial contract*/
 
+    [System.Serializable]
     public class SpecialContract : BaseModel
     {
         public SpecialContract(SpecialContractType type, DateTime date, Airline airline)

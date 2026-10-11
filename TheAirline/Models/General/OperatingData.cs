@@ -6,6 +6,7 @@ using TheAirline.Infrastructure;
 namespace TheAirline.Models.General
 {
     //the class for operating data
+    [System.Serializable]
     public class OperatingData : BaseModel
     {
         public OperatingData()
@@ -50,6 +51,7 @@ namespace TheAirline.Models.General
     }
 
     //the class for an operating value
+    [System.Serializable]
     public class OperatingValue : BaseModel
     {
         public OperatingValue(string type, int year, int month, double value)

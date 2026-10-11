@@ -7,6 +7,7 @@ using TheAirline.Infrastructure;
 
 namespace TheAirline.Models
 {
+    [System.Serializable]
     public abstract class BaseModel : ISerializable
     {
         protected readonly int Version;

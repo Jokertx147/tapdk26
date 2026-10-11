@@ -138,3 +138,4 @@ Loading a save froze the game. Causes found by reading the code: `PageLoadGame` 
 - `SaveTypeResolver` writes assembly name + type full name as the contract namespace/name so all game types round-trip without a known-type list; built-in types use the default resolver.
 - `Airline.Fees` is lazily created (the airline UI dereferenced a null `Fees`).
 - `AssemblyVersion` pinned to `2.0.0.0` so saves stay loadable across rebuilds.
+- `DataContractSerializer` rejects `ISerializable` types lacking `[Serializable]`; added it to `BaseModel`, `Country`, `SpecialContract*`, `OperatingData/Value`.
