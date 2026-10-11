@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -246,16 +246,39 @@ namespace TheAirline.ViewModels.Game
             Ceo = airline.Profile.CEO;
             Narrative = airline.Profile.Narrative;
 
-            Countries = new ObservableCollection<Country>(airline.Profile.Countries);
-            SelectedCountry = airline.Profile.Country ?? Countries.FirstOrDefault();
+            // clear the old selections first, otherwise the combo boxes keep showing the previous airline's values
+            _updating = true;
+            try
+            {
+                SelectedCountry = null;
+                SelectedAirport = null;
 
-            Airports = new ObservableCollection<Airport>(Models.Airports.Airports.GetAllActiveAirports()
-                .Where(a => airline.Profile.Countries.Contains(a.Profile.Country))
-                .OrderBy(a => a.Profile.Name));
+                var countries = airline.Profile.Countries ?? new List<Country>();
+                Countries = new ObservableCollection<Country>(countries);
 
-            SelectedAirport = Airports.Contains(airline.Profile.PreferedAirport)
-                ? airline.Profile.PreferedAirport
-                : Airports.FirstOrDefault();
+                Airports = new ObservableCollection<Airport>(Models.Airports.Airports.GetAllActiveAirports()
+                    .Where(a => a.Profile.Country != null && countries.Any(c => c.Uid == a.Profile.Country.Uid))
+                    .OrderBy(a => a.Profile.Name));
+
+                var homeUid = airline.Profile.Country?.Uid;
+                SelectedCountry = Countries.FirstOrDefault(c => c.Uid == homeUid) ?? Countries.FirstOrDefault();
+
+                var preferred = airline.Profile.PreferedAirport;
+                SelectedAirport = (preferred == null ? null : Airports.FirstOrDefault(a => a.Profile.IATACode == preferred.Profile.IATACode))
+                                  ?? Airports.FirstOrDefault();
+            }
+            finally
+            {
+                _updating = false;
+            }
+
+            if (SelectedAirport != null)
+            {
+                SelectedTimeZone = SelectedAirport.Profile.TimeZone;
+            }
+
+            RaisePropertyChanged(nameof(SelectedCountry));
+            RaisePropertyChanged(nameof(SelectedAirport));
         }
 
         private void CreateGame()
