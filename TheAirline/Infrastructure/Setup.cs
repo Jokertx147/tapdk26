@@ -1845,6 +1845,25 @@ namespace TheAirline.Infrastructure
                 }
         }
 
+        private static readonly System.Collections.Generic.HashSet<string> MissingFacilities = new System.Collections.Generic.HashSet<string>();
+
+        // some configuration files point at a facility id that does not exist for that type (for example Video="100",
+        // which is an audio facility); use the basic facility of the type instead
+        private static AirlinerFacility GetFacilityOrBasic(AirlinerFacility.FacilityType type, string uid)
+        {
+            var facility = AirlinerFacilities.GetFacility(type, uid);
+            if (facility != null)
+            {
+                return facility;
+            }
+
+            if (MissingFacilities.Add(type + uid))
+            {
+                StartupLog.Write("Data note: no " + type + " facility with id " + uid + ", using the basic " + type + " facility");
+            }
+            return AirlinerFacilities.GetBasicFacility(type);
+        }
+
         private static AirlinerConfiguration LoadAirlinerConfiguration(XmlElement element)
         {
             string name = element.Attributes["name"].Value;
@@ -1874,7 +1893,7 @@ namespace TheAirline.Infrastructure
                             continue;
                         }
 
-                        classConf.AddFacility(AirlinerFacilities.GetFacility(facType, facUid));
+                        classConf.AddFacility(GetFacilityOrBasic(facType, facUid));
                     }
 
                     configuration.AddClassConfiguration(classConf);
@@ -2006,7 +2025,7 @@ namespace TheAirline.Infrastructure
                             continue;
                         }
 
-                                classConf.AddFacility(AirlinerFacilities.GetFacility(facType, facUid));
+                                classConf.AddFacility(GetFacilityOrBasic(facType, facUid));
                             }
 
                             configuration.AddClassConfiguration(classConf);
