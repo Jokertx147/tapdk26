@@ -12,6 +12,7 @@ using TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel;
 using TheAirline.GUIModel.HelpersModel;
 using TheAirline.Helpers;
 using TheAirline.Models.Airliners;
+using TheAirline.Models.Airlines;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
 using TheAirline.Models.General.Finances;
@@ -243,6 +244,49 @@ namespace TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel
                     MoveSeats(left, right, move);
                 };
             }
+        }
+
+        //lets the player change the registration of an airliner; the box starts with the next registration for the airline
+        private void btnEditRegistration_Click(object sender, RoutedEventArgs e)
+        {
+            var airliner = Airliner.Airliner.Airliner;
+            var airline = Airliner.Airliner.Airliner.Airline;
+
+            string suggestion = airline.Profile.Country?.TailNumbers != null
+                ? airline.Profile.Country.TailNumbers.GetNextTailNumber(airline)
+                : airliner.TailNumber;
+
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Registration (suggested: " + suggestion + ")",
+                Margin = new Thickness(0, 0, 0, 5)
+            });
+
+            var txtTail = new TextBox { Text = suggestion, Width = 200, HorizontalAlignment = HorizontalAlignment.Left };
+            panel.Children.Add(txtTail);
+
+            if (PopUpSingleElement.ShowPopUp("Change registration", panel) != PopUpSingleElement.ButtonSelected.OK)
+            {
+                return;
+            }
+
+            string tail = (txtTail.Text ?? "").Trim().ToUpperInvariant();
+
+            if (tail.Length < 2 || tail.Length > 10 || !tail.All(c => char.IsLetterOrDigit(c) || c == '-'))
+            {
+                MessageBox.Show("A registration is 2 to 10 letters, digits or dashes, for example N001G4.", "Registration");
+                return;
+            }
+
+            if (tail != airliner.TailNumber && Airliners.GetAllAirliners().Any(a => a != airliner && a.TailNumber == tail))
+            {
+                MessageBox.Show("Another airliner already has the registration " + tail + ".", "Registration");
+                return;
+            }
+
+            airliner.TailNumber = tail;
+            txtRegistration.Text = tail;
         }
 
         private void btnAddClass_Click(object sender, RoutedEventArgs e)
