@@ -219,7 +219,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                             != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
                         {
                             this.Airliner.TailNumber =
-                                GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber();
+                                GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline);
                         }
 
                         GameObject.GetInstance()

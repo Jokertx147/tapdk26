@@ -1732,7 +1732,7 @@ namespace TheAirline.Helpers
                                     != airline.Profile.Country.Name)
                                 {
                                     airliner.Value.Key.TailNumber =
-                                        airline.Profile.Country.TailNumbers.GetNextTailNumber();
+                                        airline.Profile.Country.TailNumbers.GetNextTailNumber(airline);
                                 }
 
                                 if (airliner.Value.Value) //loan

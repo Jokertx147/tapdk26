@@ -258,7 +258,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                 var airliner = new Airliner(
                     id.ToString(),
                     type.Type,
-                    GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(),
+                    GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline),
                     deliveryDate);
 
                 EngineType engine = EngineTypes.GetStandardEngineType(type.Type,GameObject.GetInstance().GameTime.Year);

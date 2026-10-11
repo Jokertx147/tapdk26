@@ -233,7 +233,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                                             id.ToString(),
                                             order.Type,
                                             GameObject.GetInstance()
-                                                .HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(),
+                                                .HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance()
+                                                .HumanAirline),
                                             deliveryDate);
 
                                         airliner.ClearAirlinerClasses();
@@ -436,7 +437,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                     var airliner = new Airliner(
                         id.ToString(),
                         order.Type,
-                        GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(),
+                        GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline),
                         deliveryDate);
                     Models.Airliners.Airliners.AddAirliner(airliner);
 

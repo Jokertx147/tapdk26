@@ -114,7 +114,7 @@ namespace TheAirline.Helpers
         {
             Guid id = Guid.NewGuid();
 
-            var airliner = new Airliner(id.ToString(), type, airline.Profile.Country.TailNumbers.GetNextTailNumber(), GameObject.GetInstance().GameTime);
+            var airliner = new Airliner(id.ToString(), type, airline.Profile.Country.TailNumbers.GetNextTailNumber(airline), GameObject.GetInstance().GameTime);
             Airliners.AddAirliner(airliner);
 
             var fAirliner = new FleetAirliner(FleetAirliner.PurchasedType.Bought, GameObject.GetInstance().GameTime, airline, airliner, airline.Airports[0]);
@@ -165,7 +165,7 @@ namespace TheAirline.Helpers
             {
                 lock (airline.Profile.Country.TailNumbers)
                 {
-                    airliner.TailNumber = airline.Profile.Country.TailNumbers.GetNextTailNumber();
+                    airliner.TailNumber = airline.Profile.Country.TailNumbers.GetNextTailNumber(airline);
                 }
             }
 
@@ -191,7 +191,7 @@ namespace TheAirline.Helpers
             {
                 for (int i = 0; i < order.Amount; i++)
                 {
-                    var airliner = new Airliner(id.ToString(), order.Type, airline.Profile.Country.TailNumbers.GetNextTailNumber(), deliveryDate);
+                    var airliner = new Airliner(id.ToString(), order.Type, airline.Profile.Country.TailNumbers.GetNextTailNumber(airline), deliveryDate);
                     Airliners.AddAirliner(airliner);
 
                     const FleetAirliner.PurchasedType pType = FleetAirliner.PurchasedType.Bought;

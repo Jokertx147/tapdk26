@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
+using TheAirline.Models.Airlines;
 
 namespace TheAirline.Models.General.Countries
 {
@@ -25,6 +27,13 @@ namespace TheAirline.Models.General.Countries
         //returns if a tail number matches the country
         public bool IsMatch(string tailNumber)
         {
+            // US registrations look like N001G4 (no dash), the older data format is N-0001
+            if (IsUnitedStates && tailNumber != null && tailNumber.Length >= 2 && tailNumber[0] == 'N'
+                && !tailNumber.Contains("-") && tailNumber.Skip(1).All(char.IsLetterOrDigit))
+            {
+                return true;
+            }
+
             if (tailNumber == null || Country?.TailNumberFormat == null
                 || !Country.TailNumberFormat.Contains("-") || !tailNumber.Contains("-"))
             {
@@ -92,6 +101,55 @@ namespace TheAirline.Models.General.Countries
                 postfix += "A";
 
             return lastCode.Substring(0, chars - i - 1) + replaceChar + postfix;
+        }
+
+        private bool IsUnitedStates
+        {
+            get { return Country?.TailNumberFormat != null && Country.TailNumberFormat.StartsWith("N-"); }
+        }
+
+        private static readonly object UsTailLock = new object();
+        private static readonly System.Collections.Generic.Dictionary<string, int> UsTailCounters =
+            new System.Collections.Generic.Dictionary<string, int>();
+
+        //returns the next tail number for an airline: US airlines get N + a 3 digit number + the airline's two letter code (N001G4, N002G4 ...)
+        public string GetNextTailNumber(Airline airline)
+        {
+            string code = airline?.Profile?.IATACode;
+
+            if (!IsUnitedStates || string.IsNullOrWhiteSpace(code))
+            {
+                return GetNextTailNumber();
+            }
+
+            lock (UsTailLock)
+            {
+                var pattern = new System.Text.RegularExpressions.Regex("^N(\\d{3,})" + System.Text.RegularExpressions.Regex.Escape(code) + "$");
+
+                int highest;
+                UsTailCounters.TryGetValue(code, out highest);
+
+                foreach (string tail in TheAirline.Models.Airliners.Airliners.GetAllAirliners().Select(a => a.TailNumber)
+                    .Concat(airline.Fleet.ToList().Select(f => f.Airliner?.TailNumber)))
+                {
+                    if (tail == null)
+                    {
+                        continue;
+                    }
+
+                    var match = pattern.Match(tail);
+                    int number;
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out number) && number > highest)
+                    {
+                        highest = number;
+                    }
+                }
+
+                highest++;
+                UsTailCounters[code] = highest;
+
+                return "N" + highest.ToString("000", CultureInfo.InvariantCulture) + code;
+            }
         }
 
         //returns the next tail number

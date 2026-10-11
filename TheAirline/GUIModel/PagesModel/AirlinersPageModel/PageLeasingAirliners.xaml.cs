@@ -205,7 +205,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                             {
                                 airliner.Airliner.TailNumber =
                                     GameObject.GetInstance()
-                                        .HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber();
+                                        .HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance()
+                                        .HumanAirline);
                             }
 
                             GameObject.GetInstance()

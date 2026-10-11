@@ -879,7 +879,7 @@ namespace TheAirline.Infrastructure
                                         var nAirliner = new Airliner(
                                             id.ToString(),
                                             startRoute.Type,
-                                            airline.Profile.Country.TailNumbers.GetNextTailNumber(),
+                                            airline.Profile.Country.TailNumbers.GetNextTailNumber(airline),
                                             GameObject.GetInstance().GameTime);
                                         Airliners.AddAirliner(nAirliner);
 

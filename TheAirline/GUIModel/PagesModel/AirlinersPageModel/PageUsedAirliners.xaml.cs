@@ -350,7 +350,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                             if (homeCountry?.TailNumbers != null
                                 && (tailCountry == null || tailCountry.Name != homeCountry.Name))
                             {
-                                airliner.Airliner.TailNumber = homeCountry.TailNumbers.GetNextTailNumber();
+                                airliner.Airliner.TailNumber = homeCountry.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline);
                             }
 
                             GameObject.GetInstance()
