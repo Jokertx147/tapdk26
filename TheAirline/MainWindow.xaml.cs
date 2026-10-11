@@ -64,6 +64,25 @@ namespace TheAirline
                 regionManager.RequestNavigate("MainContentRegion", mainPage);
             };
 
+            PreviewKeyDown += async (o, args) =>
+            {
+                if (args.Key != System.Windows.Input.Key.Space || args.IsRepeat || GameObject.GetInstance().HumanAirline == null)
+                {
+                    return;
+                }
+
+                // let the space bar type normally in text boxes
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase
+                    || System.Windows.Input.Keyboard.FocusedElement is PasswordBox
+                    || (System.Windows.Input.Keyboard.FocusedElement is ComboBox combo && combo.IsEditable))
+                {
+                    return;
+                }
+
+                args.Handled = true;
+                await TogglePause();
+            };
+
             Closing += async (o, args) =>
             {
                 state.SaveState();
@@ -102,6 +121,47 @@ namespace TheAirline
             };
 
             //Setup.SetupGame();
+        }
+
+        private bool _togglingPause;
+
+        //pauses a running game or resumes a paused one (the space bar)
+        private async System.Threading.Tasks.Task TogglePause()
+        {
+            if (_togglingPause)
+            {
+                return;
+            }
+
+            _togglingPause = true;
+            try
+            {
+                var worker = GameObjectWorker.GetInstance();
+
+                if (worker.IsPaused)
+                {
+                    worker.Restart();
+                }
+                else
+                {
+                    // ask the simulation to stop and wait without blocking the window thread
+                    worker.RequestCancel();
+                    for (int i = 0; i < 300 && worker.IsBusy(); i++)
+                    {
+                        await System.Threading.Tasks.Task.Delay(50);
+                    }
+
+                    worker.IsPaused = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                StartupLog.Write("Pause toggle failed: " + ex);
+            }
+            finally
+            {
+                _togglingPause = false;
+            }
         }
 
         private bool _autosaveDone;
