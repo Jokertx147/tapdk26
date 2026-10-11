@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows;
 using Prism.Ioc;
@@ -38,7 +38,19 @@ namespace TheAirline
                 }
                 else
                 {
-                    MessageBox.Show(SaveEditor.SetMoney(e.Args[1], amount), "Edit save");
+                    string result;
+                    try
+                    {
+                        result = SaveEditor.SetMoney(e.Args[1], amount);
+                    }
+                    catch (Exception ex)
+                    {
+                        result = "Editing the save failed: " + ex.Message;
+                        StartupLog.Write("set-money failed: " + ex);
+                    }
+
+                    StartupLog.Write("set-money: " + result);
+                    MessageBox.Show(result, "Edit save");
                 }
 
                 Shutdown();
