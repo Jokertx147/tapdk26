@@ -265,7 +265,33 @@
 
     <capacity passengers="440" cockpitcrew="2" cabincrew="9" maxclasses="3" />
 
-    <produced from="1994" to="2015" rate="46" />
+    <produced from="1994" to="2018" rate="46" />
+
+  </airliner>
+
+  <airliner manufacturer="Airbus" name="Airbus A330-800neo" image="Airbus A330-200" price="32000000">
+
+    <type body="WideBody" rangetype="LongRange" engine="Jet" />
+
+    <specs wingspan="64.00" length="58.82" range="13900" speed="871" fuelcapacity="139090" consumption="0.023"
+           runwaylengthrequired="2400" />
+
+    <capacity passengers="406" cockpitcrew="2" cabincrew="8" maxclasses="3" />
+
+    <produced from="2020" to="2199" rate="30" />
+
+  </airliner>
+
+  <airliner manufacturer="Airbus" name="Airbus A330-900neo" image="A333" price="35100000">
+
+    <type body="WideBody" rangetype="LongRange" engine="Jet" />
+
+    <specs wingspan="64.00" length="63.66" range="12130" speed="871" fuelcapacity="139090" consumption="0.017"
+           runwaylengthrequired="2500" />
+
+    <capacity passengers="440" cockpitcrew="2" cabincrew="9" maxclasses="3" />
+
+    <produced from="2018" to="2199" rate="46" />
 
   </airliner>
 

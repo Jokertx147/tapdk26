@@ -7,8 +7,8 @@
   <airlinerimage image="A319" types="Airbus A319-100,Airbus A319neo"></airlinerimage>
   <airlinerimage image="A320" types="Airbus A320-100,Airbus A320-200,Airbus A320neo"></airlinerimage>
   <airlinerimage image="A321" types="Airbus A321-100,Airbus A321-200,Airbus A321neo"></airlinerimage>
-  <airlinerimage image="A330" types="Airbus A330-200,Airbus A330-200F,Airbus A330-300"></airlinerimage>
-   <airlinerimage image="A333" types="Airbus A330-300"></airlinerimage>
+  <airlinerimage image="A330" types="Airbus A330-200,Airbus A330-200F,Airbus A330-300,Airbus A330-800neo"></airlinerimage>
+   <airlinerimage image="A333" types="Airbus A330-300,Airbus A330-900neo"></airlinerimage>
   <airlinerimage image="A340" types="Airbus A340-300,Airbus A340-500"></airlinerimage>
    <airlinerimage image="A342" types="Airbus A340-200,Airbus A340-600"></airlinerimage>
    <airlinerimage image="A380" types="Airbus A380-800"></airlinerimage>
