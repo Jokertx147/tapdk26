@@ -25,6 +25,12 @@ namespace TheAirline.Models.General.Countries
         //returns if a tail number matches the country
         public bool IsMatch(string tailNumber)
         {
+            if (tailNumber == null || Country?.TailNumberFormat == null
+                || !Country.TailNumberFormat.Contains("-") || !tailNumber.Contains("-"))
+            {
+                return false;
+            }
+
             var countryID = Country.TailNumberFormat.Split('-')[0];
             var numberFormat = Country.TailNumberFormat.Split('-')[1];
 

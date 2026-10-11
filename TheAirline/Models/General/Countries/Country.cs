@@ -212,7 +212,7 @@ namespace TheAirline.Models.General.Countries
         //returns a country with a specific tailnumberformat
         public static Country GetCountryFromTailNumber(string tailnumber)
         {
-            var country = GetCountries().Find(co => co.TailNumbers.IsMatch(tailnumber));
+            var country = GetCountries().Find(co => co.TailNumbers != null && co.TailNumbers.IsMatch(tailnumber));
 
             return country;
         }

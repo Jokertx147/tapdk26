@@ -345,13 +345,12 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                         
                         foreach (AirlinerMVVM airliner in selectedAirliners)
                         {
+                            var homeCountry = GameObject.GetInstance().HumanAirline.Profile.Country;
                             var tailCountry = Countries.GetCountryFromTailNumber(airliner.Airliner.TailNumber);
-                            if (tailCountry == null
-                                || tailCountry.Name != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
+                            if (homeCountry?.TailNumbers != null
+                                && (tailCountry == null || tailCountry.Name != homeCountry.Name))
                             {
-                                airliner.Airliner.TailNumber =
-                                    GameObject.GetInstance()
-                                        .HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber();
+                                airliner.Airliner.TailNumber = homeCountry.TailNumbers.GetNextTailNumber();
                             }
 
                             GameObject.GetInstance()
