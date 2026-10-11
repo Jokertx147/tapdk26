@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.IO;
+using Microsoft.EntityFrameworkCore;
+
 using TheAirline.Models.General;
 using TheAirline.Models.General.Countries;
 using Settings = TheAirline.Models.General.Settings;
@@ -17,7 +19,7 @@ namespace TheAirline.Db
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlCe(@"Data Source=Airline.sdf");
+            optionsBuilder.UseSqlite("Data Source=" + Path.Combine(TheAirline.Infrastructure.AppSettings.GetCommonApplicationDataPath(), "Airline.db"));
         }
     }
 }

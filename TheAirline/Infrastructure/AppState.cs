@@ -12,7 +12,15 @@ namespace TheAirline.Infrastructure
 
         public AppState()
         {
-            _settings = Context.Settings.First();
+            //SQLite replaces SQL Server Compact: create the database and a default settings row on first run
+            Context.Database.EnsureCreated();
+            _settings = Context.Settings.FirstOrDefault();
+            if (_settings == null)
+            {
+                _settings = new Models.General.Settings();
+                Context.Settings.Add(_settings);
+                Context.SaveChanges();
+            }
 
             var dict = LocalizeDictionary.Instance;
             dict.IncludeInvariantCulture = false;

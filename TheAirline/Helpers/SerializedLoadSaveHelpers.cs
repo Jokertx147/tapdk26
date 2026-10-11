@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using TheAirline.Helpers.Workers;
 using TheAirline.Infrastructure;
@@ -491,6 +491,22 @@ namespace TheAirline.Helpers
 
     public static class FileSerializer
     {
+        //BinaryFormatter is removed from modern .NET, so saves use DataContractSerializer.
+        //Every concrete [Serializable] type of the game is registered so polymorphic members (e.g. Airport subclasses) round-trip.
+        private static readonly List<Type> KnownTypes = typeof (FileSerializer).Assembly.GetTypes()
+            .Where(t => t.IsSerializable && !t.IsAbstract && !t.IsGenericTypeDefinition && !t.IsInterface && !t.IsEnum && !t.IsNested)
+            .ToList();
+
+        private static DataContractSerializer CreateSerializer(Type type)
+        {
+            return new DataContractSerializer(type, new DataContractSerializerSettings
+            {
+                KnownTypes = KnownTypes,
+                MaxItemsInObjectGraph = int.MaxValue,
+                PreserveObjectReferences = true
+            });
+        }
+
         #region Public Methods and Operators
 
         public static T Deserialize<T>(string filename)
@@ -503,9 +519,9 @@ namespace TheAirline.Helpers
             {
                 stream = File.Open(filename, FileMode.Open);
 
-                var bFormatter = new BinaryFormatter();
+                var serializer = CreateSerializer(typeof (T));
 
-                objectToSerialize = (T) bFormatter.Deserialize(stream);
+                objectToSerialize = (T) serializer.ReadObject(stream);
             }
 
             catch (Exception err)
@@ -534,9 +550,9 @@ namespace TheAirline.Helpers
             {
                 stream = File.Open(filename, FileMode.Create);
 
-                var bFormatter = new BinaryFormatter();
+                var serializer = CreateSerializer(objectToSerialize.GetType());
 
-                bFormatter.Serialize(stream, objectToSerialize);
+                serializer.WriteObject(stream, objectToSerialize);
 
                 /*
                  var serializer = new DataContractSerializer(objectToSerialize.GetType(), null, 
