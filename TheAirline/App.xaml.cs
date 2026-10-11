@@ -21,6 +21,13 @@ namespace TheAirline
         //Command line tool: TheAirline.exe --set-money <save name without .sav> <amount>
         protected override void OnStartup(StartupEventArgs e)
         {
+            StartupLog.Write("---- start ----");
+            DispatcherUnhandledException += (s, args) => StartupLog.Write("UI thread exception: " + args.Exception);
+            AppDomain.CurrentDomain.UnhandledException +=
+                (s, args) => StartupLog.Write("Unhandled exception: " + args.ExceptionObject);
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException +=
+                (s, args) => StartupLog.Write("Unobserved task exception: " + args.Exception);
+
             if (e.Args.Length >= 1 && e.Args[0] == "--set-money")
             {
                 double amount;

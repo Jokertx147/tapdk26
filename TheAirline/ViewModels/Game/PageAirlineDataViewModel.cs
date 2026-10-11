@@ -304,9 +304,11 @@ namespace TheAirline.ViewModels.Game
                         return;
                     }
 
+                    StartupLog.Write("Game created, opening the airline page");
                     PageNavigator.NavigateTo(
                         new Views.Airline.PageAirline(GameObject.GetInstance().HumanAirline));
                     PageNavigator.ClearNavigator();
+                    StartupLog.Write("Airline page opened");
                 }, TaskScheduler.FromCurrentSynchronizationContext());
         }
     }

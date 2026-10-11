@@ -44,6 +44,7 @@ namespace TheAirline.Helpers
 
         public static void CreateGame(StartDataObject startData)
         {
+            Infrastructure.StartupLog.Write("CreateGame: start");
             if (startData.RealData)
             {
                 List<Airline> notRealAirlines = Airlines.GetAirlines(a => !a.Profile.IsReal && a != startData.Airline);
@@ -90,6 +91,7 @@ namespace TheAirline.Helpers
             }
             // AppSettings.GetInstance().resetCurrencyFormat();
 
+            Infrastructure.StartupLog.Write("CreateGame: human airline set");
             Airport airport = startData.Airport;
 
             AirportHelpers.RentGates(airport, airline, AirportContract.ContractType.Full,
@@ -138,9 +140,12 @@ namespace TheAirline.Helpers
                 }
             }
 
+            Infrastructure.StartupLog.Write("CreateGame: region filtering done, creating airline demand");
             PassengerHelpers.CreateAirlineDestinationDemand();
+            Infrastructure.StartupLog.Write("CreateGame: airline demand done, creating start up airliners");
 
             AirlinerHelpers.CreateStartUpAirliners();
+            Infrastructure.StartupLog.Write("CreateGame: start up airliners done, setting up opponents");
 
             if (startData.RandomOpponents || startData.Opponents == null)
             {
@@ -150,6 +155,7 @@ namespace TheAirline.Helpers
             {
                 Setup.SetupMainGame(startData.Opponents, startData.NumberOfOpponents);
             }
+            Infrastructure.StartupLog.Write("CreateGame: opponents done");
             List<Airport> heliports = Airports.GetAirports(a => a.Runways.Exists(r => r.Type == Runway.RunwayType.Helipad));
 
             if (startData.InternationalAirports)
@@ -255,10 +261,12 @@ namespace TheAirline.Helpers
                 }
             }
 
+            Infrastructure.StartupLog.Write("CreateGame: airports reduced, creating holidays");
             airline.MarketFocus = startData.Focus;
 
             GeneralHelpers.CreateHolidays(GameObject.GetInstance().GameTime.Year);
 
+            Infrastructure.StartupLog.Write("CreateGame: starting game worker");
             if (startData.IsPaused)
             {
                 GameObjectWorker.GetInstance().StartPaused();
@@ -290,6 +298,7 @@ namespace TheAirline.Helpers
                     swPax.Stop();
                 };
 
+            Infrastructure.StartupLog.Write("CreateGame: finished, demand creation continues in background");
             Task.Factory.StartNew(action);
             //Task.Run(action);
             //Task t2 = Task.Factory.StartNew(action, "passengers");
