@@ -115,16 +115,36 @@ namespace TheAirline.Models.Airports
         #region Properties
 
         [Versioning("destinationcargo")]
-        private List<DestinationDemand> DestinationCargo { get; } = new List<DestinationDemand>();
+        private List<DestinationDemand> _destinationCargo;
+        private List<DestinationDemand> DestinationCargo
+        {
+            get { return _destinationCargo ?? (_destinationCargo = new List<DestinationDemand>()); }
+            set { _destinationCargo = value; }
+        }
 
         [Versioning("cargostatistics")]
-        private Dictionary<Airport, double> DestinationCargoStatistics { get; } = new Dictionary<Airport, double>();
+        private Dictionary<Airport, double> _destinationCargoStatistics;
+        private Dictionary<Airport, double> DestinationCargoStatistics
+        {
+            get { return _destinationCargoStatistics ?? (_destinationCargoStatistics = new Dictionary<Airport, double>()); }
+            set { _destinationCargoStatistics = value; }
+        }
 
         [Versioning("passengerstatistics")]
-        private Dictionary<Airport, long> DestinationPassengerStatistics { get; } = new Dictionary<Airport, long>();
+        private Dictionary<Airport, long> _destinationPassengerStatistics;
+        private Dictionary<Airport, long> DestinationPassengerStatistics
+        {
+            get { return _destinationPassengerStatistics ?? (_destinationPassengerStatistics = new Dictionary<Airport, long>()); }
+            set { _destinationPassengerStatistics = value; }
+        }
 
         [Versioning("destinationpassengers")]
-        private List<DestinationDemand> DestinationPassengers { get; } = new List<DestinationDemand>();
+        private List<DestinationDemand> _destinationPassengers;
+        private List<DestinationDemand> DestinationPassengers
+        {
+            get { return _destinationPassengers ?? (_destinationPassengers = new List<DestinationDemand>()); }
+            set { _destinationPassengers = value; }
+        }
 
         #endregion
 

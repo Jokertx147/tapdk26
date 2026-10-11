@@ -94,7 +94,8 @@ namespace TheAirline.Models
                                           BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
             }
 
-            if (backingField != null)
+            // never replace the default value (set by the field initialiser) with null
+            if (backingField != null && value != null)
             {
                 backingField.SetValue(this, value);
             }
