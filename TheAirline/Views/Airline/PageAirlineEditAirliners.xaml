@@ -8,16 +8,61 @@
       d:DesignHeight="300" d:DesignWidth="300"
       Title="PageAirlineEditAirliners">
     <Page.Resources>
+        <DataTemplate x:Key="AirlinerClassItem">
+            <TextBlock Text="{Binding Converter={StaticResource TextUnderscoreConverter}}" VerticalAlignment="Bottom" />
+        </DataTemplate>
         <DataTemplate x:Key="ClassItem">
             <Border Style="{StaticResource RoundedBorderStyle}">
                 <StackPanel Width="350">
-                    <TextBlock Text="{Binding Type,Converter={StaticResource TextUnderscoreConverter}}"
-                               FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+                    <Grid>
+                        <TextBlock Text="{Binding Type,Converter={StaticResource TextUnderscoreConverter}}"
+                                   FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+                        <Button HorizontalAlignment="Right" Tag="{Binding}" Content="Remove"
+                                Click="btnRemoveClass_Click"
+                                ToolTip="Remove this class; its seats go back to economy">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="EconomyClass">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
                     <WrapPanel Margin="0 5 0 0">
                         <TextBlock
                             Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageFleetAirlinerInformation 1000'}"
                             VerticalAlignment="Bottom" Width="100" />
-                        <TextBlock Text="{Binding Seating}" VerticalAlignment="Bottom" />
+                        <TextBlock Text="{Binding Seating}" VerticalAlignment="Bottom">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ChangeableSeats}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <WrapPanel>
+                            <WrapPanel.Style>
+                                <Style TargetType="WrapPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ChangeableSeats}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </WrapPanel.Style>
+                            <Slider Width="200" Maximum="{Binding MaxSeats}" Tag="{Binding}" Minimum="1"
+                                    Value="{Binding Seating,Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="1"
+                                    ValueChanged="slSeats_ValueChanged" Name="slSeats" VerticalAlignment="Bottom" />
+                            <TextBlock Text="{Binding Value,ElementName=slSeats}" VerticalAlignment="Bottom"
+                                       Margin="5 0 0 0" />
+                        </WrapPanel>
                     </WrapPanel>
                     <ListBox BorderThickness="0" Background="Transparent"
                              ItemContainerStyleSelector="{StaticResource ListBoxItemStyleSelector}"
@@ -77,10 +122,14 @@
                 <StackPanel>
                     <TextBlock VerticalAlignment="Bottom" Style="{StaticResource SmallHeaderStyle}"
                                Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineEditAirliners 1001'}" />
+                    <TextBlock Text="Drag the dividers to move seats between classes" Margin="0 5 0 3" />
+                    <Grid Name="cabinStrip" Height="44" Margin="0 0 0 6" HorizontalAlignment="Left" Width="720" />
                     <ListBox Style="{StaticResource VerticalListBoxStyle}" Background="Transparent"
                              ItemsSource="{Binding Classes,ElementName=pageAirlineEditAirliners}" Name="lbClasses"
                              ItemTemplate="{DynamicResource ClassItem}" />
                     <WrapPanel Margin="0 5 0 0">
+                        <Button Click="btnAddClass_Click" Style="{StaticResource StandardButtonStyle}"
+                                Content="Add class" Margin="0 0 5 0" />
                         <Button Click="btnLoadConfiguration_Click" Style="{StaticResource StandardButtonStyle}"
                                 Content="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineEditAirliners 201'}" />
                         <Button Click="btnApply_Click" Style="{StaticResource StandardButtonStyle}"

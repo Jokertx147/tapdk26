@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.ComponentModel;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using TheAirline.GraphicsModel.UserControlModel.MessageBoxModel;
 using TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel;
@@ -11,7 +13,7 @@ using TheAirline.GUIModel.HelpersModel;
 using TheAirline.Infrastructure;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
-using AirlinerClassMVVM = TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel.AirlinerClassMVVM;
+using TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel;
 
 namespace TheAirline.Views.Airline
 {
@@ -91,6 +93,10 @@ namespace TheAirline.Views.Airline
 
         private void PageAirlineEditAirliners_Loaded(object sender, RoutedEventArgs e)
         {
+            Classes.CollectionChanged -= Classes_CollectionChanged;
+            Classes.CollectionChanged += Classes_CollectionChanged;
+            BuildCabinStrip();
+
             var tab_main = UIHelpers.FindChild<TabControl>(Tag as Page, "tcMenu");
 
             if (tab_main != null)
@@ -101,6 +107,325 @@ namespace TheAirline.Views.Airline
                 matchingItem.Visibility = Visibility.Visible;
 
                 matchingItem.IsSelected = true;
+            }
+        }
+
+        private readonly List<Action> _stripRefreshers = new List<Action>();
+
+        private void Classes_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            BuildCabinStrip();
+        }
+
+        private static int CabinOrder(AirlinerClass.ClassType type)
+        {
+            switch (type)
+            {
+                case AirlinerClass.ClassType.FirstClass:
+                    return 0;
+                case AirlinerClass.ClassType.BusinessClass:
+                    return 1;
+                default:
+                    return 2;
+            }
+        }
+
+        private static Brush CabinBrush(AirlinerClass.ClassType type)
+        {
+            switch (type)
+            {
+                case AirlinerClass.ClassType.FirstClass:
+                    return new SolidColorBrush(Color.FromRgb(0xB8, 0x86, 0x0B));
+                case AirlinerClass.ClassType.BusinessClass:
+                    return new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x6B));
+                default:
+                    return new SolidColorBrush(Color.FromRgb(0x3A, 0x6E, 0xA5));
+            }
+        }
+
+        //moves seats between two classes by changing the seat counts the sliders use (economy follows automatically)
+        private static void MoveSeats(AirlinerClassMVVM left, AirlinerClassMVVM right, int move)
+        {
+            bool rightIsEconomy = right.Type == AirlinerClass.ClassType.EconomyClass;
+
+            if (rightIsEconomy)
+            {
+                int target = Math.Max(1, Math.Min(left.MaxSeats, left.Seating + move));
+                if (target != left.Seating)
+                {
+                    left.Seating = target;
+                }
+                return;
+            }
+
+            // both are changeable classes: lower the shrinking one first so the limits stay valid
+            move = Math.Max(1 - left.Seating, Math.Min(right.Seating - 1, move));
+            if (move > 0)
+            {
+                right.Seating -= move;
+                left.Seating += move;
+            }
+            else if (move < 0)
+            {
+                left.Seating += move;
+                right.Seating -= move;
+            }
+        }
+
+        //builds the cabin strip: the classes as blocks, first class left, economy right, with draggable dividers
+        private void BuildCabinStrip()
+        {
+            foreach (Action undo in _stripRefreshers)
+            {
+                undo();
+            }
+            _stripRefreshers.Clear();
+
+            cabinStrip.Children.Clear();
+            cabinStrip.ColumnDefinitions.Clear();
+
+            List<AirlinerClassMVVM> ordered = Classes.OrderBy(c => CabinOrder(c.Type)).ToList();
+            if (ordered.Count == 0)
+            {
+                return;
+            }
+
+            var labels = new List<TextBlock>();
+            var columns = new List<ColumnDefinition>();
+
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                var column = new ColumnDefinition { MinWidth = 24 };
+                cabinStrip.ColumnDefinitions.Add(column);
+                columns.Add(column);
+
+                var label = new TextBlock
+                {
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    TextAlignment = TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+                labels.Add(label);
+
+                var block = new Border
+                {
+                    Background = CabinBrush(ordered[i].Type),
+                    Child = label,
+                    BorderBrush = Brushes.White,
+                    BorderThickness = new Thickness(1)
+                };
+                Grid.SetColumn(block, i * 2);
+                cabinStrip.Children.Add(block);
+
+                if (i < ordered.Count - 1)
+                {
+                    cabinStrip.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+                }
+            }
+
+            Action refresh = () =>
+            {
+                for (int i = 0; i < ordered.Count; i++)
+                {
+                    labels[i].Text = string.Format("{0} {1}", ordered[i].Type.ToString().Replace("Class", ""), ordered[i].Seating);
+                    columns[i].Width = new GridLength(Math.Max(1, ordered[i].Seating), GridUnitType.Star);
+                }
+            };
+
+            foreach (AirlinerClassMVVM aClass in ordered)
+            {
+                AirlinerClassMVVM captured = aClass;
+                PropertyChangedEventHandler handler = (o, args) =>
+                {
+                    if (args.PropertyName == "Seating")
+                    {
+                        refresh();
+                    }
+                };
+                captured.PropertyChanged += handler;
+                _stripRefreshers.Add(() => captured.PropertyChanged -= handler);
+            }
+
+            refresh();
+
+            for (int i = 0; i < ordered.Count - 1; i++)
+            {
+                AirlinerClassMVVM left = ordered[i];
+                AirlinerClassMVVM right = ordered[i + 1];
+
+                bool canMove = left.ChangeableSeats
+                               && (right.Type == AirlinerClass.ClassType.EconomyClass || right.ChangeableSeats);
+
+                var thumb = new Thumb
+                {
+                    Background = canMove ? Brushes.White : Brushes.Gray,
+                    IsEnabled = canMove,
+                    Cursor = System.Windows.Input.Cursors.SizeWE,
+                    ToolTip = canMove ? "Drag to move seats" : "These seats cannot be changed"
+                };
+                Grid.SetColumn(thumb, i * 2 + 1);
+                cabinStrip.Children.Add(thumb);
+
+                double carried = 0;
+                thumb.DragDelta += (o, args) =>
+                {
+                    double total = ordered.Sum(c => c.Seating);
+                    double usable = Math.Max(1, cabinStrip.ActualWidth - 8 * (ordered.Count - 1));
+
+                    carried += args.HorizontalChange * total / usable;
+                    int move = (int)Math.Truncate(carried);
+                    if (move == 0)
+                    {
+                        return;
+                    }
+
+                    carried -= move;
+                    MoveSeats(left, right, move);
+                };
+            }
+        }
+
+        private void btnAddClass_Click(object sender, RoutedEventArgs e)
+        {
+            var cbClasses = new ComboBox();
+            cbClasses.SetResourceReference(StyleProperty, "ComboBoxTransparentStyle");
+            cbClasses.ItemTemplate = Resources["AirlinerClassItem"] as DataTemplate;
+            cbClasses.HorizontalAlignment = HorizontalAlignment.Left;
+            cbClasses.Width = 200;
+
+            foreach (AirlinerClass.ClassType type in Enum.GetValues(typeof(AirlinerClass.ClassType)))
+            {
+                Boolean hasClass = Classes.ToList().Exists(c => c.Type == type);
+                if ((int)type <= GameObject.GetInstance().GameTime.Year && !hasClass)
+                {
+                    cbClasses.Items.Add(type);
+                }
+            }
+
+            cbClasses.SelectedIndex = 0;
+
+            AirlinerClassMVVM tClass = Classes[0];
+
+            if (PopUpSingleElement.ShowPopUp(
+                Translator.GetInstance().GetString("PageFleetAirlinerInformation", "1011"),
+                cbClasses) == PopUpSingleElement.ButtonSelected.OK && cbClasses.SelectedItem != null)
+            {
+                int maxseats;
+
+                int maxCapacity;
+
+                if (Airliner.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger)
+                {
+                    maxCapacity = ((AirlinerPassengerType)Airliner.Airliner.Type).MaxSeatingCapacity;
+                }
+                else
+                {
+                    maxCapacity = tClass.RegularSeatingCapacity;
+                }
+
+                if (Classes.Count == 2)
+                {
+                    maxseats = maxCapacity - 1 - Classes[1].RegularSeatingCapacity;
+                }
+                else
+                {
+                    maxseats = maxCapacity - 1;
+                }
+
+                var aClass = new AirlinerClassMVVM(
+                    new AirlinerClass((AirlinerClass.ClassType)cbClasses.SelectedItem, 0),
+                    1,
+                    1,
+                    maxseats,
+                    true);
+
+                foreach (AirlinerFacilityMVVM aFacility in aClass.Facilities)
+                {
+                    AirlinerFacility facility = AirlinerFacilities.GetBasicFacility(aFacility.Type);
+                    aFacility.SelectedFacility = facility;
+                }
+
+                Classes.Add(aClass);
+
+                tClass.RegularSeatingCapacity -= aClass.RegularSeatingCapacity;
+
+                tClass.Seating =
+                    Convert.ToInt16(
+                        Convert.ToDouble(tClass.RegularSeatingCapacity)
+                        / tClass.Facilities.Where(f => f.Type == AirlinerFacility.FacilityType.Seat)
+                            .First()
+                            .SelectedFacility.SeatUses);
+            }
+        }
+
+        //removes a business or first class; its seats go back to economy (applied when the changes are saved)
+        private void btnRemoveClass_Click(object sender, RoutedEventArgs e)
+        {
+            var aClass = (AirlinerClassMVVM)((Button)sender).Tag;
+
+            if (aClass == null || aClass.Type == AirlinerClass.ClassType.EconomyClass || Classes.Count < 2)
+            {
+                return;
+            }
+
+            AirlinerClassMVVM economy = Classes[0];
+
+            economy.RegularSeatingCapacity += aClass.RegularSeatingCapacity;
+            economy.Seating =
+                Convert.ToInt16(
+                    Convert.ToDouble(economy.RegularSeatingCapacity)
+                    / economy.Facilities.Where(f => f.Type == AirlinerFacility.FacilityType.Seat)
+                        .First()
+                        .SelectedFacility.SeatUses);
+
+            Classes.Remove(aClass);
+
+            // the class that is left may now use all the seats economy does not
+            foreach (AirlinerClassMVVM other in Classes.Skip(1))
+            {
+                other.MaxSeats = other.MaxSeatsCapacity;
+            }
+        }
+
+        private void slSeats_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            var aClass = (AirlinerClassMVVM)((Slider)sender).Tag;
+
+            if (aClass.Type != AirlinerClass.ClassType.EconomyClass && !aClass.ChangedFacility)
+            {
+                var diff = (int)(e.NewValue - e.OldValue);
+
+                Classes[0].RegularSeatingCapacity -= diff;
+                Classes[0].Seating =
+                    Convert.ToInt16(
+                        Convert.ToDouble(Classes[0].RegularSeatingCapacity)
+                        / Classes[0].Facilities.Where(f => f.Type == AirlinerFacility.FacilityType.Seat)
+                            .First()
+                            .SelectedFacility.SeatUses);
+
+                if (Classes.Count == 3)
+                {
+                    if (Classes[1] == aClass)
+                    {
+                        //Classes[2].RegularSeatingCapacity -= diff;
+                        Classes[2].MaxSeats -=
+                            Convert.ToInt16(
+                                Convert.ToDouble(diff)
+                                / Classes[2].Facilities.Where(
+                                    f => f.Type == AirlinerFacility.FacilityType.Seat).First().SelectedFacility.SeatUses);
+                    }
+                    else
+                    {
+                        //Classes[1].RegularSeatingCapacity -= diff;
+                        Classes[1].MaxSeats -=
+                            Convert.ToInt16(
+                                Convert.ToDouble(diff)
+                                / Classes[2].Facilities.Where(
+                                    f => f.Type == AirlinerFacility.FacilityType.Seat).First().SelectedFacility.SeatUses);
+                    }
+                }
             }
         }
 
