@@ -151,7 +151,14 @@ namespace TheAirline.Models.Airliners
         public IDictionary<Invoice, string> MaintenanceHistory { get; set; }
 
         [Versioning("name")]
-        public string Name { get; set; }
+        private string _name;
+
+        //the name of a fleet airliner is its registration, so it follows registration changes
+        public string Name
+        {
+            get { return Airliner?.TailNumber ?? _name; }
+            set { _name = value; }
+        }
 
         public int NumberOfPilots => Pilots.Count;
 
