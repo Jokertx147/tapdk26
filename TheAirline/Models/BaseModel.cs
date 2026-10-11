@@ -47,7 +47,7 @@ namespace TheAirline.Models
                         fieldInfo.SetValue(this, entry.Value);
                     }
 
-                    else
+                    else if (((PropertyInfo) prop).GetSetMethod(true) != null)
                     {
                         ((PropertyInfo) prop).SetValue(this, entry.Value);
                     }
@@ -68,7 +68,7 @@ namespace TheAirline.Models
                     {
                         set.SetValue(this, ver.DefaultValue);
                     }
-                    else
+                    else if (((PropertyInfo) notSet).GetSetMethod(true) != null)
                     {
                         ((PropertyInfo) notSet).SetValue(this, ver.DefaultValue);
                     }
