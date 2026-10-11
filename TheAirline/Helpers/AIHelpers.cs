@@ -1728,7 +1728,7 @@ namespace TheAirline.Helpers
 
                             if (fAirliner == null)
                             {
-                                if (Countries.GetCountryFromTailNumber(airliner.Value.Key.TailNumber).Name
+                                if ((Countries.GetCountryFromTailNumber(airliner.Value.Key.TailNumber)?.Name)
                                     != airline.Profile.Country.Name)
                                 {
                                     airliner.Value.Key.TailNumber =

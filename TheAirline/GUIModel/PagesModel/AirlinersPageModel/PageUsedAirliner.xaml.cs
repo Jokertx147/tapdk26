@@ -215,7 +215,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
                     if (result == WPFMessageBoxResult.Yes)
                     {
-                        if (Countries.GetCountryFromTailNumber(this.Airliner.TailNumber).Name
+                        if ((Countries.GetCountryFromTailNumber(this.Airliner.TailNumber)?.Name)
                             != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
                         {
                             this.Airliner.TailNumber =

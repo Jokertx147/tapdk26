@@ -345,8 +345,9 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                         
                         foreach (AirlinerMVVM airliner in selectedAirliners)
                         {
-                            if (Countries.GetCountryFromTailNumber(airliner.Airliner.TailNumber).Name
-                                != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
+                            var tailCountry = Countries.GetCountryFromTailNumber(airliner.Airliner.TailNumber);
+                            if (tailCountry == null
+                                || tailCountry.Name != GameObject.GetInstance().HumanAirline.Profile.Country.Name)
                             {
                                 airliner.Airliner.TailNumber =
                                     GameObject.GetInstance()
