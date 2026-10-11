@@ -122,7 +122,7 @@ namespace TheAirline.Models.Airports
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("version", 4);
+            AddVersion(info, 4);
 
             base.GetObjectData(info, context);
         }

@@ -195,7 +195,7 @@ namespace TheAirline.Models.Airliners
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("version", 5);
+            AddVersion(info, 5);
 
             base.GetObjectData(info, context);
         }

@@ -86,7 +86,7 @@ namespace TheAirline.Models.Airlines
         {
             if (!(this is PilotTrainingFacility))
             {
-                info.AddValue("version", 1);
+                AddVersion(info, 1);
             }
 
             base.GetObjectData(info, context);

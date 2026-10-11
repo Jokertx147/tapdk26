@@ -55,7 +55,7 @@ namespace TheAirline.Models.General.Finances
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("version", 2);
+            AddVersion(info, 2);
 
             base.GetObjectData(info, context);
         }

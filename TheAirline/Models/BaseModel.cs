@@ -76,6 +76,19 @@ namespace TheAirline.Models
             }
         }
 
+        /// <summary>Adds the "version" entry once; a subclass chain calls this at every level and the most derived value wins.</summary>
+        protected static void AddVersion(SerializationInfo info, int version)
+        {
+            foreach (SerializationEntry entry in info)
+            {
+                if (entry.Name == "version")
+                {
+                    return;
+                }
+            }
+            info.AddValue("version", version);
+        }
+
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             Type myType = GetType();

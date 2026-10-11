@@ -56,7 +56,7 @@ namespace TheAirline.Models.General
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("version", 1);
+            AddVersion(info, 1);
 
             base.GetObjectData(info, context);
         }
@@ -204,7 +204,7 @@ namespace TheAirline.Models.General
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("version", 2);
+            AddVersion(info, 2);
 
             base.GetObjectData(info, context);
         }
