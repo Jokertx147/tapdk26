@@ -4,7 +4,10 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Linq;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Media;
 using TheAirline.GUIModel.HelpersModel;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
@@ -20,6 +23,9 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         public static List<AirlinerClass.ClassType> FreeClasses;
         private List<AirlinerClass> Classes;
         private ListBox lbClasses;
+        private readonly Dictionary<AirlinerClass, int[]> originalSeats = new Dictionary<AirlinerClass, int[]>();
+        private Grid cabinStrip;
+        private TextBlock cabinHint;
         private ContentControl lblNewClass;
         private AirlinerType Type;
         private AirlinerClass.ClassType CurrentClass;
@@ -67,16 +73,33 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         {
             InitializeComponent();
 
+            // remember the seat counts so Cancel can undo the dragging
+            foreach (AirlinerClass aClass in this.Classes)
+            {
+                originalSeats[aClass] = new[] { aClass.SeatingCapacity, aClass.RegularSeatingCapacity };
+            }
+
             this.Title = "Airliner Configuration";
 
-            this.Width = 400;
+            this.Width = 520;
 
-            this.Height = 150;
+            this.Height = 260;
 
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
 
             StackPanel panelClasses = new StackPanel();
+
+            cabinHint = new TextBlock
+            {
+                Text = "Drag the dividers to move seats between classes",
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 3)
+            };
+            panelClasses.Children.Add(cabinHint);
+
+            cabinStrip = new Grid { Height = 44, Margin = new Thickness(0, 0, 0, 6) };
+            panelClasses.Children.Add(cabinStrip);
 
             lbClasses = new ListBox();
             lbClasses.ItemContainerStyleSelector = new ListBoxItemStyleSelector();
@@ -127,6 +150,12 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         }
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
+            foreach (var pair in originalSeats)
+            {
+                pair.Key.SeatingCapacity = pair.Value[0];
+                pair.Key.RegularSeatingCapacity = pair.Value[1];
+            }
+
             this.Selected = null;
             this.Close();
         }
@@ -167,6 +196,126 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
 
             lblNewClass.Visibility = this.Classes.Count < ((AirlinerPassengerType)this.Type).MaxAirlinerClasses && FreeClasses.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             lblNewClass.Content = nextClass;
+
+            buildCabinStrip();
+        }
+
+        //the cabin runs first class (left) to economy (right)
+        private static int CabinOrder(AirlinerClass.ClassType type)
+        {
+            switch (type)
+            {
+                case AirlinerClass.ClassType.FirstClass:
+                    return 0;
+                case AirlinerClass.ClassType.BusinessClass:
+                    return 1;
+                default:
+                    return 2;
+            }
+        }
+
+        private static Brush CabinBrush(AirlinerClass.ClassType type)
+        {
+            switch (type)
+            {
+                case AirlinerClass.ClassType.FirstClass:
+                    return new SolidColorBrush(Color.FromRgb(0xB8, 0x86, 0x0B));
+                case AirlinerClass.ClassType.BusinessClass:
+                    return new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x6B));
+                default:
+                    return new SolidColorBrush(Color.FromRgb(0x3A, 0x6E, 0xA5));
+            }
+        }
+
+        //builds the strip showing the classes as blocks with draggable dividers between them
+        private void buildCabinStrip()
+        {
+            if (cabinStrip == null)
+            {
+                return;
+            }
+
+            cabinStrip.Children.Clear();
+            cabinStrip.ColumnDefinitions.Clear();
+
+            List<AirlinerClass> ordered = this.Classes.OrderBy(c => CabinOrder(c.Type)).ToList();
+            var labels = new List<TextBlock>();
+            var columns = new List<ColumnDefinition>();
+
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                AirlinerClass aClass = ordered[i];
+
+                var column = new ColumnDefinition { Width = new GridLength(Math.Max(1, aClass.SeatingCapacity), GridUnitType.Star), MinWidth = 24 };
+                cabinStrip.ColumnDefinitions.Add(column);
+                columns.Add(column);
+
+                var label = new TextBlock
+                {
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    TextAlignment = TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+                labels.Add(label);
+
+                var block = new Border { Background = CabinBrush(aClass.Type), Child = label, BorderBrush = Brushes.White, BorderThickness = new Thickness(1) };
+                Grid.SetColumn(block, i * 2);
+                cabinStrip.Children.Add(block);
+
+                if (i < ordered.Count - 1)
+                {
+                    cabinStrip.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+                }
+            }
+
+            Action refreshLabels = () =>
+            {
+                for (int i = 0; i < ordered.Count; i++)
+                {
+                    labels[i].Text = string.Format("{0} {1}", ordered[i].Type.ToString().Replace("Class", ""), ordered[i].SeatingCapacity);
+                    columns[i].Width = new GridLength(Math.Max(1, ordered[i].SeatingCapacity), GridUnitType.Star);
+                }
+            };
+
+            refreshLabels();
+
+            for (int i = 0; i < ordered.Count - 1; i++)
+            {
+                AirlinerClass left = ordered[i];
+                AirlinerClass right = ordered[i + 1];
+
+                var thumb = new Thumb { Cursor = System.Windows.Input.Cursors.SizeWE, Background = Brushes.White, ToolTip = "Drag to move seats" };
+                Grid.SetColumn(thumb, i * 2 + 1);
+                cabinStrip.Children.Add(thumb);
+
+                double carried = 0;
+                thumb.DragDelta += (o, args) =>
+                {
+                    double total = ordered.Sum(c => c.SeatingCapacity);
+                    double usable = Math.Max(1, cabinStrip.ActualWidth - 8 * (ordered.Count - 1));
+
+                    carried += args.HorizontalChange * total / usable;
+                    int move = (int)Math.Truncate(carried);
+                    if (move == 0)
+                    {
+                        return;
+                    }
+
+                    // keep at least one seat in each class
+                    move = Math.Max(-(left.SeatingCapacity - 1), Math.Min(right.SeatingCapacity - 1, move));
+                    carried -= move;
+
+                    left.SeatingCapacity += move;
+                    left.RegularSeatingCapacity += move;
+                    right.SeatingCapacity -= move;
+                    right.RegularSeatingCapacity -= move;
+
+                    refreshLabels();
+                    lbClasses.Items.Refresh();
+                };
+            }
         }
 
         private void ButtonAdd_Click(object sender, RoutedEventArgs e)
