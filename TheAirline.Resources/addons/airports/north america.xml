@@ -385,6 +385,20 @@
       <runway name="13/31" length="1767" surface="Asphalt" />
     </runways>
   </airport>
+  <airport name="McKinney Airport" icao="KTKI" iata="TKI" type="Domestic" season="AllYear">
+    <town town="McKinney, TX" country="122" GMT="-05:00:00" DST="-06:00:00" />
+    <coordinates>
+      <latitude value="033°10'41''N" />
+      <longitude value="096°35'26''W" />
+    </coordinates>
+    <size value="Small" pax="250" cargo="Smallest" cargovolume="0" />
+    <terminals>
+      <terminal name="Terminal" gates="10" />
+    </terminals>
+    <runways>
+      <runway name="17/35" length="2133" surface="Asphalt" />
+    </runways>
+  </airport>
   <airport name="Abilene Regional Airport" icao="KABI" iata="ABI" type="Regional" season="AllYear">
     <town town="Abilene, TX" country="122" GMT="-05:00:00" DST="-06:00:00" />
     <coordinates>
