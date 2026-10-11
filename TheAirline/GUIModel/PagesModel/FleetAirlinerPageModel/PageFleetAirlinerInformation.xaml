@@ -18,8 +18,24 @@
         <DataTemplate x:Key="ClassItem">
             <Border Style="{StaticResource RoundedBorderStyle}">
                 <StackPanel Width="350">
-                    <TextBlock Text="{Binding Type,Converter={StaticResource TextUnderscoreConverter}}"
-                               FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+                    <Grid>
+                        <TextBlock Text="{Binding Type,Converter={StaticResource TextUnderscoreConverter}}"
+                                   FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+                        <Button HorizontalAlignment="Right" Tag="{Binding}" Content="Remove" Padding="6 0"
+                                Click="btnRemoveClass_Click" Background="Transparent" Foreground="White"
+                                ToolTip="Remove this class; its seats go back to economy">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="EconomyClass">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
                     <WrapPanel Margin="0 5 0 0">
                         <TextBlock
                             Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageFleetAirlinerInformation 1000'}"

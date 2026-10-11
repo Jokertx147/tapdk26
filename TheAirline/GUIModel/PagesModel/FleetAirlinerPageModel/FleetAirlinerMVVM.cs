@@ -53,6 +53,48 @@ namespace TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel
             Classes = new ObservableCollection<AirlinerClassMVVM>();
             Owner = (Airliner.Airliner.Owner != null && Airliner.Airliner.Airline != Airliner.Airliner.Owner) ? Airliner.Airliner.Owner : null;
 
+            ReloadClasses();
+
+            Pilots = new ObservableCollection<Pilot>();
+
+            foreach (Pilot pilot in Airliner.Pilots)
+            {
+                Pilots.Add(pilot);
+            }
+
+            IsMissingPilots = Airliner.Airliner.Type.CockpitCrew > Pilots.Count;
+
+            AMaintenanceInterval = Airliner.AMaintenanceInterval;
+            BMaintenanceInterval = Airliner.BMaintenanceInterval;
+            CMaintenanceInterval = Airliner.CMaintenanceInterval;
+            DMaintenanceInterval = Airliner.DMaintenanceInterval;
+
+            SchedCMaintenance = Airliner.SchedCMaintenance;
+            SchedDMaintenance = Airliner.SchedDMaintenance;
+
+            IsBuyable = Airliner.Airliner.Airline.IsHuman
+                             && Airliner.Purchased == FleetAirliner.PurchasedType.Leased && Airliner.Airliner.Owner == null;
+            IsConvertable = Airliner.Airliner.Airline.IsHuman
+                                 && Airliner.Status == FleetAirliner.AirlinerStatus.Stopped
+                                 && !Airliner.HasRoute
+                                 && (Airliner.Airliner.Owner!=null || Airliner.Airliner.Airline.isHuman())
+                                 && Airliner.Purchased == FleetAirliner.PurchasedType.Bought
+                                 && Airliner.Airliner.Type.IsConvertable;
+
+            IsOutleasable = Airliner.Airliner.Airline.IsHuman
+                && Airliner.Purchased == FleetAirliner.PurchasedType.Bought
+                && Airliner.Status == FleetAirliner.AirlinerStatus.Stopped
+                && !Airliner.HasRoute;
+
+            
+    
+        }
+
+        //rebuilds the class list from the airliner's saved classes (also used to undo unsaved changes)
+        public void ReloadClasses()
+        {
+            Classes.Clear();
+
             AirlinerClass tClass;
 
             if (Airliner.Airliner.Classes.Count == 0)
@@ -105,40 +147,6 @@ namespace TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel
                     changeable);
                 Classes.Add(amClass);
             }
-
-            Pilots = new ObservableCollection<Pilot>();
-
-            foreach (Pilot pilot in Airliner.Pilots)
-            {
-                Pilots.Add(pilot);
-            }
-
-            IsMissingPilots = Airliner.Airliner.Type.CockpitCrew > Pilots.Count;
-
-            AMaintenanceInterval = Airliner.AMaintenanceInterval;
-            BMaintenanceInterval = Airliner.BMaintenanceInterval;
-            CMaintenanceInterval = Airliner.CMaintenanceInterval;
-            DMaintenanceInterval = Airliner.DMaintenanceInterval;
-
-            SchedCMaintenance = Airliner.SchedCMaintenance;
-            SchedDMaintenance = Airliner.SchedDMaintenance;
-
-            IsBuyable = Airliner.Airliner.Airline.IsHuman
-                             && Airliner.Purchased == FleetAirliner.PurchasedType.Leased && Airliner.Airliner.Owner == null;
-            IsConvertable = Airliner.Airliner.Airline.IsHuman
-                                 && Airliner.Status == FleetAirliner.AirlinerStatus.Stopped
-                                 && !Airliner.HasRoute
-                                 && (Airliner.Airliner.Owner!=null || Airliner.Airliner.Airline.isHuman())
-                                 && Airliner.Purchased == FleetAirliner.PurchasedType.Bought
-                                 && Airliner.Airliner.Type.IsConvertable;
-
-            IsOutleasable = Airliner.Airliner.Airline.IsHuman
-                && Airliner.Purchased == FleetAirliner.PurchasedType.Bought
-                && Airliner.Status == FleetAirliner.AirlinerStatus.Stopped
-                && !Airliner.HasRoute;
-
-            
-    
         }
 
         #endregion

@@ -487,27 +487,35 @@ namespace TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel
 
         private void btnUndoChanges_Click(object sender, RoutedEventArgs e)
         {
-            var allclasses = new List<AirlinerClassMVVM>(Airliner.Classes);
+            Airliner.ReloadClasses();
+        }
 
-            foreach (
-                AirlinerClassMVVM aClass in
-                    allclasses.Where(c => !Airliner.Airliner.Airliner.Classes.Exists(ac => ac.Type == c.Type)))
+        //removes a business or first class; its seats go back to economy (applied when the changes are saved)
+        private void btnRemoveClass_Click(object sender, RoutedEventArgs e)
+        {
+            var aClass = (AirlinerClassMVVM)((Button)sender).Tag;
+
+            if (aClass == null || aClass.Type == AirlinerClass.ClassType.EconomyClass || Airliner.Classes.Count < 2)
             {
-                Airliner.Classes.Remove(aClass);
+                return;
             }
 
-            foreach (AirlinerClassMVVM aClass in Airliner.Classes)
-            {
-                aClass.RegularSeatingCapacity =
-                    Airliner.Airliner.Airliner.GetAirlinerClass(aClass.Type).RegularSeatingCapacity;
-                aClass.Seating = Airliner.Airliner.Airliner.GetAirlinerClass(aClass.Type).SeatingCapacity;
+            AirlinerClassMVVM economy = Airliner.Classes[0];
 
-                foreach (AirlinerFacilityMVVM aFacility in aClass.Facilities)
-                {
-                    AirlinerFacility facility =
-                        Airliner.Airliner.Airliner.GetAirlinerClass(aClass.Type).GetFacility(aFacility.Type);
-                    aFacility.SelectedFacility = facility;
-                }
+            economy.RegularSeatingCapacity += aClass.RegularSeatingCapacity;
+            economy.Seating =
+                Convert.ToInt16(
+                    Convert.ToDouble(economy.RegularSeatingCapacity)
+                    / economy.Facilities.Where(f => f.Type == AirlinerFacility.FacilityType.Seat)
+                        .First()
+                        .SelectedFacility.SeatUses);
+
+            Airliner.Classes.Remove(aClass);
+
+            // the class that is left may now use all the seats economy does not
+            foreach (AirlinerClassMVVM other in Airliner.Classes.Skip(1))
+            {
+                other.MaxSeats = other.MaxSeatsCapacity;
             }
         }
 
