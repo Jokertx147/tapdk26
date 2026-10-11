@@ -11,7 +11,7 @@ namespace TheAirline.Models.Airports
     {
         #region Static Fields
 
-        public static AirportFacility MinimumServiceFacility = AirportFacilities.GetFacility("Basic ServiceCenter");
+        public static AirportFacility MinimumServiceFacility => AirportFacilities.GetFacility("Basic ServiceCenter");
         //AirportFacilities.GetFacility("Large ServiceCenter");
 
         #endregion
