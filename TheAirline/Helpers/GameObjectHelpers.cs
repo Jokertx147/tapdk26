@@ -1830,9 +1830,140 @@ namespace TheAirline.Helpers
             }
         }
 
+        // computer controlled airlines that really stopped flying close down in the year their data says so.
+        // The airline the player controls is never closed, so a player can keep an airline running past its real end.
+        private static void CloseDefunctAirlines()
+        {
+            try
+            {
+                DateTime now = GameObject.GetInstance().GameTime;
+
+                var defunct = Airlines.GetAllAirlines()
+                                      .Where(
+                                          a =>
+                                          !a.IsHuman && !(a is SubsidiaryAirline) && a.Profile.Folded <= now.Year
+                                          && now.Month >= GetClosureMonth(a)
+                                          && !AirlineMergers.GetAirlineMergers()
+                                                            .Any(m => m.Airline2 == a && m.Date >= now))
+                                      .ToList();
+
+                foreach (Airline airline in defunct)
+                {
+                    CeaseOperations(airline);
+                }
+            }
+            catch (Exception e)
+            {
+                Infrastructure.StartupLog.Write("CloseDefunctAirlines failed: " + e);
+            }
+        }
+
+        // spreads the closures over the year, the same month every time for the same airline
+        private static int GetClosureMonth(Airline airline)
+        {
+            int sum = 0;
+            foreach (char c in airline.Profile.IATACode ?? airline.Profile.Name ?? "")
+            {
+                sum += c;
+            }
+
+            return 1 + sum%12;
+        }
+
+        private static void CeaseOperations(Airline airline)
+        {
+            // routes and the airliners flying them
+            foreach (Route route in new List<Route>(airline.Routes))
+            {
+                airline.RemoveRoute(route);
+
+                if (route.HasAirliner)
+                {
+                    route.GetAirliners().ForEach(a => a.RemoveRoute(route));
+                }
+            }
+
+            // the fleet goes to the used market
+            foreach (FleetAirliner airliner in new List<FleetAirliner>(airline.Fleet))
+            {
+                airline.RemoveAirliner(airliner);
+            }
+
+            foreach (Pilot pilot in new List<Pilot>(airline.Pilots))
+            {
+                airline.RemovePilot(pilot);
+            }
+
+            foreach (Alliance alliance in new List<Alliance>(airline.Alliances))
+            {
+                alliance.RemoveMember(airline);
+            }
+
+            foreach (CodeshareAgreement agreement in new List<CodeshareAgreement>(airline.Codeshares))
+            {
+                agreement.Airline1.RemoveCodeshareAgreement(agreement);
+                agreement.Airline2.RemoveCodeshareAgreement(agreement);
+            }
+
+            // gates and airport facilities
+            foreach (Airport airport in new List<Airport>(airline.Airports))
+            {
+                foreach (AirportContract contract in airport.GetAirlineContracts(airline))
+                {
+                    for (int i = 0; i < contract.NumberOfGates; i++)
+                    {
+                        Gate gate = airport.Terminals.GetGates().FirstOrDefault(g => g.Airline == airline);
+
+                        if (gate != null)
+                        {
+                            gate.Airline = null;
+                        }
+                    }
+
+                    airport.RemoveAirlineContract(contract);
+                }
+
+                foreach (AirportFacility facility in airport.GetCurrentAirportFacilities(airline).ToList())
+                {
+                    AirportFacility none =
+                        AirportFacilities.GetFacilities(facility.Type).Find(f => f.TypeLevel == 0);
+
+                    if (none != null)
+                    {
+                        airport.AddAirportFacility(airline, none, GameObject.GetInstance().GameTime);
+                    }
+                }
+
+                airline.RemoveAirport(airport);
+            }
+
+            foreach (SubsidiaryAirline subsidiary in new List<SubsidiaryAirline>(airline.Subsidiaries))
+            {
+                AirlineHelpers.MakeSubsidiaryAirlineIndependent(subsidiary);
+            }
+
+            foreach (AirlineMerger merger in
+                AirlineMergers.GetAirlineMergers().Where(m => m.Airline1 == airline || m.Airline2 == airline).ToList())
+            {
+                AirlineMergers.RemoveAirlineMerger(merger);
+            }
+
+            Airlines.RemoveAirline(airline);
+
+            GameObject.GetInstance()
+                      .NewsBox.AddNews(
+                          new News(
+                              News.NewsType.AirlineNews,
+                              GameObject.GetInstance().GameTime,
+                              "Airline ceased operations",
+                              $"{airline.Profile.Name} has ceased operations."));
+        }
+
         private static void DoMonthlyUpdate()
         {
             RemovePrintedMedia();
+
+            CloseDefunctAirlines();
 
             //Clear stats when it on monthly
             if (Infrastructure.Settings.GetInstance().ClearStats == Intervals.Monthly)
