@@ -91,17 +91,17 @@ namespace TheAirline.Infrastructure
                 string ceo = profileElement.Attributes["CEO"].Value;
                 var mentality =
                     (Airline.AirlineMentality)
-                        Enum.Parse(typeof (Airline.AirlineMentality), profileElement.Attributes["mentality"].Value);
+                        DataParsing.ParseEnum(typeof (Airline.AirlineMentality), profileElement.Attributes["mentality"].Value);
                 var market =
                     (AirlineFocus)
-                        Enum.Parse(typeof (AirlineFocus), profileElement.Attributes["market"].Value);
+                        DataParsing.ParseEnum(typeof (AirlineFocus), profileElement.Attributes["market"].Value);
 
                 var routeFocus = Route.RouteType.Passenger;
 
                 if (profileElement.HasAttribute("routefocus"))
                 {
                     routeFocus =
-                        (Route.RouteType) Enum.Parse(typeof (Route.RouteType), profileElement.Attributes["routefocus"].Value);
+                        (Route.RouteType) DataParsing.ParseEnum(typeof (Route.RouteType), profileElement.Attributes["routefocus"].Value);
                 }
 
                 var narrativeElement = (XmlElement) profileElement.SelectSingleNode("narrative");
@@ -163,7 +163,7 @@ namespace TheAirline.Infrastructure
                     {
                         var primarypurchasing =
                             (AirlineProfile.PreferedPurchasing)
-                                Enum.Parse(
+                                DataParsing.ParseEnum(
                                     typeof (AirlineProfile.PreferedPurchasing),
                                     preferedsElement.Attributes["primarypurchasing"].Value);
                         airline.Profile.PrimaryPurchasing = primarypurchasing;
@@ -199,12 +199,12 @@ namespace TheAirline.Infrastructure
                         Airport subAirport = Airports.GetAirport(subsidiaryElement.Attributes["homebase"].Value);
                         var subMentality =
                             (Airline.AirlineMentality)
-                                Enum.Parse(
+                                DataParsing.ParseEnum(
                                     typeof (Airline.AirlineMentality),
                                     subsidiaryElement.Attributes["mentality"].Value);
                         var subMarket =
                             (AirlineFocus)
-                                Enum.Parse(typeof (AirlineFocus), subsidiaryElement.Attributes["market"].Value);
+                                DataParsing.ParseEnum(typeof (AirlineFocus), subsidiaryElement.Attributes["market"].Value);
 
                         string subLogo = AppSettings.GetDataPath() + "\\graphics\\airlinelogos\\"
                                          + subsidiaryElement.Attributes["logo"].Value + ".png";
@@ -215,7 +215,7 @@ namespace TheAirline.Infrastructure
                         {
                             airlineRouteFocus =
                                 (Route.RouteType)
-                                    Enum.Parse(typeof (Route.RouteType), subsidiaryElement.Attributes["routefocus"].Value);
+                                    DataParsing.ParseEnum(typeof (Route.RouteType), subsidiaryElement.Attributes["routefocus"].Value);
                         }
 
                         airline.FutureAirlines.Add(
@@ -250,7 +250,7 @@ namespace TheAirline.Infrastructure
                             {
                                 routetype =
                                     (Route.RouteType)
-                                        Enum.Parse(typeof (Route.RouteType), routeElement.Attributes["routetype"].Value);
+                                        DataParsing.ParseEnum(typeof (Route.RouteType), routeElement.Attributes["routetype"].Value);
                             }
 
                             var sdr = new StartDataRoute(dest1, dest2, opened, closed, routetype);
@@ -282,7 +282,7 @@ namespace TheAirline.Infrastructure
                         int destinations = Convert.ToInt16(routeElement.Attributes["destinations"].Value);
                         var minimumsize =
                             (GeneralHelpers.Size)
-                                Enum.Parse(typeof (GeneralHelpers.Size), routeElement.Attributes["minimumsize"].Value);
+                                DataParsing.ParseEnum(typeof (GeneralHelpers.Size), routeElement.Attributes["minimumsize"].Value);
 
                         Route.RouteType routetype = airline.AirlineRouteFocus;
 
@@ -290,7 +290,7 @@ namespace TheAirline.Infrastructure
                         {
                             routetype =
                                 (Route.RouteType)
-                                    Enum.Parse(typeof (Route.RouteType), routeElement.Attributes["routetype"].Value);
+                                    DataParsing.ParseEnum(typeof (Route.RouteType), routeElement.Attributes["routetype"].Value);
                         }
 
                         var routes = new StartDataRoutes(origin, destinations, minimumsize, routetype);
@@ -1831,7 +1831,7 @@ namespace TheAirline.Infrastructure
                     Airline airline2 = Airlines.GetAirline(element.Attributes["airline2"].Value);
                     var mergerType =
                         (AirlineMerger.MergerType)
-                            Enum.Parse(typeof (AirlineMerger.MergerType), element.Attributes["type"].Value);
+                            DataParsing.ParseEnum(typeof (AirlineMerger.MergerType), element.Attributes["type"].Value);
                     DateTime mergerDate = DataParsing.ParseDate(element.Attributes["date"].Value, new CultureInfo("en-US", false));
 
                     var merger = new AirlineMerger(mergerName, airline1, airline2, mergerDate, mergerType);
@@ -1862,12 +1862,17 @@ namespace TheAirline.Infrastructure
                     int regularseating = Convert.ToInt16(classElement.Attributes["regularseating"].Value);
                     var classType =
                         (AirlinerClass.ClassType)
-                        Enum.Parse(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
+                        DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
 
                     var classConf = new AirlinerClassConfiguration(classType, seating, regularseating);
                     foreach (AirlinerFacility.FacilityType facType in Enum.GetValues(typeof (AirlinerFacility.FacilityType)))
                     {
-                        string facUid = classElement.Attributes[facType.ToString()].Value;
+                        string facUid = DataParsing.AttributeValue(classElement, facType.ToString());
+                        if (facUid == null)
+                        {
+                            LogError("Missing airliner facility " + facType + " in a class of " + element.Attributes["name"]?.Value);
+                            continue;
+                        }
 
                         classConf.AddFacility(AirlinerFacilities.GetFacility(facType, facUid));
                     }
@@ -1892,7 +1897,7 @@ namespace TheAirline.Infrastructure
                     string uid = element.Attributes["uid"].Value;
                     var type =
                         (AirlinerFacility.FacilityType)
-                            Enum.Parse(typeof (AirlinerFacility.FacilityType), element.Attributes["type"].Value);
+                            DataParsing.ParseEnum(typeof (AirlinerFacility.FacilityType), element.Attributes["type"].Value);
                     int fromyear = Convert.ToInt16(element.Attributes["fromyear"].Value);
 
                     var levelElement = (XmlElement) element.SelectSingleNode("level");
@@ -1988,13 +1993,18 @@ namespace TheAirline.Infrastructure
                             int seating = Convert.ToInt16(classElement.Attributes["seating"].Value);
                             var classType =
                                 (AirlinerClass.ClassType)
-                                    Enum.Parse(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
+                                    DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
 
                             var classConf = new AirlinerClassConfiguration(classType, seating, seating);
                             foreach (
                                 AirlinerFacility.FacilityType facType in Enum.GetValues(typeof (AirlinerFacility.FacilityType)))
                             {
-                                string facUid = classElement.Attributes[facType.ToString()].Value;
+                                string facUid = DataParsing.AttributeValue(classElement, facType.ToString());
+                        if (facUid == null)
+                        {
+                            LogError("Missing airliner facility " + facType + " in a class of " + element.Attributes["name"]?.Value);
+                            continue;
+                        }
 
                                 classConf.AddFacility(AirlinerFacilities.GetFacility(facType, facUid));
                             }
@@ -2063,7 +2073,7 @@ namespace TheAirline.Infrastructure
                     {
                         AirlinerType.TypeOfAirliner airlinerType = airliner.HasAttribute("type")
                             ? (AirlinerType.TypeOfAirliner)
-                                Enum.Parse(typeof (AirlinerType.TypeOfAirliner), airliner.Attributes["type"].Value)
+                                DataParsing.ParseEnum(typeof (AirlinerType.TypeOfAirliner), airliner.Attributes["type"].Value)
                             : AirlinerType.TypeOfAirliner.Passenger;
 
                         string manufacturerName = airliner.Attributes["manufacturer"].Value;
@@ -2109,15 +2119,15 @@ namespace TheAirline.Infrastructure
                         var typeElement = (XmlElement) airliner.SelectSingleNode("type");
                         var body =
                             (AirlinerType.BodyType)
-                                Enum.Parse(typeof (AirlinerType.BodyType), typeElement.Attributes["body"].Value);
+                                DataParsing.ParseEnum(typeof (AirlinerType.BodyType), typeElement.Attributes["body"].Value);
 
 
                         var rangeType =
                             (AirlinerType.TypeRange)
-                                Enum.Parse(typeof (AirlinerType.TypeRange), typeElement.Attributes["rangetype"].Value);
+                                DataParsing.ParseEnum(typeof (AirlinerType.TypeRange), typeElement.Attributes["rangetype"].Value);
                         var engine =
                             (AirlinerType.TypeOfEngine)
-                                Enum.Parse(typeof (AirlinerType.TypeOfEngine), typeElement.Attributes["engine"].Value);
+                                DataParsing.ParseEnum(typeof (AirlinerType.TypeOfEngine), typeElement.Attributes["engine"].Value);
 
                         var specsElement = (XmlElement) airliner.SelectSingleNode("specs");
                         double wingspan = XmlConvert.ToDouble(specsElement.Attributes["wingspan"].Value);
@@ -2333,7 +2343,7 @@ namespace TheAirline.Infrastructure
                     string shortname = element.Attributes["shortname"].Value;
                     var type =
                         (AirportFacility.FacilityType)
-                            Enum.Parse(typeof (AirportFacility.FacilityType), element.Attributes["type"].Value);
+                            DataParsing.ParseEnum(typeof (AirportFacility.FacilityType), element.Attributes["type"].Value);
                     int typeLevel = Convert.ToInt16(element.Attributes["typelevel"].Value);
 
                     double price = XmlConvert.ToDouble(element.Attributes["price"].Value);
@@ -2364,7 +2374,7 @@ namespace TheAirline.Infrastructure
                         {
                             var employeestype =
                                 (AirportFacility.EmployeeTypes)
-                                    Enum.Parse(typeof (AirportFacility.EmployeeTypes), employeesElement.Attributes["type"].Value);
+                                    DataParsing.ParseEnum(typeof (AirportFacility.EmployeeTypes), employeesElement.Attributes["type"].Value);
                             int numberofemployees = Convert.ToInt16(employeesElement.Attributes["numberofemployees"].Value);
 
                             facility.EmployeeType = employeestype;
@@ -2448,9 +2458,9 @@ namespace TheAirline.Infrastructure
 
                         var type =
                             (AirportProfile.AirportType)
-                                Enum.Parse(typeof (AirportProfile.AirportType), airportElement.Attributes["type"].Value);
+                                DataParsing.ParseEnum(typeof (AirportProfile.AirportType), airportElement.Attributes["type"].Value);
                         var season =
-                            (Weather.Season) Enum.Parse(typeof (Weather.Season), airportElement.Attributes["season"].Value);
+                            (Weather.Season) DataParsing.ParseEnum(typeof (Weather.Season), airportElement.Attributes["season"].Value);
 
                         var periodElement = (XmlElement) airportElement.SelectSingleNode("period");
 
@@ -2489,9 +2499,9 @@ namespace TheAirline.Infrastructure
                         var coords = new int[6];
 
                         //latitude
-                        coords[0] = int.Parse(latitude[0]);
-                        coords[1] = int.Parse(latitude[1]);
-                        coords[2] = int.Parse(latitude[2]);
+                        coords[0] = DataParsing.ParseInt(latitude[0]);
+                        coords[1] = DataParsing.ParseInt(latitude[1]);
+                        coords[2] = DataParsing.ParseInt(latitude[2]);
 
                         if (latitude[3] == "S")
                         {
@@ -2499,9 +2509,9 @@ namespace TheAirline.Infrastructure
                         }
 
                         //longitude
-                        coords[3] = int.Parse(longitude[0]);
-                        coords[4] = int.Parse(longitude[1]);
-                        coords[5] = int.Parse(longitude[2]);
+                        coords[3] = DataParsing.ParseInt(longitude[0]);
+                        coords[4] = DataParsing.ParseInt(longitude[1]);
+                        coords[5] = DataParsing.ParseInt(longitude[2]);
 
                         if (longitude[3] == "W")
                         {
@@ -2542,7 +2552,7 @@ namespace TheAirline.Infrastructure
                         {
                             var size =
                                 (GeneralHelpers.Size)
-                                    Enum.Parse(typeof (GeneralHelpers.Size), sizeElement.Attributes["value"].Value);
+                                    DataParsing.ParseEnum(typeof (GeneralHelpers.Size), sizeElement.Attributes["value"].Value);
                             int pax = sizeElement.HasAttribute("pax")
                                 ? Convert.ToInt32(sizeElement.Attributes["pax"].Value)
                                 : 0;
@@ -2559,7 +2569,7 @@ namespace TheAirline.Infrastructure
                                 int toYear = Convert.ToInt16(yearElement.Attributes["to"].Value);
                                 var size =
                                     (GeneralHelpers.Size)
-                                        Enum.Parse(typeof (GeneralHelpers.Size), yearElement.Attributes["value"].Value);
+                                        DataParsing.ParseEnum(typeof (GeneralHelpers.Size), yearElement.Attributes["value"].Value);
                                 int pax = Convert.ToInt32(yearElement.Attributes["pax"].Value);
 
                                 var paxValue = new PaxValue(fromYear, toYear, size, pax);
@@ -2594,7 +2604,7 @@ namespace TheAirline.Infrastructure
                         {
                             cargoSize =
                                 (GeneralHelpers.Size)
-                                    Enum.Parse(typeof (GeneralHelpers.Size), sizeElement.Attributes["cargo"].Value);
+                                    DataParsing.ParseEnum(typeof (GeneralHelpers.Size), sizeElement.Attributes["cargo"].Value);
                         }
                         else
                         {
@@ -2673,7 +2683,7 @@ namespace TheAirline.Infrastructure
                             if (terminalNode.HasAttribute("type"))
                                 terminalType =
                                     (Terminal.TerminalType)
-                                        Enum.Parse(typeof (Terminal.TerminalType), terminalNode.Attributes["type"].Value);
+                                        DataParsing.ParseEnum(typeof (Terminal.TerminalType), terminalNode.Attributes["type"].Value);
                             else
                                 terminalType = Terminal.TerminalType.Passenger;
 
@@ -2689,7 +2699,7 @@ namespace TheAirline.Infrastructure
                             long runwayLength = XmlConvert.ToInt32(runwayNode.Attributes["length"].Value);
                             var surface =
                                 (Runway.SurfaceType)
-                                    Enum.Parse(typeof (Runway.SurfaceType), runwayNode.Attributes["surface"].Value);
+                                    DataParsing.ParseEnum(typeof (Runway.SurfaceType), runwayNode.Attributes["surface"].Value);
 
                             var runwayType = Runway.RunwayType.Regular;
 
@@ -2697,7 +2707,7 @@ namespace TheAirline.Infrastructure
                             {
                                 runwayType =
                                     (Runway.RunwayType)
-                                        Enum.Parse(typeof (Runway.RunwayType), runwayNode.Attributes["type"].Value);
+                                        DataParsing.ParseEnum(typeof (Runway.RunwayType), runwayNode.Attributes["type"].Value);
                             }
 
                             airport.Runways.Add(
@@ -2710,7 +2720,7 @@ namespace TheAirline.Infrastructure
                         {
                             var expansionType =
                                 (AirportExpansion.ExpansionType)
-                                    Enum.Parse(typeof (AirportExpansion.ExpansionType), expansionNode.Attributes["type"].Value);
+                                    DataParsing.ParseEnum(typeof (AirportExpansion.ExpansionType), expansionNode.Attributes["type"].Value);
 
                             DateTime expansionDate = DataParsing.ParseDate(
                                 expansionNode.Attributes["date"].Value,
@@ -2741,7 +2751,7 @@ namespace TheAirline.Infrastructure
 
                                 var surface =
                                     (Runway.SurfaceType)
-                                        Enum.Parse(typeof (Runway.SurfaceType), expansionNode.Attributes["surface"].Value);
+                                        DataParsing.ParseEnum(typeof (Runway.SurfaceType), expansionNode.Attributes["surface"].Value);
 
                                 expansion.Name = expansionName;
                                 expansion.Length = length;
@@ -2758,7 +2768,7 @@ namespace TheAirline.Infrastructure
                                 if (expansionNode.HasAttribute("terminaltype"))
                                     terminalType =
                                         (Terminal.TerminalType)
-                                            Enum.Parse(typeof (Terminal.TerminalType), expansionNode.Attributes["terminaltype"].Value);
+                                            DataParsing.ParseEnum(typeof (Terminal.TerminalType), expansionNode.Attributes["terminaltype"].Value);
                                 else
                                     terminalType = Terminal.TerminalType.Passenger;
 
@@ -2908,7 +2918,7 @@ namespace TheAirline.Infrastructure
                         element.Attributes["incomeperpax"].Value,
                         CultureInfo.GetCultureInfo("en-US").NumberFormat);
                     var minsize =
-                        (GeneralHelpers.Size) Enum.Parse(typeof (GeneralHelpers.Size), element.Attributes["minsize"].Value);
+                        (GeneralHelpers.Size) DataParsing.ParseEnum(typeof (GeneralHelpers.Size), element.Attributes["minsize"].Value);
 
                     var type = new CooperationType(
                         section,
@@ -2975,7 +2985,7 @@ namespace TheAirline.Infrastructure
                                     CultureInfo.GetCultureInfo("en-US").NumberFormat);
                                 var currencyPosition =
                                     (CountryCurrency.CurrencyPosition)
-                                        Enum.Parse(
+                                        DataParsing.ParseEnum(
                                             typeof (CountryCurrency.CurrencyPosition),
                                             currencyElement.Attributes["position"].Value);
 
@@ -3080,10 +3090,10 @@ namespace TheAirline.Infrastructure
                     {
                         var engineType =
                             (EngineType.TypeOfEngine)
-                                Enum.Parse(typeof (EngineType.TypeOfEngine), specsElement.Attributes["type"].Value);
+                                DataParsing.ParseEnum(typeof (EngineType.TypeOfEngine), specsElement.Attributes["type"].Value);
                         var noiseLevel =
                             (EngineType.NoiseLevel)
-                                Enum.Parse(typeof (EngineType.NoiseLevel), specsElement.Attributes["noise"].Value);
+                                DataParsing.ParseEnum(typeof (EngineType.NoiseLevel), specsElement.Attributes["noise"].Value);
                         double consumption = Convert.ToDouble(
                             specsElement.Attributes["consumptionModifier"].Value,
                             CultureInfo.GetCultureInfo("en-US").NumberFormat);
@@ -3159,7 +3169,7 @@ namespace TheAirline.Infrastructure
                 {
                     var type =
                         (FlightRestriction.RestrictionType)
-                            Enum.Parse(typeof (FlightRestriction.RestrictionType), element.Attributes["type"].Value);
+                            DataParsing.ParseEnum(typeof (FlightRestriction.RestrictionType), element.Attributes["type"].Value);
 
                     DateTime startDate = DataParsing.ParseDate(
                         element.Attributes["start"].Value,
@@ -3213,7 +3223,7 @@ namespace TheAirline.Infrastructure
                     {
                         var type =
                             (HistoricEventInfluence.InfluenceType)
-                            Enum.Parse(
+                            DataParsing.ParseEnum(
                                 typeof (HistoricEventInfluence.InfluenceType),
                                 influenceElement.Attributes["type"].Value);
                         double value = Convert.ToDouble(
@@ -3260,10 +3270,10 @@ namespace TheAirline.Infrastructure
                         id = name;
 
                         var type =
-                            (Holiday.HolidayType) Enum.Parse(typeof (Holiday.HolidayType), element.Attributes["type"].Value);
+                            (Holiday.HolidayType) DataParsing.ParseEnum(typeof (Holiday.HolidayType), element.Attributes["type"].Value);
                         var traveltype =
                             (Holiday.TravelType)
-                                Enum.Parse(typeof (Holiday.TravelType), element.Attributes["holidaytype"].Value);
+                                DataParsing.ParseEnum(typeof (Holiday.TravelType), element.Attributes["holidaytype"].Value);
 
                         var countries = new List<Country>();
 
@@ -3325,7 +3335,7 @@ namespace TheAirline.Infrastructure
                             {
                                 int month = Convert.ToInt16(dateElement.Attributes["month"].Value);
                                 int week = Convert.ToInt16(dateElement.Attributes["week"].Value);
-                                var day = (DayOfWeek) Enum.Parse(typeof (DayOfWeek), dateElement.Attributes["dayofweek"].Value);
+                                var day = (DayOfWeek) DataParsing.ParseEnum(typeof (DayOfWeek), dateElement.Attributes["dayofweek"].Value);
 
                                 foreach (Country country in countries)
                                 {
@@ -3428,6 +3438,11 @@ namespace TheAirline.Infrastructure
                         foreach (XmlElement airportElement in airportsList)
                         {
                             Airport airport = Airports.GetAirport(airportElement.Attributes["airport"].Value);
+
+                            if (airport == null)
+                            {
+                                continue; // the airport failed to load
+                            }
 
                             id = airport.Profile.IATACode;
 
@@ -3564,7 +3579,7 @@ namespace TheAirline.Infrastructure
 
                                 if (routeElement.HasAttribute("type"))
                                     routetype = (Route.RouteType)
-                                        Enum.Parse(typeof (Route.RouteType), routeElement.Attributes["type"].Value);
+                                        DataParsing.ParseEnum(typeof (Route.RouteType), routeElement.Attributes["type"].Value);
 
                                 var scRoute = new SpecialContractRoute(departure, destination, passengers, routetype, bothways);
                                 scType.Routes.Add(scRoute);
@@ -3607,7 +3622,7 @@ namespace TheAirline.Infrastructure
 
                                     var type =
                                         (AirlinerClass.ClassType)
-                                            Enum.Parse(typeof (AirlinerClass.ClassType), parameterElement.Attributes["classtype"].Value);
+                                            DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), parameterElement.Attributes["classtype"].Value);
 
                                     int seats = Convert.ToInt32(parameterElement.Attributes["minseats"].Value);
 
@@ -3786,7 +3801,7 @@ namespace TheAirline.Infrastructure
                 {
                     var type =
                         (AirlinerClass.ClassType)
-                        Enum.Parse(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
+                        DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
 
                     var classConfiguration = new RouteClassConfiguration(type);
 
@@ -3840,7 +3855,7 @@ namespace TheAirline.Infrastructure
                             {
                                 startAirline.License =
                                     (Airline.AirlineLicense)
-                                        Enum.Parse(typeof (Airline.AirlineLicense), startElement.Attributes["license"].Value);
+                                        DataParsing.ParseEnum(typeof (Airline.AirlineLicense), startElement.Attributes["license"].Value);
                             }
 
                             var scenario = new Scenario(
@@ -3957,7 +3972,7 @@ namespace TheAirline.Infrastructure
                                 string id = parameterElement.Attributes["id"].Value;
                                 var failureType =
                                     (ScenarioFailure.FailureType)
-                                        Enum.Parse(typeof (ScenarioFailure.FailureType), parameterElement.Attributes["type"].Value);
+                                        DataParsing.ParseEnum(typeof (ScenarioFailure.FailureType), parameterElement.Attributes["type"].Value);
                                 object failureValue = parameterElement.Attributes["value"].Value;
                                 double checkMonths = parameterElement.HasAttribute("at")
                                     ? 12
@@ -4096,7 +4111,7 @@ namespace TheAirline.Infrastructure
                     string tailformat = element.Attributes["tailformat"].Value;
                     var tempType =
                         (TemporaryCountry.TemporaryType)
-                            Enum.Parse(typeof (TemporaryCountry.TemporaryType), element.Attributes["type"].Value);
+                            DataParsing.ParseEnum(typeof (TemporaryCountry.TemporaryType), element.Attributes["type"].Value);
 
                     var periodElement = (XmlElement) element.SelectSingleNode("period");
                     if (periodElement != null)
@@ -4304,9 +4319,9 @@ namespace TheAirline.Infrastructure
                         if (windElement != null)
                         {
                             var minWind =
-                                (Weather.eWindSpeed) Enum.Parse(typeof (Weather.eWindSpeed), windElement.Attributes["min"].Value);
+                                (Weather.eWindSpeed) DataParsing.ParseEnum(typeof (Weather.eWindSpeed), windElement.Attributes["min"].Value);
                             var maxWind =
-                                (Weather.eWindSpeed) Enum.Parse(typeof (Weather.eWindSpeed), windElement.Attributes["max"].Value);
+                                (Weather.eWindSpeed) DataParsing.ParseEnum(typeof (Weather.eWindSpeed), windElement.Attributes["max"].Value);
 
                             if (country != null)
                             {
@@ -4342,7 +4357,7 @@ namespace TheAirline.Infrastructure
                 AppSettings.GetInstance().SetLanguage(Languages.GetLanguage(language));
                 if (screenMode != null)
                     Settings.GetInstance().Mode =
-                        (ScreenMode) Enum.Parse(typeof (ScreenMode), screenMode, true);
+                        (ScreenMode) DataParsing.ParseEnum(typeof (ScreenMode), screenMode, true);
             }
         }
 

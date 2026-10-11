@@ -157,6 +157,9 @@ namespace TheAirline.Helpers
 
                     int numOfClasses = Rnd.Next(0, passengerType.MaxAirlinerClasses) + 1;
 
+                    // the standard configurations only cover 1 to 3 classes
+                    numOfClasses = Math.Min(numOfClasses, 3);
+
                     if (GameObject.GetInstance().GameTime.Year >= (int) AirlinerClass.ClassType.BusinessClass)
                     {
                         if (numOfClasses == 1)
@@ -186,6 +189,12 @@ namespace TheAirline.Helpers
                         {
                             configuration = (AirlinerConfiguration) Configurations.GetStandardConfiguration("201");
                         }
+                    }
+
+                    if (configuration == null)
+                    {
+                        Infrastructure.StartupLog.Write("No standard configuration found for " + numOfClasses + " classes in " + GameObject.GetInstance().GameTime.Year + ", using the 1 class layout");
+                        configuration = (AirlinerConfiguration) Configurations.GetStandardConfiguration("200");
                     }
 
                     if (configuration != null)

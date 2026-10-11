@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using System.Linq;
+using System.Xml;
 
 namespace TheAirline.Infrastructure
 {
@@ -25,6 +27,49 @@ namespace TheAirline.Infrastructure
             }
 
             return DateTime.Parse(value, new CultureInfo("en-US", false));
+        }
+
+        /// <summary>
+        ///     Enum.Parse that ignores case, underscores and spaces: the data files write "Verysmall" and "Long_Haul_International"
+        ///     where the code has VerySmall and LongHaulInternational.
+        /// </summary>
+        public static object ParseEnum(Type enumType, string value, bool ignoreCase = true)
+        {
+            var key = NormalizeName(value);
+            foreach (var name in Enum.GetNames(enumType))
+            {
+                if (NormalizeName(name) == key)
+                {
+                    return Enum.Parse(enumType, name);
+                }
+            }
+
+            return Enum.Parse(enumType, value.Trim(), true);
+        }
+
+        private static string NormalizeName(string value)
+        {
+            return new string(value.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+        }
+
+        /// <summary>Parses the digits of a value such as "024" or a value polluted with stray characters.</summary>
+        public static int ParseInt(string value)
+        {
+            var digits = new string(value.Where(c => char.IsDigit(c) || c == '-').ToArray());
+            return int.Parse(digits, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Reads an attribute without caring about its case. Returns null if it is missing.</summary>
+        public static string AttributeValue(XmlElement element, string name)
+        {
+            foreach (XmlAttribute attribute in element.Attributes)
+            {
+                if (string.Equals(attribute.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return attribute.Value;
+                }
+            }
+            return null;
         }
     }
 }

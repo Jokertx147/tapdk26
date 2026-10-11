@@ -119,3 +119,12 @@ Porting the older Page-based UI (chosen scope): the upstream 2.0 rewrite never f
 - Not done: language handoff to the older `Translator`/`AppSettings` (it may stay on the default language), the Esc/exit key handling, and returning from the game to the start menu.
 
 Game data load: the first run of `SetupGame` failed on `Convert.ToDateTime("05.22.1911 00:00:00")`. The data files use US month-first dates and the old code depended on the machine culture. `Infrastructure/DataParsing.ParseDate` now reads them with explicit formats, and `GameDataLoader` runs the load under en-US so decimals parse too. `Setup.SetupError` keeps the first exception instead of only logging it. Expect more data-format problems, one at a time.
+
+Data loading problems found through `startup.log` (the old loaders catch and swallow their own errors, so each one is now also written there as `LOADER ERROR`):
+
+- Enum names in the XML do not match the code: `Verysmall`, `Verylarge`, `Long_Haul_International` against `VerySmall`, `VeryLarge`, `LongHaulInternational`. All 49 `Enum.Parse` calls in `Setup.cs` now use `DataParsing.ParseEnum`, which ignores case, underscores and spaces.
+- One airport has a stray character in its coordinates (`024Ã‚`). `DataParsing.ParseInt` keeps only the digits.
+- Some aircraft configuration files write `seat="104"` where the code looks up `Seat`. `DataParsing.AttributeValue` ignores attribute case. Before this fix the first such file aborted loading of all later configuration files.
+- `LoadMajorDestinations` crashed on airports that had failed to load; it now skips them.
+- One aircraft type allows 4 classes but only 1 to 3 class layouts exist; the class count is clamped to 3 and falls back to the 1 class layout instead of crashing.
+- `GameDataLoader` logs the counts it loaded, so a partly loaded game is visible. A healthy load should show far more than 56 airports.
