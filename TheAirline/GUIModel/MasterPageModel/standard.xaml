@@ -150,7 +150,7 @@
                 </Button>
 
                 <Button Background="#3772A1" Width="32" Margin="5 0 0 0" Click="btnNewGame_Click"
-                        ToolTip="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='MainMenu 3000'}">
+                        ToolTip="Main menu">
                     <Image Source="/Resources\images/newgame.png" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
 

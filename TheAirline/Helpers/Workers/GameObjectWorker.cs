@@ -82,6 +82,12 @@ namespace TheAirline.Helpers.Workers
             }
         }
 
+        //asks the worker to stop without waiting for it
+        public void RequestCancel()
+        {
+            _worker.CancelAsync();
+        }
+
         public bool IsBusy()
         {
             return _worker.IsBusy;

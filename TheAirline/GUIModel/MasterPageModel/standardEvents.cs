@@ -95,27 +95,30 @@ namespace TheAirline.GUIModel.MasterPageModel
             }
         }
 
-        private void btnNewGame_Click(object sender, RoutedEventArgs e)
+        //goes back to the main menu; the game that is running is dropped, so unsaved progress is lost
+        private async void btnNewGame_Click(object sender, RoutedEventArgs e)
         {
-            GameObjectWorker.GetInstance().Cancel();
+            MessageBoxResult result = MessageBox.Show(
+                "Return to the main menu? Progress since your last save will be lost.",
+                "Main menu",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
 
-            WPFMessageBoxResult result = WPFMessageBox.Show(
-                Translator.GetInstance().GetString("MessageBox", "1001"),
-                Translator.GetInstance().GetString("MessageBox", "1001", "message"),
-                WPFMessageBoxButtons.YesNo);
-
-            if (result == WPFMessageBoxResult.Yes)
+            if (result != MessageBoxResult.Yes)
             {
-                GameObjectWorker.GetInstance().Cancel();
-
-                while (GameObjectWorker.GetInstance().IsBusy())
-                {
-                }
-                //PageNavigator.NavigateTo(new PageNewGame());
-                GameObject.RestartInstance();
-
-                Setup.SetupGame();
+                return;
             }
+
+            // ask the simulation to stop and wait without blocking the window (it needs the window thread to finish)
+            GameObjectWorker.GetInstance().RequestCancel();
+            for (int i = 0; i < 300 && GameObjectWorker.GetInstance().IsBusy(); i++)
+            {
+                await System.Threading.Tasks.Task.Delay(50);
+            }
+
+            GameObject.RestartInstance();
+            GameDataLoader.Invalidate();
+            PageNavigator.MainWindow.ShowStartMenu();
         }
 
         private void btnNews_Click(object sender, RoutedEventArgs e)

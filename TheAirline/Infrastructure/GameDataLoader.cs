@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Threading;
 using System.Windows.Input;
 
@@ -11,6 +11,12 @@ namespace TheAirline.Infrastructure
     public static class GameDataLoader
     {
         private static bool _loaded;
+
+        //the game changes the loaded data while it runs, so it is read again the next time a game starts or loads
+        public static void Invalidate()
+        {
+            _loaded = false;
+        }
 
         public static void EnsureLoaded()
         {
