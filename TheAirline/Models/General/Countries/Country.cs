@@ -29,7 +29,6 @@ namespace TheAirline.Models.General.Countries
             if (source != null && !ReferenceEquals(source, this))
             {
                 Id = source.Id;
-                Name = source.Name;
                 IsoName = source.IsoName;
                 Region = source.Region;
                 TailNumberFormat = source.TailNumberFormat;
@@ -60,7 +59,62 @@ namespace TheAirline.Models.General.Countries
 
         public bool HasLocalCurrency => Currencies != null && Currencies.Count > 0;
 
-        //public override string Name => Translator.GetInstance().GetString(Section, Uid);
+        private string _name;
+        private string _translatedName;
+        private string _translatedFor;
+
+        //the country name in the language of the game; it is looked up from the translations in the game data
+        public override string Name
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(_name))
+                {
+                    return _name;
+                }
+
+                if (Uid == null)
+                {
+                    return ShortName;
+                }
+
+                string culture = null;
+                try
+                {
+                    culture = AppSettings.GetInstance().GetLanguage().CultureInfo;
+                }
+                catch (Exception)
+                {
+                    // the language is not known yet
+                }
+
+                if (_translatedName != null && _translatedFor == culture)
+                {
+                    return _translatedName;
+                }
+
+                string text = null;
+                try
+                {
+                    text = Translator.GetInstance().GetString(Section, Uid);
+                }
+                catch (Exception)
+                {
+                    // fall back to the short name below
+                }
+
+                if (string.IsNullOrEmpty(text) || text == Uid)
+                {
+                    return ShortName ?? Uid;
+                }
+
+                _translatedName = text;
+                _translatedFor = culture;
+
+                return text;
+            }
+            set { _name = value; }
+        }
 
         public Region Region { get; set; }
 

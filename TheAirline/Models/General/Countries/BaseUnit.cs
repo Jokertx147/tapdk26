@@ -44,7 +44,7 @@ namespace TheAirline.Models.General.Countries
         }
 
         //public virtual string Name => Translator.GetInstance().GetString(Country.Section, Uid);
-        public string Name { get; set; }
+        public virtual string Name { get; set; }
 
         [Versioning("shortname")]
         public string ShortName { get; set; }
