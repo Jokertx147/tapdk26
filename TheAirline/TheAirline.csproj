@@ -37,8 +37,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NLog" Version="5.*" />
-    <PackageReference Include="Prism.Wpf" Version="9.*" />
-    <PackageReference Include="System.ComponentModel.Composition" Version="10.*" />
+    <PackageReference Include="Prism.DryIoc" Version="9.*" />
+    <PackageReference Include="System.Runtime.Caching" Version="10.*" />
     <PackageReference Include="WpfLocalizeExtension" Version="3.*" />
     <PackageReference Include="WPFTaskDialog" Version="1.7.1" />
   </ItemGroup>

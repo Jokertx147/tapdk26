@@ -1,10 +1,9 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 using System.Windows;
 using System.Windows.Controls;
+using NLog;
 using Prism.Events;
-using Prism.Logging;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Infrastructure.Enums;
 using TheAirline.Infrastructure.Events;
@@ -16,20 +15,18 @@ namespace TheAirline
     /// <summary>
     ///     Interaction logic for MainWindow.xaml
     /// </summary>
-    [Export]
     public sealed partial class MainWindow
     {
-        private readonly ILoggerFacade _logger;
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private readonly LocalizeDictionary _dictionary = LocalizeDictionary.Instance;
 
-        [ImportingConstructor]
-        public MainWindow(IEventAggregator eventAggregator, IRegionManager regionManager, ILoggerFacade logger, AppState state)
+        public MainWindow(IEventAggregator eventAggregator, IRegionManager regionManager, AppState state, MainWindowViewModel viewModel)
         {
             Uri mainPage;
 
             InitializeComponent();
 
-            _logger = logger;
+            DataContext = viewModel;
 
             // Subscribes to the CloseGameEvent and closes the window when triggered.
             eventAggregator.GetEvent<CloseGameEvent>().Subscribe(a => Close());
@@ -56,7 +53,7 @@ namespace TheAirline
 
             Loaded += (o, args) =>
             {
-                _logger.Log("Navigating to default header and start menu.", Category.Debug, Priority.Medium);
+                Logger.Debug("Navigating to default header and start menu.");
                 regionManager.RequestNavigate("HeaderContentRegion", new Uri("/PageHeader", UriKind.Relative));
                 regionManager.RequestNavigate("MainContentRegion", mainPage);
             };
@@ -69,7 +66,6 @@ namespace TheAirline
             //Setup.SetupGame();
         }
 
-        [Import]
         public MainWindowViewModel ViewModel
         {
             get { return DataContext as MainWindowViewModel; }

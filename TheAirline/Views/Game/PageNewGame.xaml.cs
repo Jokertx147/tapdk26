@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.Composition;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using TheAirline.GUIModel.HelpersModel;
 using TheAirline.GUIModel.PagesModel.GamePageModel;
@@ -9,7 +8,6 @@ namespace TheAirline.Views.Game
     /// <summary>
     ///     Interaction logic for PageNewGame.xaml
     /// </summary>
-    [Export("PageNewGame")]
     public sealed partial class PageNewGame
     {
         #region Constructors and Destructors

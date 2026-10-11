@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 
 using TaskDialogInterop;
 
@@ -9,7 +8,6 @@ namespace TheAirline.Infrastructure.Services
     /// <summary>
     /// Service that handles displaying task dialogs.
     /// </summary>
-    [InheritedExport]
     public interface ITaskDialogService
     {
         /// <summary>

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -26,7 +25,6 @@ namespace TheAirline.Views.Game
     /// <summary>
     ///     Interaction logic for PageAirlineData.xaml
     /// </summary>
-    [Export("PageAirlineData")]
     public partial class PageAirlineData
     {
     //    #region Fields

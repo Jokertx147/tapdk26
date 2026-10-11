@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Composition;
 using System.Linq;
 using Prism.Commands;
 using Prism.Mvvm;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Infrastructure.Enums;
 using TheAirline.Models.General;
@@ -14,7 +13,6 @@ using Region = TheAirline.Models.General.Countries.Region;
 
 namespace TheAirline.ViewModels.Game
 {
-    [Export]
     public sealed class PageStartDataViewModel : BindableBase, INavigationAware
     {
         private readonly Region _allRegions;
@@ -24,7 +22,6 @@ namespace TheAirline.ViewModels.Game
         private Player _player;
         private Region _selectedRegion;
 
-        [ImportingConstructor]
         public PageStartDataViewModel(AppState state, IRegionManager regionManager)
         {
             _state = state;

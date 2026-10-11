@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.Composition;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Prism.Events;
 using Prism.Mvvm;
 using TaskDialogInterop;
@@ -10,14 +9,12 @@ using TheAirline.Models.General;
 
 namespace TheAirline.ViewModels
 {
-    [Export]
     public class MainWindowViewModel : BindableBase
     {
         private readonly DelegateCommand<object> _closeCommand;
         private readonly IEventAggregator _events;
         private readonly ITaskDialogService _taskDialog;
 
-        [ImportingConstructor]
         public MainWindowViewModel(IEventAggregator eventAggregator, ITaskDialogService taskDialog)
         {
             _events = eventAggregator;

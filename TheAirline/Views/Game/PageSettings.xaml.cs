@@ -1,12 +1,11 @@
-﻿using System.ComponentModel.Composition;
-using TheAirline.ViewModels.Game;
+﻿using TheAirline.ViewModels.Game;
+using Prism.Ioc;
 
 namespace TheAirline.Views.Game
 {
     /// <summary>
     ///     Interaction logic for PageSettings.xaml
     /// </summary>
-    [Export("PageSettings")]
     public partial class PageSettings
     {
         #region Constructors and Destructors
@@ -14,11 +13,11 @@ namespace TheAirline.Views.Game
         public PageSettings()
         {
             InitializeComponent();
+            ViewModel = ContainerLocator.Container.Resolve<PageSettingsViewModel>();
         }
 
         #endregion
 
-        [Import]
         public PageSettingsViewModel ViewModel
         {
             get { return DataContext as PageSettingsViewModel; }

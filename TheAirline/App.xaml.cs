@@ -1,5 +1,8 @@
 using System.Windows;
+using Prism.Ioc;
 using TheAirline.Infrastructure;
+using TheAirline.Infrastructure.Services;
+using TheAirline.Views.Game;
 
 /*!
  * /brief Namespace of the project
@@ -12,15 +15,30 @@ namespace TheAirline
     /// </summary>
     public sealed partial class App
     {
-        static App()
+        protected override Window CreateShell()
         {
-            //AppSettings.Init();
+            return Container.Resolve<MainWindow>();
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            var boot = new AirlineBootstrapper();
-            boot.Run();
+            containerRegistry.RegisterSingleton<AppState>();
+            containerRegistry.Register<ITaskDialogService, TaskDialogService>();
+
+            //the pages the main window navigates to, registered under the names used in navigation URIs such as "/PageStartMenu"
+            RegisterPage<PageHeader>(containerRegistry);
+            RegisterPage<PageSelectLanguage>(containerRegistry);
+            RegisterPage<PageStartMenu>(containerRegistry);
+            RegisterPage<PageSettings>(containerRegistry);
+            RegisterPage<PageCredits>(containerRegistry);
+            RegisterPage<PageNewGame>(containerRegistry);
+            RegisterPage<PageStartData>(containerRegistry);
+            RegisterPage<PageAirlineData>(containerRegistry);
+        }
+
+        private static void RegisterPage<TPage>(IContainerRegistry containerRegistry)
+        {
+            containerRegistry.Register(typeof (object), typeof (TPage), typeof (TPage).Name);
         }
     }
 }

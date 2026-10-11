@@ -1,12 +1,11 @@
-﻿using System.ComponentModel.Composition;
-using TheAirline.ViewModels.Game;
+﻿using TheAirline.ViewModels.Game;
+using Prism.Ioc;
 
 namespace TheAirline.Views.Game
 {
     /// <summary>
     ///     Interaction logic for PageStartMenu.xaml
     /// </summary>
-    [Export("PageStartMenu")]
     public sealed partial class PageStartMenu
     {
         #region Constructors and Destructors
@@ -14,11 +13,11 @@ namespace TheAirline.Views.Game
         public PageStartMenu()
         {
             InitializeComponent();
+            ViewModel = ContainerLocator.Container.Resolve<PageStartMenuViewModel>();
         }
 
         #endregion
 
-        [Import]
         public PageStartMenuViewModel ViewModel
         {
             get { return DataContext as PageStartMenuViewModel; }

@@ -1,20 +1,19 @@
-﻿using System.ComponentModel.Composition;
-using TheAirline.ViewModels.Game;
+﻿using TheAirline.ViewModels.Game;
+using Prism.Ioc;
 
 namespace TheAirline.Views.Game
 {
     /// <summary>
     ///     Interaction logic for PageCredits.xaml
     /// </summary>
-    [Export("PageCredits")]
     public sealed partial class PageCredits
     {
         public PageCredits()
         {
             InitializeComponent();
+            ViewModel = ContainerLocator.Container.Resolve<PageCreditsViewModel>();
         }
 
-        [Import]
         public PageCreditsViewModel ViewModel
         {
             get { return DataContext as PageCreditsViewModel; }

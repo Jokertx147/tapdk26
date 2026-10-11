@@ -1,23 +1,20 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 using System.Windows;
 using Prism.Commands;
 using Prism.Mvvm;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 using TaskDialogInterop;
 using TheAirline.Infrastructure.Services;
 using TheAirline.Models.General;
 
 namespace TheAirline.ViewModels.Game
 {
-    [Export]
     public class PageStartMenuViewModel : BindableBase
     {
         private readonly IRegionManager _regionManager;
         private readonly ITaskDialogService _taskDialog;
         private Window _parent;
 
-        [ImportingConstructor]
         public PageStartMenuViewModel(IRegionManager regionManager, ITaskDialogService taskDialog)
         {
             _regionManager = regionManager;

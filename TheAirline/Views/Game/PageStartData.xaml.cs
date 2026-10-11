@@ -1,20 +1,19 @@
-﻿using System.ComponentModel.Composition;
-using TheAirline.ViewModels.Game;
+﻿using TheAirline.ViewModels.Game;
+using Prism.Ioc;
 
 namespace TheAirline.Views.Game
 {
     /// <summary>
     ///     Interaction logic for PageStartData.xaml
     /// </summary>
-    [Export("PageStartData")]
     public sealed partial class PageStartData
     {
         public PageStartData()
         {
             InitializeComponent();
+            ViewModel = ContainerLocator.Container.Resolve<PageStartDataViewModel>();
         }
 
-        [Import]
         public PageStartDataViewModel ViewModel
         {
             get { return DataContext as PageStartDataViewModel; }

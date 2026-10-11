@@ -88,3 +88,11 @@ Expected first-build errors, roughly in the order to fix them:
 Not yet checked: that the old `.sav` save files still load, and that the XAML renders the same under the modern WPF theme.
 
 First build on a Windows machine (.NET SDK 10.0.401): package restore succeeded, so the floating versions resolve. The XAML stage then failed on the old Blend `Interaction.Triggers` namespace in two pages, which is now fixed. `System.Configuration.ConfigurationManager` and `System.Drawing.Common` were removed from the project because the SDK already provides them. The C# compile errors listed above have not been seen yet.
+
+Second build (first C# errors): the compiler reported three groups, now addressed but not yet re-built.
+
+- **`System.Device.Location.GeoCoordinate`** (about 140 uses) lived in .NET Framework only. `Infrastructure/Compat/GeoCoordinate.cs` provides a small replacement in the same namespace with the same haversine distance (earth radius 6,376,500 m), so the existing `using` lines keep working. The game only uses `Latitude`, `Longitude` and `GetDistanceTo`. Check a few airport distances against the old build if exact numbers matter.
+- **`MemoryCache`** in `Translator.cs`: added the `System.Runtime.Caching` package.
+- **Prism 6 with MEF** is replaced by Prism 9 with DryIoc (`Prism.DryIoc`). `App` is now a `PrismApplication` that registers `AppState` as a singleton, the dialog service, and the eight start-menu pages under their old navigation names (`/PageStartMenu` and so on). The view models lost their MEF attributes, and views now resolve their view model from the container in the constructor, which also covers `new PageStartData()` in `PageNewGame`. `AirlineBootstrapper.cs` and `EnterpriseLoggerAdapter.cs` are deleted. `MainWindow` logs through NLog. Region types moved to `Prism.Navigation.Regions` in Prism 9, which was inferred from the compiler errors and has not been confirmed.
+
+Still expected: EF Core and SQLite (`AirlineContext.cs`, `Migrations/`), `WPFTaskDialog`, and whatever the compiler shows next.

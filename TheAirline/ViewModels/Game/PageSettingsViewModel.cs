@@ -1,25 +1,22 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Composition;
 using System.Globalization;
 using System.Windows.Input;
 using Prism.Commands;
 using Prism.Mvvm;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Infrastructure.Enums;
 using WPFLocalizeExtension.Engine;
 
 namespace TheAirline.ViewModels.Game
 {
-    [Export]
     public class PageSettingsViewModel : BindableBase
     {
         private readonly LocalizeDictionary _dictionary = LocalizeDictionary.Instance;
         private readonly IRegionManager _regionManager;
         private readonly AppState _state;
 
-        [ImportingConstructor]
         public PageSettingsViewModel(IRegionManager regionManager, AppState state)
         {
             _state = state;

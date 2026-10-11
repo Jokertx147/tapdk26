@@ -1,20 +1,19 @@
-﻿using System.ComponentModel.Composition;
-using TheAirline.ViewModels.Game;
+﻿using TheAirline.ViewModels.Game;
+using Prism.Ioc;
 
 namespace TheAirline.Views.Game
 {
     /// <summary>
     ///     Interaction logic for PageSelectLanguage.xaml
     /// </summary>
-    [Export("PageSelectLanguage")]
     public sealed partial class PageSelectLanguage
     {
         public PageSelectLanguage()
         {
             InitializeComponent();
+            ViewModel = ContainerLocator.Container.Resolve<PageSelectLanguageViewModel>();
         }
 
-        [Import]
         public PageSelectLanguageViewModel ViewModel
         {
             get { return DataContext as PageSelectLanguageViewModel; }

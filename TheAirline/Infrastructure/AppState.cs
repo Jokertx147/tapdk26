@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 using System.Linq;
 using TheAirline.Db;
 using TheAirline.Infrastructure.Enums;
@@ -7,8 +6,6 @@ using WPFLocalizeExtension.Engine;
 
 namespace TheAirline.Infrastructure
 {
-    [Export]
-    [PartCreationPolicy(CreationPolicy.Shared)]
     public sealed class AppState : IDisposable
     {
         private readonly Models.General.Settings _settings;

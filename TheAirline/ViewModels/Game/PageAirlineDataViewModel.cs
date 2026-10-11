@@ -1,20 +1,17 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 using System.Linq;
 using Prism.Mvvm;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 using TheAirline.Infrastructure;
 using TheAirline.Models.General;
 
 namespace TheAirline.ViewModels.Game
 {
-    [Export]
     public class PageAirlineDataViewModel : BindableBase, INavigationAware
     {
         private Player _player;
         private readonly AppState _state;
 
-        [ImportingConstructor]
         public PageAirlineDataViewModel(AppState state)
         {
             _state = state;

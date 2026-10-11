@@ -1,17 +1,14 @@
 ﻿using System;
-using System.ComponentModel.Composition;
 using Prism.Commands;
 using Prism.Mvvm;
-using Prism.Regions;
+using Prism.Navigation.Regions;
 
 namespace TheAirline.ViewModels.Game
 {
-    [Export]
     public class PageCreditsViewModel : BindableBase
     {
         private readonly IRegionManager _regionManager;
 
-        [ImportingConstructor]
         public PageCreditsViewModel(IRegionManager regionManager)
         {
             
