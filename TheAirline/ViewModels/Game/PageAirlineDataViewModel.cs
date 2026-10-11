@@ -279,6 +279,48 @@ namespace TheAirline.ViewModels.Game
 
             RaisePropertyChanged(nameof(SelectedCountry));
             RaisePropertyChanged(nameof(SelectedAirport));
+
+            StartupLog.Write(string.Format(
+                "New game airline {0}: home country {1}, {2} countries, {3} airports, selected airport {4}",
+                airline.Profile.Name,
+                SelectedCountry?.Name ?? "none",
+                Countries.Count,
+                Airports.Count,
+                SelectedAirport?.Profile.IATACode ?? "none"));
+
+            // the combo boxes can still be busy changing their lists, which may clear a selection made just now,
+            // so the selection is made once more when they are done
+            var expectedCountry = SelectedCountry;
+            var expectedAirport = SelectedAirport;
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+
+            dispatcher?.BeginInvoke(new Action(() =>
+            {
+                if (!ReferenceEquals(_selectedAirline, airline))
+                {
+                    return;
+                }
+
+                _updating = true;
+                try
+                {
+                    if (expectedCountry != null && !ReferenceEquals(_selectedCountry, expectedCountry))
+                    {
+                        _selectedCountry = null;
+                        SelectedCountry = expectedCountry;
+                    }
+
+                    if (expectedAirport != null && !ReferenceEquals(_selectedAirport, expectedAirport))
+                    {
+                        _selectedAirport = null;
+                        SelectedAirport = expectedAirport;
+                    }
+                }
+                finally
+                {
+                    _updating = false;
+                }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
         private void CreateGame()
