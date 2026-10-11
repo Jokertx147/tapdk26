@@ -179,8 +179,15 @@ namespace TheAirline.Models.Airlines
         [Versioning("facilities")]
         public List<AirlineFacility> Facilities { get; set; }
 
+        private AirlineFees _fees;
+
+        // created on first use, so an airline never has null fees
         [Versioning("fees")]
-        public AirlineFees Fees { get; set; }
+        public AirlineFees Fees
+        {
+            get { return _fees ?? (_fees = new AirlineFees()); }
+            set { _fees = value; }
+        }
 
         [Versioning("fleet")]
         public List<FleetAirliner> Fleet { get; set; }

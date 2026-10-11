@@ -515,29 +515,37 @@ namespace TheAirline.Helpers
     {
         private readonly System.Xml.XmlDictionary _dictionary = new System.Xml.XmlDictionary();
 
+        private static bool IsBuiltIn(Type type)
+        {
+            return type.IsPrimitive || type == typeof (string) || type == typeof (decimal) || type == typeof (DateTime)
+                   || type == typeof (TimeSpan) || type == typeof (Guid) || type == typeof (DateTimeOffset)
+                   || type == typeof (byte[]);
+        }
+
         public override bool TryResolveType(Type type, Type declaredType, DataContractResolver knownTypeResolver,
             out System.Xml.XmlDictionaryString typeName, out System.Xml.XmlDictionaryString typeNamespace)
         {
-            if (!knownTypeResolver.TryResolveType(type, declaredType, null, out typeName, out typeNamespace))
+            if (IsBuiltIn(type))
             {
-                typeNamespace = _dictionary.Add(type.Assembly.FullName);
-                typeName = _dictionary.Add(type.FullName);
+                return knownTypeResolver.TryResolveType(type, declaredType, null, out typeName, out typeNamespace);
             }
 
+            // everything else is named by its assembly and full name, and found again by the same
+            typeNamespace = _dictionary.Add(type.Assembly.FullName);
+            typeName = _dictionary.Add(type.FullName);
             return true;
         }
 
         public override Type ResolveName(string typeName, string typeNamespace, Type declaredType,
             DataContractResolver knownTypeResolver)
         {
-            var type = knownTypeResolver.ResolveName(typeName, typeNamespace, declaredType, null);
-            if (type != null)
+            if (typeNamespace.StartsWith("http://", StringComparison.Ordinal))
             {
-                return type;
+                return knownTypeResolver.ResolveName(typeName, typeNamespace, declaredType, null);
             }
 
-            var assembly = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(typeNamespace));
-            return assembly.GetType(typeName);
+            var assemblyName = new System.Reflection.AssemblyName(typeNamespace).Name;
+            return System.Reflection.Assembly.Load(assemblyName).GetType(typeName);
         }
     }
 

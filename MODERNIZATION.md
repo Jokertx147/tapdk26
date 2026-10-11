@@ -133,3 +133,8 @@ First look at the in-game screens: the Staff (pilots) screen crashed with "A Two
 Also fixed: `Names.SetupNames` looped forever (it never read the next line), which froze game creation at the pilots step.
 
 Loading a save froze the game. Causes found by reading the code: `PageLoadGame` spun in `while (GameObjectWorker.IsBusy()) {}` on the UI thread, which can never finish if the game worker needs the UI thread; the start menu's Load Game pointed at an unregistered Prism route; and the game data was not loaded when loading from the start menu. Now the wait happens on the background thread (30 second limit), the start menu opens the older Page based load screen after loading the game data, load errors are shown in a message box, and every step of loading and saving is written to `startup.log`. The DataContractSerializer save format has still never been tried on a real save, so the log is the way to see how long it takes and whether it round-trips.
+
+## Save/load (DataContractSerializer)
+- `SaveTypeResolver` writes assembly name + type full name as the contract namespace/name so all game types round-trip without a known-type list; built-in types use the default resolver.
+- `Airline.Fees` is lazily created (the airline UI dereferenced a null `Fees`).
+- `AssemblyVersion` pinned to `2.0.0.0` so saves stay loadable across rebuilds.
