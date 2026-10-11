@@ -139,3 +139,4 @@ Loading a save froze the game. Causes found by reading the code: `PageLoadGame` 
 - `Airline.Fees` is lazily created (the airline UI dereferenced a null `Fees`).
 - `AssemblyVersion` pinned to `2.0.0.0` so saves stay loadable across rebuilds.
 - `DataContractSerializer` rejects `ISerializable` types lacking `[Serializable]`; added it to `BaseModel`, `Country`, `SpecialContract*`, `OperatingData/Value`.
+- `AirportStatistics`: all access to `Stats` is now under `lock (Stats)`; airlines are simulated in `Parallel.ForEach` and shared airports were corrupted by concurrent `List.Add` (null entries, NRE in `AddStatisticsValue`).

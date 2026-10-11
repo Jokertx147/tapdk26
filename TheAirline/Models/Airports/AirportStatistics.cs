@@ -47,41 +47,49 @@ namespace TheAirline.Models.Airports
 
         public void AddStatisticsValue(int year, Airline airline, StatisticsType type, int value)
         {
-            AirportStatisticsValue item =
-                Stats.Find(s => s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
+            lock (Stats)
+            {
+                AirportStatisticsValue item =
+                    Stats.Find(s => s != null && s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
 
-            if (item == null)
-            {
-                Stats.Add(new AirportStatisticsValue(airline, year, type, value));
-            }
-            else
-            {
-                item.Value += value;
+                if (item == null)
+                {
+                    Stats.Add(new AirportStatisticsValue(airline, year, type, value));
+                }
+                else
+                {
+                    item.Value += value;
+                }
             }
         }
 
         //returns the value for a statistics type for an airline for a year
         public double GetStatisticsValue(int year, Airline airline, StatisticsType type)
         {
-            AirportStatisticsValue item =
-                Stats.Find(s => s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
-
-            if (item == null)
+            lock (Stats)
             {
-                return 0;
+                AirportStatisticsValue item =
+                    Stats.Find(s => s != null && s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
+
+                return item == null ? 0 : item.Value;
             }
-            return item.Value;
         }
 
         public double GetTotalValue(int year, StatisticsType type)
         {
-            return Stats.Where(s => s.Year == year && s.Stat.Shortname == type.Shortname).Sum(s => s.Value);
+            lock (Stats)
+            {
+                return Stats.Where(s => s != null && s.Year == year && s.Stat.Shortname == type.Shortname).Sum(s => s.Value);
+            }
         }
 
         //returns every year with statistics
         public List<int> GetYears()
         {
-            return Stats.Select(s => s.Year).Distinct().ToList();
+            lock (Stats)
+            {
+                return Stats.Where(s => s != null).Select(s => s.Year).Distinct().ToList();
+            }
         }
 
         //adds the value for a statistics type to an airline for a year
@@ -92,7 +100,7 @@ namespace TheAirline.Models.Airports
             lock (Stats)
             {
                 AirportStatisticsValue item =
-                    Stats.Find(s => s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
+                    Stats.Find(s => s != null && s.Year == year && s.Airline == airline && s.Stat.Shortname == type.Shortname);
 
                 if (item == null)
                 {
