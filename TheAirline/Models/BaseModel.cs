@@ -91,6 +91,9 @@ namespace TheAirline.Models
 
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
+            // classes that do not override GetObjectData still need a version for the reading constructor
+            AddVersion(info, 1);
+
             Type myType = GetType();
 
             IEnumerable<FieldInfo> fields =
