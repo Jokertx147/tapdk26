@@ -189,6 +189,11 @@ namespace TheAirline.Helpers
                 () =>
                     {
                         GameObject.SetInstance(deserializedSaveObject.Instance);
+                        // the money shown in the header is a separate value that is not part of the save
+                        if (GameObject.GetInstance().HumanAirline != null)
+                        {
+                            GameObject.GetInstance().HumanMoney = GameObject.GetInstance().HumanAirline.Money;
+                        }
                         Infrastructure.Settings.SetInstance(deserializedSaveObject.Settings);
                     },
                 () =>
