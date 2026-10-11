@@ -1,0 +1,61 @@
+# Modernization plan: .NET Framework 4.5.2 to current .NET (WPF)
+
+Target: SDK-style projects on `net10.0-windows` (or `net8.0-windows` if the machine only has the 8 SDK), keeping WPF and the existing XAML. Windows only.
+
+Status: **inventory and plan only. Nothing has been built or compiled.** The session that produced this plan had no .NET SDK and no NuGet access, so every step below still needs a Windows machine with the SDK installed.
+
+## Scope at a glance
+
+| Item | Size |
+| --- | --- |
+| Projects | `TheAirline`, `TheAirline.Resources`, `TheAirline.Data`, `TheAirline.Tests`, `Installer` (WiX) |
+| `TheAirline.csproj` | 323 explicit `<Compile>` items, 193 `Page`/`Resource`/`Content`/`EmbeddedResource` items |
+| Packages | 60+ entries in `packages.config`, mostly 2016 pre-release EF Core, `Microsoft.Extensions.*` 1.0 and `System.*` 4.x facades |
+| Checked-in binaries | `Resource/*.dll` (MetroChart, Unity, Xceed AvalonDock, Interactivity), `packages/` (208 tracked files), `.nuget/NuGet.exe` |
+
+## Dependency map
+
+| Old dependency | Where it is used | Replacement |
+| --- | --- | --- |
+| `System.*` 4.x facade packages, `Microsoft.Extensions.*` 1.0, `Microsoft.AspNetCore.*` 1.0 | Pulled in by EF Core 1.0 | Delete. They ship in the shared framework or come back transitively. |
+| `Microsoft.EntityFrameworkCore` 1.0 + `EntityFrameworkCore.SqlServerCompact40` | `Db/AirlineContext.cs`, `Migrations/` (4 files) | Current EF Core with SQLite (`Microsoft.EntityFrameworkCore.Sqlite`). SQL CE is dead on modern .NET. Regenerate migrations. |
+| `Microsoft.SqlServer.Compact` | Same | Remove. |
+| `Prism.Core/Wpf/Mef` 6.1, MEF (`System.ComponentModel.Composition`) | 21 `.cs` files (`[Export]`/`[Import]`, `AirlineBootstrapper`) | Prism 9 (`Prism.DryIoc`) or plain `Microsoft.Extensions.DependencyInjection`. This is the largest structural change. |
+| `CommonServiceLocator` | 1 file | Drop with the bootstrapper rewrite. |
+| `EnterpriseLibrary.*` 6.0 | 1 file (`Infrastructure/Adapters/EnterpriseLoggerAdapter.cs`) | Remove. Route Prism logging to NLog or `Microsoft.Extensions.Logging`. |
+| `NLog` 4.3 | 1 file | `NLog` current. Keep `NLog.config`. |
+| `Extended.Wpf.Toolkit` 2.9 | 1 XAML, 1 `.cs` | Current `Extended.Wpf.Toolkit` (Xceed, community edition). |
+| `Xceed.Wpf.AvalonDock*`, `Xceed.Wpf.DataGrid` loose DLLs | Referenced in the csproj, little or no direct use found | Remove the DLLs. Re-add `Dirkster.AvalonDock` only if a compile error shows it is needed. |
+| `De.TorstenMandelkow.MetroChart.dll` (checked-in binary) | 4 XAML files | Replace with LiveCharts2 or OxyPlot and rework those 4 charts. |
+| `WpfLocalizeExtension` 2.3.2 + `XAMLMarkupExtensions` | 7 XAML files (`xmlns:lex`) | `WpfLocalizeExtension` current (supports modern .NET). Check the xmlns URI. |
+| `WPFTaskDialog` 1.7.1 | 3 `.cs` files, `Infrastructure/Services/TaskDialogService.cs` | `TaskDialog` from `Ookii.Dialogs.Wpf` or a plain `MessageBox`. |
+| `MathNet.Numerics` 3.11 | No source usage found | Remove, or bump if a build error says it is needed. |
+| `Microsoft.Expression.Interactions`, `System.Windows.Interactivity` (loose DLLs) | No usage found | If needed, `Microsoft.Xaml.Behaviors.Wpf`. |
+| `Moq` 4.2, `Ninject` 3.2 (tests) | `TheAirline.Tests` | Current `Moq`, `xunit` or `NUnit` (match what the tests use today). |
+| `BinaryFormatter` | `Helpers/SerializedLoadSaveHelpers.cs` (1 file, old save path) | Disabled by default since .NET 8 and removed from the runtime path in later versions. Retire it. See "Save files" below. |
+
+## Save files
+
+118 `.cs` files carry `[Serializable]`, and `GameObject` uses `SerializationInfo` with custom versioning attributes. Two save paths exist:
+
+1. `LoadSaveHelpers` writes a `SaveObject` with `DataContractSerializer`. This path still works on modern .NET and is the one to keep.
+2. `SerializedLoadSaveHelpers` uses `BinaryFormatter`. Treat it as legacy. Either drop support for those old saves or write a one-off converter on .NET Framework before migrating.
+
+Decide early whether old `.sav` files must still load. If not, delete the `BinaryFormatter` path and keep the rest.
+
+## Order of work
+
+1. **Branch and baseline.** On a Windows machine, confirm the original still builds (VS 2022 with the .NET Framework 4.5.2 targeting pack, or just trust the AppVeyor history) so there is a known-good reference.
+2. **Convert `TheAirline.Resources`, `TheAirline.Data`, `TheAirline.Tests`** to SDK-style. These are small. Resources and images become `Content` or `Resource` items with globs.
+3. **Convert `TheAirline.csproj`.** Replace the 323 `Compile` and 193 resource items with SDK globs. Set `UseWPF`, `TargetFramework`, `ImplicitUsings` off at first, and `Nullable` off. Delete `packages.config`, the `packages/` folder, `.nuget/`, and the loose DLLs under `Resource/` and `TheAirline/`.
+4. **Fix dependencies in this order:** logging (NLog, drop Enterprise Library), then Prism and MEF (the bootstrapper and the 21 `[Export]` files), then the EF Core and SQLite layer, then charts, localization and dialogs.
+5. **Fix API breaks as the compiler reports them.** Likely areas are `System.Windows.Forms` and `System.Drawing` use (5 files), `AppDomain` and `WebClient` calls, and `Settings`/`app.config` access.
+6. **Replace the installer.** The WiX 3.8 project needs WiX 4 or 5, or an MSIX or `dotnet publish` flow.
+7. **Smoke test.** Start the game, create an airline, run a few game days, save, reload.
+
+## Known risks
+
+- `Parallel.ForEach` over all airlines mutates shared singletons (`GameObject`, static collections). It worked on .NET 4.5, but newer runtimes schedule threads differently, so watch for race conditions.
+- Behavior of `DataContractSerializer` for the `SaveObject` type should be checked against an existing `.sav` file after the port.
+- The checked-in `Data/Data/plugins/AirportCSVReader.dll` is a binary plugin of unknown origin. Rebuild it or remove it.
+- No license file exists in the repository. Confirm terms with the project owners before publishing a fork.
