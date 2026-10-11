@@ -802,6 +802,7 @@ namespace TheAirline.Infrastructure
             List<StartDataRoute> sRoutes = startroutes.GetRange(0, startroutes.Count/startDataFactor);
             Parallel.ForEach(
                 sRoutes,
+                new ParallelOptions { MaxDegreeOfParallelism = 1 },
                 startRoute =>
                     {
                         Airport dest1 = Airports.GetAirport(startRoute.Destination1);
@@ -966,6 +967,7 @@ namespace TheAirline.Infrastructure
             //adds the airliners
             Parallel.ForEach(
                 startData.Airliners,
+                new ParallelOptions { MaxDegreeOfParallelism = 1 },
                 airliners =>
                     {
                         AirlinerType type = AirlinerTypes.GetType(airliners.Type); //B747-200
@@ -1033,6 +1035,7 @@ namespace TheAirline.Infrastructure
             //the origin routes
             Parallel.ForEach(
                 startData.OriginRoutes,
+                new ParallelOptions { MaxDegreeOfParallelism = 1 },
                 routes =>
                     {
                         Airport origin = Airports.GetAirport(routes.Origin);

@@ -308,7 +308,19 @@ namespace TheAirline.Models.Airliners
 
         public int GetTotalSeatCapacity()
         {
-            return Classes.Sum(aClass => aClass.SeatingCapacity);
+            // the class list can change on another thread while the game is being set up, so work on a copy
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                try
+                {
+                    return Classes.ToArray().Sum(aClass => aClass.SeatingCapacity);
+                }
+                catch (Exception e) when (e is InvalidOperationException || e is ArgumentException || e is NullReferenceException)
+                {
+                }
+            }
+
+            return 0;
         }
 
         public long GetValue()
