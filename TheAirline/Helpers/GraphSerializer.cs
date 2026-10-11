@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -624,7 +624,12 @@ namespace TheAirline.Helpers
                     _failedFields++;
                     if (_firstFailure == null)
                     {
-                        _firstFailure = FieldKey(f) + ": " + e.Message;
+                        Exception inner = e;
+                        while (inner.InnerException != null)
+                        {
+                            inner = inner.InnerException;
+                        }
+                        _firstFailure = FieldKey(f) + ": " + inner.GetType().Name + ": " + inner.Message + " " + inner.StackTrace;
                     }
                 }
             }
