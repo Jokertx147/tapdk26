@@ -110,9 +110,9 @@ namespace TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel
             {
                 int maxCapacity;
 
-                if (airliner.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger)
+                if (Airliner.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger)
                 {
-                    maxCapacity = ((AirlinerPassengerType)airliner.Airliner.Type).MaxSeatingCapacity;
+                    maxCapacity = ((AirlinerPassengerType)Airliner.Airliner.Type).MaxSeatingCapacity;
                 }
                 else
                 {
