@@ -142,7 +142,12 @@ namespace TheAirline.Models.General.Countries.Towns
 
         public static List<Town> GetTowns()
         {
-            return Airports.Airports.GetAllAirports().Select(a => a.Profile.Town).Distinct().ToList();
+            return
+                Airports.Airports.GetAllAirports()
+                        .Select(a => a.Profile.Town)
+                        .Where(t => (object) t != null && (object) t.Country != null && t.Name != null)
+                        .Distinct()
+                        .ToList();
         }
 
         //returns all towns from a specific country
