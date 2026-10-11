@@ -386,4 +386,18 @@
 
   </airliner>
 
+  <airliner manufacturer="Airbus" name="Airbus A220-100" price="8100000">
+    <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
+    <specs wingspan="35.1" length="35.0" range="5741" speed="828" fuelcapacity="21805" consumption="0.034"
+           runwaylengthrequired="1509" />
+    <capacity passengers="110" cockpitcrew="2" cabincrew="2" maxclasses="2" />
+    <produced from="2018" to="2199" rate="24" />
+  </airliner>
+  <airliner manufacturer="Airbus" name="Airbus A220-300" price="8900000">
+    <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
+    <specs wingspan="35.1" length="38.7" range="6297" speed="828" fuelcapacity="21805" consumption="0.031"
+           runwaylengthrequired="1890" />
+    <capacity passengers="130" cockpitcrew="2" cabincrew="2" maxclasses="2" />
+    <produced from="2018" to="2199" rate="24" />
+  </airliner>
 </airliners>

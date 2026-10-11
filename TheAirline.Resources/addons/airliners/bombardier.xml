@@ -83,28 +83,28 @@
     <specs wingspan="35.1" length="34.9" range="4074" speed="828" fuelcapacity="15775" consumption="0.035"
            runwaylengthrequired="1509" />
     <capacity passengers="110" cockpitcrew="2" cabincrew="2" maxclasses="2" />
-    <produced from="2013" to="2026" rate="24" />
+    <produced from="2013" to="2018" rate="24" />
   </airliner>
   <airliner manufacturer="Bombardier" name="Bombardier CS-100ER" price="7954400"> <!--63611340-->
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
     <specs wingspan="35.1" length="34.9" range="5463" speed="828" fuelcapacity="20431" consumption="0.034"
            runwaylengthrequired="1509" />
     <capacity passengers="110" cockpitcrew="2" cabincrew="2" maxclasses="2" />
-    <produced from="2014" to="2022" />
+    <produced from="2014" to="2018" />
   </airliner>
   <airliner manufacturer="Bombardier" name="Bombardier CS-300" price="8324370"> <!--66570000-->
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
     <specs wingspan="35.10" length="38.0" range="4074" speed="828" fuelcapacity="16947" consumption="0.032"
            runwaylengthrequired="1902" />
     <capacity passengers="130" cockpitcrew="2" cabincrew="2" maxclasses="2" />
-    <produced from="2013" to="2025" rate="24" />
+    <produced from="2013" to="2018" rate="24" />
   </airliner>
   <airliner manufacturer="Bombardier" name="Bombardier CS-300ER" price="8705000">
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
     <specs wingspan="35.1" length="38.0" range="5463" speed="828" fuelcapacity="22015" consumption="0.031"
            runwaylengthrequired="1890" />
     <capacity passengers="130" cockpitcrew="2" cabincrew="2" maxclasses="2" />
-    <produced from="2014" to="2019" rate="24" />
+    <produced from="2014" to="2018" rate="24" />
   </airliner>
   
 </airliners>
