@@ -44,7 +44,7 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <WrapPanel>
-                                                    <Image Source="/data/images/mail.png" VerticalAlignment="Bottom"
+                                                    <Image Source="/Resources/images/mail.png" VerticalAlignment="Bottom"
                                                            RenderOptions.BitmapScalingMode="HighQuality">
                                                         <Image.Style>
                                                             <Style TargetType="Image">
@@ -61,7 +61,7 @@
                                                             </Style>
                                                         </Image.Style>
                                                     </Image>
-                                                    <Image Source="/data/images/actionmail.png"
+                                                    <Image Source="/Resources/images/actionmail.png"
                                                            VerticalAlignment="Bottom"
                                                            RenderOptions.BitmapScalingMode="HighQuality">
                                                         <Image.Style>
@@ -79,7 +79,7 @@
                                                             </Style>
                                                         </Image.Style>
                                                     </Image>
-                                                    <Image Source="/data/images/nomail.png" VerticalAlignment="Bottom"
+                                                    <Image Source="/Resources/images/nomail.png" VerticalAlignment="Bottom"
                                                            RenderOptions.BitmapScalingMode="HighQuality"
                                                            Visibility="{Binding IsRead,Converter={StaticResource BooleanToVisibility}}" />
                                                 </WrapPanel>

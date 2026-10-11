@@ -184,7 +184,7 @@
                                             <WrapPanel>
                                                 <Button Width="20" VerticalAlignment="Bottom" Click="btnSell_Click"
                                                         Tag="{Binding}" Background="Transparent">
-                                                    <Image Source="/data/images/delete.png"
+                                                    <Image Source="/Resources/images/delete.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                     <Button.Style>
                                                         <Style TargetType="Button">
@@ -202,7 +202,7 @@
                                                 </Button>
                                                 <Button Width="20" VerticalAlignment="Bottom" Click="btnBuy_Click"
                                                         Tag="{Binding}" Background="Transparent">
-                                                    <Image Source="/data/images/add.png"
+                                                    <Image Source="/Resources/images/add.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                     <Button.Style>
                                                         <Style TargetType="Button">
@@ -256,7 +256,7 @@
                                 FontWeight="Bold" VerticalAlignment="Bottom" Width="150" />
                             <Button Width="20" VerticalAlignment="Bottom" Click="btnBuyTrainingFacility_Click"
                                     Tag="{Binding}" Background="Transparent">
-                                <Image Source="/data/images/add.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Image Source="/Resources/images/add.png" RenderOptions.BitmapScalingMode="HighQuality" />
                             </Button>
                         </WrapPanel>
                     </StackPanel>

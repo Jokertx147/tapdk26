@@ -227,7 +227,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
         public RouteFeedbackMVVM(string text, string image, double value, string feedback)
         {
             Text = text;
-            Image = "/Data/images/" + image;
+            Image = "/Resources/images/" + image;
             Value = value;
             Feedback = feedback;
         }

@@ -98,7 +98,7 @@
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <WrapPanel>
-                                    <Image Source="/data/images/human.png" Width="20"
+                                    <Image Source="/Resources/images/human.png" Width="20"
                                            RenderOptions.BitmapScalingMode="HighQuality">
                                         <Image.Style>
                                             <Style>
@@ -112,7 +112,7 @@
                                     </Image>
                                     <Button Width="20" VerticalAlignment="Bottom" Click="btnContract_Click"
                                             Tag="{Binding}" Background="Transparent">
-                                        <Image Source="/data/images/add.png"
+                                        <Image Source="/Resources/images/add.png"
                                                RenderOptions.BitmapScalingMode="HighQuality" />
                                         <Button.Style>
                                             <Style TargetType="Button">
@@ -242,7 +242,7 @@
                         CanFilter="False" SortPropertyName="HasCargoTerminal" Width="75">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasCargoTerminal,Converter={StaticResource BooleanToVisibility}}" />
                             </DataTemplate>
@@ -253,7 +253,7 @@
                         CanFilter="False" SortPropertyName="HasHelipad" Width="75">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasHelipad,Converter={StaticResource BooleanToVisibility}}" />
                             </DataTemplate>

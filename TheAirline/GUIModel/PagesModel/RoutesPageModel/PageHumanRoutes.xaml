@@ -24,7 +24,7 @@
                                 <DataTemplate>
                                     <Button Width="24" Height="24" Background="Transparent" Tag="{Binding Route}"
                                             Click="btnEdit_Click">
-                                        <Image Source="/data/images/edit.png"
+                                        <Image Source="/Resources/images/edit.png"
                                                RenderOptions.BitmapScalingMode="HighQuality" />
                                     </Button>
                                 </DataTemplate>

@@ -28,7 +28,7 @@
                         <DataTemplate>
                             <Button Width="20" VerticalAlignment="Bottom" Click="btnHire_Click"
                                     Background="Transparent" Tag="{Binding}">
-                                <Image Source="/data/images/money.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Image Source="/Resources/images/money.png" RenderOptions.BitmapScalingMode="HighQuality" />
                             </Button>
                         </DataTemplate>
                     </GridViewColumn.CellTemplate>

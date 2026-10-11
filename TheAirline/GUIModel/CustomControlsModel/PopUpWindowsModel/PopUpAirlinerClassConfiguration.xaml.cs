@@ -164,7 +164,7 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         {
              public AirlinerFacility Facility { get; set; }
             public AirlinerClass AirlinerClass { get; set; }
-            public string Image { get { return string.Format("/data/images/{0}.png", this.Facility.Type); } set { ;} }
+            public string Image { get { return string.Format("/Resources/images/{0}.png", this.Facility.Type); } set { ;} }
             public AirlinerFacilityItem( AirlinerClass aClass, AirlinerFacility facility)
             {
                  this.AirlinerClass = aClass;

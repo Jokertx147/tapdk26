@@ -24,7 +24,7 @@
 
                 <Button Width="20" Background="Transparent" Click="btnRemoveFromOrder_Click" Margin="5 0 0 0"
                         Tag="{Binding}">
-                    <Image Source="/data/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Image Source="/Resources/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
                 <Button Width="20" Background="Transparent" Click="btnEquipped_Click" Margin="5 0 0 0" Tag="{Binding}">
                     <Button.Style>
@@ -36,7 +36,7 @@
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <Image Source="/data/images/configuration.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Image Source="/Resources/images/configuration.png" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
             </WrapPanel>
 
@@ -58,7 +58,7 @@
                                     <DataTemplate>
                                         <Button Width="20" Background="Transparent" Click="btnAddType_Click"
                                                 Tag="{Binding}">
-                                            <Image Source="/data/images/add.png"
+                                            <Image Source="/Resources/images/add.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Button>
                                     </DataTemplate>

@@ -101,7 +101,7 @@
 
                 </WrapPanel>
                 <Button  VerticalAlignment="Bottom" Tag="{Binding}" Background="Transparent" Visibility="{Binding CanDelete,Converter={StaticResource BooleanToVisibility}}" Click="btnDelete_Click">
-                    <Image Source="/Data/images/delete.png" Height="16" Width="16"  RenderOptions.BitmapScalingMode="HighQuality"></Image>
+                    <Image Source="/Resources/images/delete.png" Height="16" Width="16"  RenderOptions.BitmapScalingMode="HighQuality"></Image>
                 </Button>
             </WrapPanel>
         </DataTemplate>

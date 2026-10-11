@@ -116,7 +116,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Button.Style>
-                                    <Image Source="/data/images/upgrade.png"
+                                    <Image Source="/Resources/images/upgrade.png"
                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                 </Button>
 
@@ -197,14 +197,14 @@
                                                 Visibility="{Binding IsHuman,Converter={StaticResource BooleanToVisibility}}"
                                                 Background="Transparent" Tag="{Binding}" Width="20"
                                                 VerticalAlignment="Bottom">
-                                            <Image Source="/data/images/delete.png"
+                                            <Image Source="/Resources/images/delete.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Button>
                                         <Button Margin="5 0 0 0" Click="btnReleaseSubsidiary_Click"
                                                 Visibility="{Binding IsHuman,Converter={StaticResource BooleanToVisibility}}"
                                                 Background="Transparent" Tag="{Binding}" Width="20"
                                                 VerticalAlignment="Bottom">
-                                            <Image Source="/data/images/key.png"
+                                            <Image Source="/Resources/images/key.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Button>
                                     </WrapPanel>
@@ -258,10 +258,10 @@
                                         <ContentControl Content="{Binding}"
                                                         ContentTemplate="{StaticResource AirlineLongLink}"
                                                         VerticalAlignment="Bottom" Width="300" />
-                                        <Image Source="/data/images/tick.png" Name="imgTick" Width="20"
+                                        <Image Source="/Resources/images/tick.png" Name="imgTick" Width="20"
                                                Visibility="{Binding Converter={StaticResource AirlineInuseConverter}}"
                                                RenderOptions.BitmapScalingMode="HighQuality" />
-                                        <Image Source="/data/images/tickgrey.png" Tag="{Binding}"
+                                        <Image Source="/Resources/images/tickgrey.png" Tag="{Binding}"
                                                MouseDown="imgAirline_Click" Width="20"
                                                RenderOptions.BitmapScalingMode="HighQuality">
                                             <Image.Style>
@@ -452,7 +452,7 @@
                                     Width="50">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding IsHub,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>
@@ -463,7 +463,7 @@
                                     Width="50">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasRoutes,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>
@@ -474,7 +474,7 @@
                                     Width="110">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasAirplaneOnRouteTo,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>
@@ -513,7 +513,7 @@
                                     Width="50">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding IsHub,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>
@@ -524,7 +524,7 @@
                                     Width="50">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasRoutes,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>
@@ -535,7 +535,7 @@
                                     Width="110">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/tick.png" VerticalAlignment="Bottom"
+                                            <Image Source="/Resources/images/tick.png" VerticalAlignment="Bottom"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    Visibility="{Binding HasAirplaneOnRouteTo,Converter={StaticResource BooleanToVisibility}}" />
                                         </DataTemplate>

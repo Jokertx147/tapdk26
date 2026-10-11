@@ -74,7 +74,7 @@
                                                 <Button Tag="{Binding}" VerticalAlignment="Bottom" Width="20"
                                                         Background="Transparent" Click="btnSellAircraft_Click">
                                                     <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/delete.png" />
+                                                           Source="/Resources/images/delete.png" />
                                                 </Button>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -119,7 +119,7 @@
                                                 <Button Tag="{Binding}" VerticalAlignment="Bottom" Width="20"
                                                         Background="Transparent" Click="btnDeleteInstructor_Click">
                                                     <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/delete.png" />
+                                                           Source="/Resources/images/delete.png" />
                                                 </Button>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -192,7 +192,7 @@
                                                 <Button Tag="{Binding}" VerticalAlignment="Bottom" Width="20"
                                                         Background="Transparent" Click="btnDeleteStudent_Click">
                                                     <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/delete.png" />
+                                                           Source="/Resources/images/delete.png" />
                                                 </Button>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>

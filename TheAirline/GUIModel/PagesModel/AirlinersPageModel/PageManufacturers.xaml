@@ -51,11 +51,11 @@
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <WrapPanel>
-                                        <Image Source="/data/images/tick.png" Name="imgTick"
+                                        <Image Source="/Resources/images/tick.png" Name="imgTick"
                                                RenderOptions.BitmapScalingMode="HighQuality"
                                                Visibility="{Binding Converter={StaticResource HumanManufacturerContractConverter}}"
                                                Width="20" />
-                                        <Image Source="/data/images/tickgrey.png" Tag="{Binding}" Width="20"
+                                        <Image Source="/Resources/images/tickgrey.png" Tag="{Binding}" Width="20"
                                                RenderOptions.BitmapScalingMode="HighQuality">
                                             <Image.Style>
                                                 <Style TargetType="Image">

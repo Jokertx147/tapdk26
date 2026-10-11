@@ -26,7 +26,7 @@
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <Image Source="/Data/images/delete.png" Height="16" Width="16"
+                    <Image Source="/Resources/images/delete.png" Height="16" Width="16"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
             </WrapPanel>
@@ -38,13 +38,13 @@
                 <Button Visibility="{Binding IsHumanAlliance,Converter={StaticResource BooleanToVisibility}}"
                         VerticalAlignment="Bottom" Tag="{Binding}" Margin="5 0 0 0" Click="btnAccept_Click"
                         Background="Transparent">
-                    <Image Source="/Data/images/add.png" Height="16" Width="16"
+                    <Image Source="/Resources/images/add.png" Height="16" Width="16"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
                 <Button Visibility="{Binding IsHumanAlliance,Converter={StaticResource BooleanToVisibility}}"
                         VerticalAlignment="Bottom" Tag="{Binding}" Margin="5 0 0 0" Click="btnDecline_Click"
                         Background="Transparent">
-                    <Image Source="/Data/images/delete.png" Height="16" Width="16"
+                    <Image Source="/Resources/images/delete.png" Height="16" Width="16"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
             </WrapPanel>

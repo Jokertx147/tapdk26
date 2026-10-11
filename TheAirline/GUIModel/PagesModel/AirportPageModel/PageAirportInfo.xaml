@@ -320,7 +320,7 @@
                         VerticalAlignment="Bottom" Style="{StaticResource SmallHeaderStyle}"/>
                     <WrapPanel Style="{StaticResource WrapPanelStyle}">
                         <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/passenger.png" Height="24" VerticalAlignment="Bottom" />
+                                                           Source="/Resources/images/passenger.png" Height="24" VerticalAlignment="Bottom" />
                         <TextBlock
                                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1052'}"
                                     VerticalAlignment="Bottom" FontWeight="Bold" Width="150" Margin="10 0 0 0" />
@@ -329,7 +329,7 @@
                     </WrapPanel>
                     <WrapPanel Style="{StaticResource WrapPanelStyle}">
                         <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/cargo.png" Height="24" VerticalAlignment="Bottom"/>
+                                                           Source="/Resources/images/cargo.png" Height="24" VerticalAlignment="Bottom"/>
                         <TextBlock
                                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1053'}"
                                     VerticalAlignment="Bottom" FontWeight="Bold" Width="150" Margin="10 0 0 0" />
@@ -386,7 +386,7 @@
                                         <DataTemplate>
                                             <WrapPanel>
                                                 <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/passenger.png" Height="24" VerticalAlignment="Bottom" >
+                                                           Source="/Resources/images/passenger.png" Height="24" VerticalAlignment="Bottom" >
                                                     <Image.Style>
                                                         <Style>
                                                             <Style.Triggers>
@@ -398,7 +398,7 @@
                                                     </Image.Style>
                                                 </Image>
                                                 <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/cargo.png" Height="24" VerticalAlignment="Bottom">
+                                                           Source="/Resources/images/cargo.png" Height="24" VerticalAlignment="Bottom">
                                                     <Image.Style>
                                                         <Style>
                                                             <Style.Triggers>
@@ -422,13 +422,13 @@
                                                         Click="btnBuyTerminal_Click" Tag="{Binding}"
                                                         Visibility="{Binding IsBuyable,Converter={StaticResource BooleanToVisibility}}">
                                                     <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/buy.png" />
+                                                           Source="/Resources/images/buy.png" />
                                                 </Button>
                                                 <Button Background="Transparent" VerticalAlignment="Bottom" Width="20"
                                                         Click="btnSellTerminal_Click" Tag="{Binding}"
                                                         Visibility="{Binding IsSellable,Converter={StaticResource BooleanToVisibility}}">
                                                     <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/delete.png" />
+                                                           Source="/Resources/images/delete.png" />
                                                 </Button>
                                             </WrapPanel>
                                         </DataTemplate>
@@ -634,7 +634,7 @@
                                         <DataTemplate>
                                             <WrapPanel>
                                                 <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/passenger.png" Height="24" VerticalAlignment="Bottom" >
+                                                           Source="/Resources/images/passenger.png" Height="24" VerticalAlignment="Bottom" >
                                                     <Image.Style>
                                                         <Style>
                                                             <Style.Triggers>
@@ -646,7 +646,7 @@
                                                     </Image.Style>
                                                 </Image>
                                                 <Image RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Source="/data/images/cargo.png" Height="24" VerticalAlignment="Bottom">
+                                                           Source="/Resources/images/cargo.png" Height="24" VerticalAlignment="Bottom">
                                                     <Image.Style>
                                                         <Style>
                                                             <Style.Triggers>
@@ -678,13 +678,13 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
-                                                    <Image Source="/data/images/edit.png"
+                                                    <Image Source="/Resources/images/edit.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Button>
                                                 <Button Background="Transparent" Width="20" Tag="{Binding}"
                                                         Margin="5 0 0 0" Click="btnRemoveContract_Click"
                                                         Visibility="{Binding IsHuman,Converter={StaticResource BooleanToVisibility}}">
-                                                    <Image Source="/data/images/delete.png"
+                                                    <Image Source="/Resources/images/delete.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Button>
                                             </WrapPanel>
@@ -854,7 +854,7 @@
                                         <Button Background="Transparent" Width="20" Margin="5 0 0 0" Tag="{Binding}"
                                                 Visibility="{Binding Airline.IsHuman,Converter={StaticResource BooleanToVisibility}}"
                                                 Click="btnRemoveHub_Click">
-                                            <Image Source="/data/images/delete.png"
+                                            <Image Source="/Resources/images/delete.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Button>
                                     </WrapPanel>
@@ -892,7 +892,7 @@
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Width="20" VerticalAlignment="Bottom" Tag="{Binding}" Background="Transparent" Click="btnDemandContract_Click">
-                                                <Image Source="/data/images/add.png" RenderOptions.BitmapScalingMode="HighQuality"></Image>
+                                                <Image Source="/Resources/images/add.png" RenderOptions.BitmapScalingMode="HighQuality"></Image>
                                                 <Button.Style>
                                                     <Style TargetType="Button">
                                                         <Style.Triggers>

@@ -565,7 +565,7 @@
                                 <GridViewColumn Header="">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="/data/images/calendar.png"
+                                            <Image Source="/Resources/images/calendar.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" Width="20"
                                                    VerticalAlignment="Bottom" />
                                         </DataTemplate>

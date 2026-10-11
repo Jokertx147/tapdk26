@@ -59,7 +59,7 @@
                                                             <ColumnDefinition Width="20" />
                                                             <ColumnDefinition Width="*" />
                                                         </Grid.ColumnDefinitions>
-                                                        <Image Grid.Column="0" Source="/data/images/search.png"
+                                                        <Image Grid.Column="0" Source="/Resources/images/search.png"
                                                                Width="16" Height="16" VerticalAlignment="Bottom"
                                                                RenderOptions.BitmapScalingMode="HighQuality" />
 

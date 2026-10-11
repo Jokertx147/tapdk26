@@ -122,6 +122,7 @@
   <ItemGroup>
     <Resource Include="TheAirline.ico" />
     <Resource Include="Resources\images\add.png" />
+    <Resource Include="Resources\images\sell.png" />
     <Resource Include="Resources\images\Airplane.png" />
     <Resource Include="Resources\images\AirplanePin.png" />
     <Resource Include="Resources\images\Airplane_Logo.png" />

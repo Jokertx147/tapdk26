@@ -46,7 +46,7 @@
                                                 <WrapPanel>
                                                     <Button Width="20" VerticalAlignment="Bottom" Tag="{Binding}" Margin="0 0 5 0"
                                                 Background="Transparent" Click="btnDemandContract_Click">
-                                                        <Image Source="/data/images/add.png" 
+                                                        <Image Source="/Resources/images/add.png" 
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                         <Button.Style>
                                                             <Style TargetType="Button">
@@ -81,7 +81,7 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Button.Style>
-                                                        <Image Source="/data/images/info.png" 
+                                                        <Image Source="/Resources/images/info.png" 
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                     </Button>
                                                 </WrapPanel>
@@ -142,7 +142,7 @@
                                                 <WrapPanel>
                                                     <Button Width="20" VerticalAlignment="Bottom" Tag="{Binding}"  Margin="0 0 5 0"
                                                 Background="Transparent" Click="btnDemandContract_Click">
-                                                        <Image Source="/data/images/add.png"
+                                                        <Image Source="/Resources/images/add.png"
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                         <Button.Style>
                                                             <Style TargetType="Button">
@@ -165,7 +165,7 @@
                                                     <Button Width="20" VerticalAlignment="Bottom" Tag="{Binding}" 
                                                 Background="Transparent" Click="btnDemandInfo_Click">
 
-                                                        <Image Source="/data/images/info.png" 
+                                                        <Image Source="/Resources/images/info.png" 
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                     </Button>
                                                 </WrapPanel>

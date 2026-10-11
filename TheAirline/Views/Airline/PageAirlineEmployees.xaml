@@ -124,7 +124,7 @@
                                                         Visibility="{Binding Pilot.Airline.IsHuman,Converter={StaticResource BooleanToVisibility}}"
                                                         Background="Transparent" Click="btnFirePilot_Click" Width="20"
                                                         Tag="{Binding}">
-                                                    <Image Source="/data/images/delete.png"
+                                                    <Image Source="/Resources/images/delete.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Button>
                                             </DataTemplate>
@@ -202,7 +202,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
-                                                    <Image Source="/data/images/school.png"
+                                                    <Image Source="/Resources/images/school.png"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Button>
                                             </DataTemplate>

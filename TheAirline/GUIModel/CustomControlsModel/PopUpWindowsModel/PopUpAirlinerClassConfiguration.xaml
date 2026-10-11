@@ -10,7 +10,7 @@
                 <Image Margin="0 0 20 0" Width="32" Source="{Binding Image}" RenderOptions.BitmapScalingMode="HighQuality"></Image>
                 <TextBlock Width="150" Text="{Binding Facility.Name}" VerticalAlignment="Bottom"></TextBlock>
                 <Button Width="32" Height="32" Background="Transparent" Click="btnEdit_Click" Tag="{Binding}">
-                    <Image Source="/data/images/edit.png" RenderOptions.BitmapScalingMode="HighQuality"></Image>
+                    <Image Source="/Resources/images/edit.png" RenderOptions.BitmapScalingMode="HighQuality"></Image>
                 </Button>
             </WrapPanel>
         </DataTemplate>

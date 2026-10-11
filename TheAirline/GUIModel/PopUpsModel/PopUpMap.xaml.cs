@@ -616,7 +616,7 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         private Image createPin(Point position)
         {
             Image imgPin = new Image();
-            imgPin.Source = new BitmapImage(new Uri(@"/Data/images/airplanepin.png", UriKind.RelativeOrAbsolute));
+            imgPin.Source = new BitmapImage(new Uri(@"/Resources/images/airplanepin.png", UriKind.RelativeOrAbsolute));
 
             imgPin.Height = 24;
             RenderOptions.SetBitmapScalingMode(imgPin, BitmapScalingMode.HighQuality);

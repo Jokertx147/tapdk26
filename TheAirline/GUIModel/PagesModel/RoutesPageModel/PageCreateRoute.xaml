@@ -137,7 +137,7 @@
                                     </Style>
                                 </ComboBox.Style>
                             </ComboBox>
-                            <Image Source="/data/images/info.png" RenderOptions.BitmapScalingMode="HighQuality"
+                            <Image Source="/Resources/images/info.png" RenderOptions.BitmapScalingMode="HighQuality"
                                    Margin="5 0 0 0" Height="16" ToolTipService.ShowDuration="30000"
                                    ToolTip="{Binding ElementName=pageCreateRoute, Path=RouteInformationText}"
                                    VerticalAlignment="Bottom">
@@ -194,7 +194,7 @@
                             </ComboBox>
                             <Button Margin="5 0 0 0" Height="16" Click="btnStopover1_Click" VerticalAlignment="Bottom"
                                     Background="Transparent">
-                                <Image Source="/data/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Image Source="/Resources/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
                             </Button>
                         </WrapPanel>
                     </h:QuickInfoValue.Value>
@@ -232,7 +232,7 @@
                             </ComboBox>
                             <Button Margin="5 0 0 0" Height="16" Click="btnStopover2_Click" VerticalAlignment="Bottom"
                                     Background="Transparent">
-                                <Image Source="/data/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Image Source="/Resources/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
                             </Button>
                         </WrapPanel>
                     </h:QuickInfoValue.Value>
@@ -287,7 +287,7 @@
                             </ComboBox>
                             <Button Margin="5 0 0 0" Height="16" Click="btnContract_Click" VerticalAlignment="Bottom"
                                     Background="Transparent">
-                                <Image Source="/data/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Image Source="/Resources/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
                             </Button>
                         </WrapPanel>
                     </h:QuickInfoValue.Value>
@@ -323,7 +323,7 @@
                                        VerticalAlignment="Bottom" />
                             <Button Background="Transparent" VerticalAlignment="Bottom" Width="20" Margin="5 0 0 0"
                                     Click="btnShowConnectingRoutes_Click">
-                                <Image RenderOptions.BitmapScalingMode="HighQuality" Source="/data/images/search.png" />
+                                <Image RenderOptions.BitmapScalingMode="HighQuality" Source="/Resources/images/search.png" />
                             </Button>
                         </WrapPanel>
                     </h:QuickInfoValue.Value>

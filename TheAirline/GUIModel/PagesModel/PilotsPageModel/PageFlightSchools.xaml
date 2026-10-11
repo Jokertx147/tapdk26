@@ -33,7 +33,7 @@
                                         <DataTemplate>
                                             <Button Width="20" VerticalAlignment="Bottom" Click="btnHire_Click"
                                                     Background="Transparent" Tag="{Binding}">
-                                                <Image Source="/data/images/money.png"
+                                                <Image Source="/Resources/images/money.png"
                                                        RenderOptions.BitmapScalingMode="HighQuality" />
                                                 <Button.Style>
                                                     <Style TargetType="Button">
@@ -109,7 +109,7 @@
                                         <DataTemplate>
                                             <Button VerticalAlignment="Bottom" Tag="{Binding}" Background="Transparent"
                                                     Click="btnDelete_Click">
-                                                <Image Source="/Data/images/delete.png" Height="16" Width="16"
+                                                <Image Source="/Resources/images/delete.png" Height="16" Width="16"
                                                        RenderOptions.BitmapScalingMode="HighQuality" />
                                             </Button>
                                         </DataTemplate>

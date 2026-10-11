@@ -81,7 +81,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <Image Source="/data/images/delete.png"
+                                                <Image Source="/Resources/images/delete.png"
                                                        RenderOptions.BitmapScalingMode="HighQuality" />
                                             </Button>
                                         </DataTemplate>
@@ -103,7 +103,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <Image Source="/data/images/moveairliner.png"
+                                                <Image Source="/Resources/images/moveairliner.png"
                                                        RenderOptions.BitmapScalingMode="HighQuality" />
                                             </Button>
                                         </DataTemplate>
@@ -288,7 +288,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
-                                                    <Image Source="/data/images/moveairliner.png"
+                                                    <Image Source="/Resources/images/moveairliner.png"
                                                        RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Button>
                                             </DataTemplate>
