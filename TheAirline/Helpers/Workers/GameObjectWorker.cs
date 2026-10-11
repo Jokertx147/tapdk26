@@ -143,6 +143,25 @@ namespace TheAirline.Helpers.Workers
 
         //returns if the worker is paused
 
+        //the target length of a turn in milliseconds: at the Normal speed one game month takes 90 seconds,
+        //the speed setting scales that (Slowest 0.6x ... Fastest 3x)
+        private static long GetTurnDuration()
+        {
+            const double secondsPerMonth = 90;
+            const double normalSpeed = 1500;
+
+            GameObject game = GameObject.GetInstance();
+            double daysInMonth = DateTime.DaysInMonth(game.GameTime.Year, game.GameTime.Month);
+
+            double turnsPerMonth = game.DayRoundEnabled
+                ? daysInMonth
+                : daysInMonth * 24 * 60 / Math.Max(1, Infrastructure.Settings.GetInstance().MinutesPerTurn);
+
+            double speedFactor = normalSpeed / Math.Max(1, (int)Infrastructure.Settings.GetInstance().GameSpeed);
+
+            return (long) (secondsPerMonth * 1000 / turnsPerMonth / speedFactor);
+        }
+
         private void bw_DoWork(object sender, DoWorkEventArgs e)
         {
             while (!IsPaused && !_worker.CancellationPending)
@@ -157,7 +176,7 @@ namespace TheAirline.Helpers.Workers
                     GameObjectHelpers.SimulateTurn();
                     sw.Stop();
 
-                    long waittime = (int)Infrastructure.Settings.GetInstance().GameSpeed - (sw.ElapsedMilliseconds);
+                    long waittime = GetTurnDuration() - sw.ElapsedMilliseconds;
 
                     if (waittime > 0)
                     {
