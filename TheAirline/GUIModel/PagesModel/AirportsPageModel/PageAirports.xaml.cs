@@ -72,6 +72,7 @@ namespace TheAirline.GUIModel.PagesModel.AirportsPageModel
 
             IOrderedEnumerable<Region> regions =
                 countries.Select(c => c.Region)
+                    .Where(r => r != null)
                     .Distinct()
                     .ToList()
                     .OrderByDescending(r => r.Uid == "100")

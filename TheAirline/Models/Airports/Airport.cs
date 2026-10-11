@@ -115,16 +115,16 @@ namespace TheAirline.Models.Airports
         #region Properties
 
         [Versioning("destinationcargo")]
-        private List<DestinationDemand> DestinationCargo { get; }
+        private List<DestinationDemand> DestinationCargo { get; } = new List<DestinationDemand>();
 
         [Versioning("cargostatistics")]
-        private Dictionary<Airport, double> DestinationCargoStatistics { get; }
+        private Dictionary<Airport, double> DestinationCargoStatistics { get; } = new Dictionary<Airport, double>();
 
         [Versioning("passengerstatistics")]
-        private Dictionary<Airport, long> DestinationPassengerStatistics { get; }
+        private Dictionary<Airport, long> DestinationPassengerStatistics { get; } = new Dictionary<Airport, long>();
 
         [Versioning("destinationpassengers")]
-        private List<DestinationDemand> DestinationPassengers { get; }
+        private List<DestinationDemand> DestinationPassengers { get; } = new List<DestinationDemand>();
 
         #endregion
 

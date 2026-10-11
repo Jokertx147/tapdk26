@@ -168,7 +168,7 @@ namespace TheAirline.Models.Airliners
         public DateTime PurchasedDate { get; set; }
 
         [Versioning("routes")]
-        public List<Route> Routes { get; }
+        public List<Route> Routes { get; } = new List<Route>();
 
         [Versioning("schedamaintenance")]
         public DateTime SchedAMaintenance { get; set; }
