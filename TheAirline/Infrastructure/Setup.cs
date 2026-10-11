@@ -1807,7 +1807,7 @@ namespace TheAirline.Infrastructure
                     var mergerType =
                         (AirlineMerger.MergerType)
                             Enum.Parse(typeof (AirlineMerger.MergerType), element.Attributes["type"].Value);
-                    DateTime mergerDate = DateTime.Parse(element.Attributes["date"].Value, new CultureInfo("en-US", false));
+                    DateTime mergerDate = DataParsing.ParseDate(element.Attributes["date"].Value, new CultureInfo("en-US", false));
 
                     var merger = new AirlineMerger(mergerName, airline1, airline2, mergerDate, mergerType);
 
@@ -2432,10 +2432,10 @@ namespace TheAirline.Infrastructure
                         Period<DateTime> airportPeriod;
                         if (periodElement != null)
                         {
-                            DateTime airportFrom = Convert.ToDateTime(
+                            DateTime airportFrom = DataParsing.ParseDate(
                                 periodElement.Attributes["from"].Value,
                                 new CultureInfo("en-US", false));
-                            DateTime airportTo = Convert.ToDateTime(
+                            DateTime airportTo = DataParsing.ParseDate(
                                 periodElement.Attributes["to"].Value,
                                 new CultureInfo("en-US", false));
 
@@ -2687,7 +2687,7 @@ namespace TheAirline.Infrastructure
                                 (AirportExpansion.ExpansionType)
                                     Enum.Parse(typeof (AirportExpansion.ExpansionType), expansionNode.Attributes["type"].Value);
 
-                            DateTime expansionDate = Convert.ToDateTime(
+                            DateTime expansionDate = DataParsing.ParseDate(
                                 expansionNode.Attributes["date"].Value,
                                 new CultureInfo("en-US", false));
 
@@ -2800,7 +2800,7 @@ namespace TheAirline.Infrastructure
                     string allianceName = root.Attributes["name"].Value;
                     string logo = AppSettings.GetDataPath() + "\\graphics\\alliancelogos\\" + root.Attributes["logo"].Value
                                   + ".png";
-                    DateTime formationDate = Convert.ToDateTime(
+                    DateTime formationDate = DataParsing.ParseDate(
                         root.Attributes["formation"].Value,
                         new CultureInfo("en-US", false));
 
@@ -2814,14 +2814,14 @@ namespace TheAirline.Infrastructure
                         foreach (XmlElement memberNode in membersList)
                         {
                             Airline memberAirline = Airlines.GetAirline(memberNode.Attributes["airline"].Value);
-                            DateTime joinedDate = Convert.ToDateTime(
+                            DateTime joinedDate = DataParsing.ParseDate(
                                 memberNode.Attributes["joined"].Value,
                                 new CultureInfo("en-US", false));
 
                             var member = new AllianceMember(memberAirline, joinedDate);
                             if (memberNode.HasAttribute("exited"))
                             {
-                                member.ExitedDate = Convert.ToDateTime(
+                                member.ExitedDate = DataParsing.ParseDate(
                                     memberNode.Attributes["exited"].Value,
                                     new CultureInfo("en-US", false));
                             }
@@ -2959,12 +2959,12 @@ namespace TheAirline.Infrastructure
 
                                 if (currencyElement.HasAttribute("from"))
                                 {
-                                    currencyFromDate = Convert.ToDateTime(currencyElement.Attributes["from"].Value);
+                                    currencyFromDate = DataParsing.ParseDate(currencyElement.Attributes["from"].Value);
                                 }
 
                                 if (currencyElement.HasAttribute("to"))
                                 {
-                                    currencyToDate = Convert.ToDateTime(currencyElement.Attributes["to"].Value);
+                                    currencyToDate = DataParsing.ParseDate(currencyElement.Attributes["to"].Value);
                                 }
 
                                 //country.AddCurrency(
@@ -3136,10 +3136,10 @@ namespace TheAirline.Infrastructure
                         (FlightRestriction.RestrictionType)
                             Enum.Parse(typeof (FlightRestriction.RestrictionType), element.Attributes["type"].Value);
 
-                    DateTime startDate = Convert.ToDateTime(
+                    DateTime startDate = DataParsing.ParseDate(
                         element.Attributes["start"].Value,
                         new CultureInfo("en-US", false));
-                    DateTime endDate = Convert.ToDateTime(element.Attributes["end"].Value, new CultureInfo("en-US", false));
+                    DateTime endDate = DataParsing.ParseDate(element.Attributes["end"].Value, new CultureInfo("en-US", false));
 
                     var countriesElement = (XmlElement) element.SelectSingleNode("countries");
 
@@ -3177,7 +3177,7 @@ namespace TheAirline.Infrastructure
             {
                 string name = root.Attributes["name"].Value;
                 string text = root.Attributes["text"].Value;
-                DateTime eventDate = Convert.ToDateTime(root.Attributes["date"].Value, new CultureInfo("en-US", false));
+                DateTime eventDate = DataParsing.ParseDate(root.Attributes["date"].Value, new CultureInfo("en-US", false));
 
                 var historicEvent = new HistoricEvent(name, text, eventDate);
 
@@ -3194,7 +3194,7 @@ namespace TheAirline.Infrastructure
                         double value = Convert.ToDouble(
                             influenceElement.Attributes["value"].Value,
                             CultureInfo.GetCultureInfo("en-US").NumberFormat);
-                        DateTime endDate = Convert.ToDateTime(
+                        DateTime endDate = DataParsing.ParseDate(
                             influenceElement.Attributes["enddate"].Value,
                             new CultureInfo("en-US", false));
 
@@ -3507,11 +3507,11 @@ namespace TheAirline.Infrastructure
 
                         if (isfixeddate)
                         {
-                            DateTime fromdate = Convert.ToDateTime(
+                            DateTime fromdate = DataParsing.ParseDate(
                                 infoElement.Attributes["from"].Value,
                                 new CultureInfo("en-US", false));
 
-                            DateTime todate = Convert.ToDateTime(
+                            DateTime todate = DataParsing.ParseDate(
                                 infoElement.Attributes["to"].Value,
                                 new CultureInfo("en-US", false));
 
@@ -3659,10 +3659,10 @@ namespace TheAirline.Infrastructure
                     string message = element.Attributes["text"].Value;
                     int frequency = int.Parse(element.Attributes["frequency"].Value)/3;
                     DateTime start = valid != null && valid.HasAttribute("from")
-                        ? DateTime.Parse(valid.Attributes["from"].Value)
+                        ? DataParsing.ParseDate(valid.Attributes["from"].Value)
                         : DateTime.Now.AddYears(100);
                     DateTime end = valid != null && valid.HasAttribute("to")
-                        ? DateTime.Parse(valid.Attributes["to"].Value)
+                        ? DataParsing.ParseDate(valid.Attributes["to"].Value)
                         : DateTime.Now.AddYears(100);
 
                     bool critical = Convert.ToBoolean(element.Attributes["important"].Value);
@@ -4076,10 +4076,10 @@ namespace TheAirline.Infrastructure
                     var periodElement = (XmlElement) element.SelectSingleNode("period");
                     if (periodElement != null)
                     {
-                        DateTime startDate = Convert.ToDateTime(
+                        DateTime startDate = DataParsing.ParseDate(
                             periodElement.Attributes["start"].Value,
                             new CultureInfo("en-US", false));
-                        DateTime endDate = Convert.ToDateTime(
+                        DateTime endDate = DataParsing.ParseDate(
                             periodElement.Attributes["end"].Value,
                             new CultureInfo("en-US", false));
 
@@ -4117,10 +4117,10 @@ namespace TheAirline.Infrastructure
                                 foreach (XmlElement tempCountryElement in tempCountriesList)
                                 {
                                     Country tempCountry = Countries.GetCountry(tempCountryElement.Attributes["id"].Value);
-                                    DateTime cStartDate = Convert.ToDateTime(
+                                    DateTime cStartDate = DataParsing.ParseDate(
                                         tempCountryElement.Attributes["start"].Value,
                                         new CultureInfo("en-US", false));
-                                    DateTime cEndDate = Convert.ToDateTime(
+                                    DateTime cEndDate = DataParsing.ParseDate(
                                         tempCountryElement.Attributes["end"].Value,
                                         new CultureInfo("en-US", false));
 
@@ -4158,10 +4158,10 @@ namespace TheAirline.Infrastructure
                         var periodElement = (XmlElement) element.SelectSingleNode("period");
                         if (periodElement != null)
                         {
-                            DateTime creationDate = Convert.ToDateTime(
+                            DateTime creationDate = DataParsing.ParseDate(
                                 periodElement.Attributes["creation"].Value,
                                 new CultureInfo("en-US", false));
-                            DateTime obsoleteDate = Convert.ToDateTime(
+                            DateTime obsoleteDate = DataParsing.ParseDate(
                                 periodElement.Attributes["obsolete"].Value,
                                 new CultureInfo("en-US", false));
 
@@ -4172,10 +4172,10 @@ namespace TheAirline.Infrastructure
                                 foreach (XmlElement memberNode in membersList)
                                 {
                                     Country country = Countries.GetCountry(memberNode.Attributes["country"].Value);
-                                    DateTime fromDate = Convert.ToDateTime(
+                                    DateTime fromDate = DataParsing.ParseDate(
                                         memberNode.Attributes["memberfrom"].Value,
                                         new CultureInfo("en-US", false));
-                                    DateTime toDate = Convert.ToDateTime(
+                                    DateTime toDate = DataParsing.ParseDate(
                                         memberNode.Attributes["memberto"].Value,
                                         new CultureInfo("en-US", false));
 

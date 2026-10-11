@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Threading;
 using System.Windows.Input;
 
 namespace TheAirline.Infrastructure
@@ -18,9 +20,12 @@ namespace TheAirline.Infrastructure
             }
 
             var previous = Mouse.OverrideCursor;
+            var previousCulture = Thread.CurrentThread.CurrentCulture;
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
+                // the data files use US number and date formats
+                Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US", false);
                 Setup.SetupGame();
                 if (Setup.SetupError != null)
                 {
@@ -31,6 +36,7 @@ namespace TheAirline.Infrastructure
             }
             finally
             {
+                Thread.CurrentThread.CurrentCulture = previousCulture;
                 Mouse.OverrideCursor = previous;
             }
         }
