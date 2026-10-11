@@ -95,6 +95,24 @@ namespace TheAirline.Helpers
                                 Airports.AddAirport(airport);
                             }
                         }
+
+                        // airports added to the data files after this game was saved (like a new addon airport)
+                        // are in neither list, so bring them in from the data files
+                        var known = new HashSet<string>(
+                            Airports.GetAllAirports().Select(a => a.Profile.IATACode));
+                        int added = 0;
+
+                        foreach (Airport airport in airports.Where(a => !known.Contains(a.Profile.IATACode)))
+                        {
+                            Airports.AddAirport(airport);
+                            known.Add(airport.Profile.IATACode);
+                            added++;
+                        }
+
+                        if (added > 0)
+                        {
+                            StartupLog.Write("LoadGame: added " + added + " airport(s) that are new in the data files");
+                        }
                     },
                 () =>
                     {
