@@ -109,3 +109,11 @@ First window: the start-data page showed empty continent, region and difficulty 
 New Game page: the Next button had no command in the upstream code (the 2.0 rewrite there is unfinished), so it did nothing. It now saves the chosen options as a `Player` row and navigates to `PageAirlineData`, passing the player id as a navigation parameter. `IsNavigationTarget` no longer throws. `PageAirlineData` itself is still mostly commented-out upstream code.
 
 Save editing: `Helpers/SaveEditor.cs` plus a command line switch in `App.OnStartup`. `TheAirline.exe --set-money <save name> <amount>` loads `Documents\theairlineproject\saves\<name>.sav` with the game's serializer, sets the player airline's money, keeps a `.bak` copy and writes the save back. Untested: the new-game flow does not produce a playable game yet, so no real save exists to try it on.
+
+Porting the older Page-based UI (chosen scope): the upstream 2.0 rewrite never finished the new-game flow, and about 70 game screens are still old `Page` classes that navigate through `PageNavigator`.
+
+- `MainWindow` now has a full-window `Frame` (`frmContent`, hidden until used) and implements `PageNavigator`'s `NavigateTo`, `NavigateBack`, `NavigateForward`, `ClearNavigator` and `CanGoBack` on it, as the pre-2.0 window did. `PageNavigator.MainWindow` is set again.
+- `Infrastructure/GameDataLoader` runs the old static `Setup.SetupGame()` once (UI thread, because it builds images). It swallows exceptions and only logs them through NLog, so a half-loaded game is possible; check the NLog output if lists come back empty.
+- `PageAirlineData` is now a real page: choose an airline (filtered by the continent, region and start year picked on the previous page), see its type (Passenger, Cargo or Mixed), edit the CEO, pick country, currency, home airport and time zone, then Create. Create runs `GameObjectHelpers.CreateGame` in the background and opens the old `PageAirline` in the Page host.
+- The EF `Continent`/`Region` rows are matched to the old static ones by name. New-game defaults: start year = newest listed, 5 opponents, Normal difficulty.
+- Not done: language handoff to the older `Translator`/`AppSettings` (it may stay on the default language), the Esc/exit key handling, and returning from the game to the start menu.

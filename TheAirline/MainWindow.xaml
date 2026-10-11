@@ -93,5 +93,9 @@
         
         <!-- Footer Content -->
         <ContentControl Grid.Row="2" regions:RegionManager.RegionName="FooterContentRegion" />
+
+        <!-- Hosts the older Page based game screens (airline, airports, fleet, routes ...) over the whole window. -->
+        <Frame x:Name="frmContent" Grid.RowSpan="3" Panel.ZIndex="10" NavigationUIVisibility="Hidden"
+               Visibility="Collapsed" />
     </Grid>
 </Window>

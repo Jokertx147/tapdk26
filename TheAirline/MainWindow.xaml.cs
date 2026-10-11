@@ -26,6 +26,9 @@ namespace TheAirline
 
             InitializeComponent();
 
+            // the older Page based screens navigate through PageNavigator
+            GUIModel.HelpersModel.PageNavigator.MainWindow = this;
+
             DataContext = viewModel;
 
             // Subscribes to the CloseGameEvent and closes the window when triggered.
@@ -74,11 +77,50 @@ namespace TheAirline
 
         public bool CanGoBack()
         {
-            return false;
+            return frmContent.NavigationService.CanGoBack;
         }
-        public bool ClearNavigator() { return false; }
-        public void NavigateForward() { }
-        public void NavigateBack() { }
-        public void NavigateTo(Page page) { }
+
+        public bool ClearNavigator()
+        {
+            while (frmContent.NavigationService.CanGoBack)
+            {
+                frmContent.NavigationService.RemoveBackEntry();
+            }
+            return true;
+        }
+
+        public void NavigateForward()
+        {
+            if (frmContent.NavigationService.CanGoForward)
+            {
+                frmContent.NavigationService.GoForward();
+            }
+        }
+
+        public void NavigateBack()
+        {
+            if (frmContent.NavigationService.CanGoBack)
+            {
+                frmContent.NavigationService.GoBack();
+            }
+        }
+
+        public void NavigateTo(Page page)
+        {
+            frmContent.Visibility = Visibility.Visible;
+            frmContent.Navigate(page);
+            if (frmContent.NavigationService.CanGoBack)
+            {
+                frmContent.NavigationService.RemoveBackEntry();
+            }
+        }
+
+        /// <summary>Hides the Page host and shows the start menu region again.</summary>
+        public void ShowStartMenu()
+        {
+            ClearNavigator();
+            frmContent.Content = null;
+            frmContent.Visibility = Visibility.Collapsed;
+        }
     }
 }

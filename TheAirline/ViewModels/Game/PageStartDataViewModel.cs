@@ -58,6 +58,11 @@ namespace TheAirline.ViewModels.Game
             var difficulties = from difficulty in _state.Context.Difficulties select difficulty;
             Difficulties = new ObservableCollection<Difficulty>(difficulties.ToList());
 
+            // defaults, so the page works when the user leaves a list untouched
+            Year = Years.FirstOrDefault();
+            SelectedOpponents = 5;
+            SelectedDifficulty = Difficulties.FirstOrDefault(d => d.Name == "Normal") ?? Difficulties.FirstOrDefault();
+
             // DelegateCommand only works with Nullable objects hence the int?.
             ChangeRegions = new DelegateCommand<Continent>(UpdateRegions);
             NavigateCommand = new DelegateCommand<Uri>(ChangePages);
