@@ -248,10 +248,10 @@
 
             </WrapPanel>
             <WrapPanel>
-            <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="White" Name="pcGates" />
-                <chart:ColumnChart Width="300" Height="300" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" Name="cccDemand" />
-                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Margin="10 0 0 0" Foreground="White" Name="pcSeats" />
-                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" Name="pcDemand" />
+            <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="White" x:Name="pcGates" />
+                <chart:ColumnChart Width="300" Height="300" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" x:Name="cccDemand" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Margin="10 0 0 0" Foreground="White" x:Name="pcSeats" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" x:Name="pcDemand" />
             </WrapPanel>
         </StackPanel>
         </Grid>

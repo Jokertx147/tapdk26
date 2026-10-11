@@ -29,7 +29,7 @@
                 </WrapPanel>
                 <StackPanel>
 
-                    <chart:ColumnChart Width="600" Height="400" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineFinances 1021'}" Margin="10 0 0 0" Foreground="White" Name="cccDOR" />
+                    <chart:ColumnChart Width="600" Height="400" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirlineFinances 1021'}" Margin="10 0 0 0" Foreground="White" x:Name="cccDOR" />
 
                 </StackPanel>
             </StackPanel>
