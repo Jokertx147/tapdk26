@@ -630,7 +630,9 @@ namespace TheAirline.Infrastructure
 
         public static void SetupMainGame(int opponents, bool sameRegion)
         {
+            StartupLog.Write("SetupMainGame: removing airlines");
             RemoveAirlines(opponents, sameRegion);
+            StartupLog.Write("SetupMainGame: airlines reduced to " + Airlines.GetAllAirlines().Count);
 
             SetupMainGame();
         }
@@ -4379,7 +4381,9 @@ namespace TheAirline.Infrastructure
 
         private static void SetupMainGame()
         {
+            StartupLog.Write("SetupMainGame: creating pilots");
             CreatePilots();
+            StartupLog.Write("SetupMainGame: pilots done");
 
             //creates the facilities for pilot training
             IEnumerable<string> aircraftFamilies =
@@ -4404,6 +4408,7 @@ namespace TheAirline.Infrastructure
                         family));
             }
 
+            StartupLog.Write("SetupMainGame: pilot training facilities done, setting airport facilities for " + Airports.GetAllAirports().Count + " airports and " + Airlines.GetAllAirlines().Count + " airlines");
             //sets all the facilities at an airport to none for all airlines
             Parallel.ForEach(
                 Airports.GetAllAirports(),
@@ -4458,8 +4463,10 @@ namespace TheAirline.Infrastructure
                             AirportHelpers.SetAirportExpansion(airport, expansion, true);
                     });
 
+            StartupLog.Write("SetupMainGame: airport facilities done");
             foreach (Airline airline in Airlines.GetAllAirlines())
             {
+                StartupLog.Write("SetupMainGame: setting up airline " + airline.Profile.IATACode);
                 airline.Money = GameObject.GetInstance().StartMoney;
 
                 if (airline.IsHuman)
@@ -4491,8 +4498,10 @@ namespace TheAirline.Infrastructure
             Airliner airliner = Airliners.GetAirlinersForSale(a => a.Type.Name == "Boeing 737-900ER").First();
             AirlineHelpers.BuyAirliner(GameObject.GetInstance().HumanAirline, airliner, GameObject.GetInstance().HumanAirline.Airports[0]);
             */
+            StartupLog.Write("SetupMainGame: airlines done, setting up alliances");
             SetupAlliances();
             SetupMergers();
+            StartupLog.Write("SetupMainGame: finished");
         }
 
         private static void SetupStatisticsTypes()
