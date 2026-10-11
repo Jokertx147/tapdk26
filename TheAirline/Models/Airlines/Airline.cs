@@ -439,7 +439,15 @@ namespace TheAirline.Models.Airlines
 
         public AirlinePolicy GetAirlinePolicy(string name)
         {
-            return Policies.Find(p => p.Name == name);
+            Policies ??= new List<AirlinePolicy>();
+            var policy = Policies.Find(p => p.Name == name);
+            if (policy == null && name == "Cancellation Minutes")
+            {
+                policy = new AirlinePolicy(name, 150);
+                Policies.Add(policy);
+            }
+
+            return policy;
         }
 
         public AirlineValue GetAirlineValue()
@@ -829,7 +837,16 @@ namespace TheAirline.Models.Airlines
         //sets the policy for the airline
         public void SetAirlinePolicy(string name, object value)
         {
-            Policies.Find(p => p.Name == name).PolicyValue = value;
+            var policy = GetAirlinePolicy(name);
+            if (policy == null)
+            {
+                policy = new AirlinePolicy(name, value);
+                Policies.Add(policy);
+            }
+            else
+            {
+                policy.PolicyValue = value;
+            }
         }
 
         public void SetInvoice(Invoice invoice)
