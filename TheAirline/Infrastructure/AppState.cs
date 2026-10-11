@@ -14,6 +14,7 @@ namespace TheAirline.Infrastructure
         {
             //SQLite replaces SQL Server Compact: create the database and a default settings row on first run
             Context.Database.EnsureCreated();
+            DatabaseSeeder.Seed(Context);
             _settings = Context.Settings.FirstOrDefault();
             if (_settings == null)
             {

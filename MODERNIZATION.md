@@ -103,3 +103,5 @@ Third build: three errors, now addressed but not yet re-built.
 - **`BinaryFormatter`** (SYSLIB0011): `FileSerializer` in `SerializedLoadSaveHelpers.cs` now uses `DataContractSerializer` with every concrete `[Serializable]` type as a known type and object references preserved. Old binary `.sav` files no longer load. Saving and loading is untested at runtime.
 
 First run: the app reached `MainWindow` and crashed on `Icon="TheAirline.ico"` ("Cannot locate resource"). The icon is now a WPF `Resource` item. Prism and DryIoc resolution of the shell works.
+
+First window: the start-data page showed empty continent, region and difficulty lists. The old SQL CE file shipped pre-filled and the new SQLite file is empty. `Db/DatabaseSeeder.cs` now fills continents, regions (from the unused `Migrations/Seeds` classes) and the Easy/Normal/Hard difficulties on first run. If you already ran the app once, delete `Documents\theairlineproject\Airline.db` so it is recreated.
