@@ -257,20 +257,164 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
 
         private void txtSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string searchText = ((TextBox)e.Source).Text.ToUpper();
+            string searchText = ((TextBox)e.Source).Text.Trim().ToUpper();
 
-            var source = lvDemandDomestic.Items as ICollectionView;
-            source.Filter = o =>
+            Predicate<object> filter = o =>
             {
-                if (o != null)
+                var demand = o as DemandMVVM;
+
+                if (demand == null || demand.Destination == null)
                 {
-                    var a = o as DemandMVVM;
-                    return a != null && a.Destination.Profile.IATACode.ToUpper().StartsWith(searchText)
-                           || a.Destination.Profile.ICAOCode.ToUpper().StartsWith(searchText)
-                           || a.Destination.Profile.Name.ToUpper().StartsWith(searchText);
+                    return false;
                 }
-                return false;
+
+                if (searchText.Length == 0)
+                {
+                    return true;
+                }
+
+                var profile = demand.Destination.Profile;
+
+                return Matches(profile.IATACode, searchText)
+                       || Matches(profile.ICAOCode, searchText)
+                       || Matches(profile.Name, searchText)
+                       || Matches(profile.Town?.Name, searchText)
+                       || Matches(profile.Country?.Name, searchText);
             };
+
+            foreach (ListView list in new[] { lvDemandDomestic, lvDemandIntl })
+            {
+                list.Items.Filter = filter;
+            }
+        }
+
+        private static bool Matches(string text, string searchText)
+        {
+            return text != null && text.ToUpper().Contains(searchText);
+        }
+
+        private readonly Dictionary<ListView, KeyValuePair<string, ListSortDirection>> _sorts =
+            new Dictionary<ListView, KeyValuePair<string, ListSortDirection>>();
+
+        //sorts a list when its column header is clicked; clicking again reverses the order
+        private void lvDemand_HeaderClick(object sender, RoutedEventArgs e)
+        {
+            var header = e.OriginalSource as GridViewColumnHeader;
+            var list = sender as ListView;
+
+            if (header == null || header.Column == null || list == null)
+            {
+                return;
+            }
+
+            var properties = new string[] { null, "DestinationName", "Passengers", "Cargo", "Distance" };
+            int index = ((GridView)list.View).Columns.IndexOf(header.Column);
+
+            if (index <= 0 || index >= properties.Length)
+            {
+                return;
+            }
+
+            string property = properties[index];
+
+            // names and distances start low to high, demand starts with the biggest
+            ListSortDirection direction = index == 1 || index == 4 ? ListSortDirection.Ascending : ListSortDirection.Descending;
+
+            KeyValuePair<string, ListSortDirection> current;
+            if (_sorts.TryGetValue(list, out current) && current.Key == property)
+            {
+                direction = current.Value == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
+                    : ListSortDirection.Ascending;
+            }
+
+            _sorts[list] = new KeyValuePair<string, ListSortDirection>(property, direction);
+
+            list.Items.SortDescriptions.Clear();
+            list.Items.SortDescriptions.Add(new SortDescription(property, direction));
+        }
+
+        private IEnumerable<DemandMVVM> SelectedDemands()
+        {
+            return lvDemandDomestic.SelectedItems.OfType<DemandMVVM>()
+                .Concat(lvDemandIntl.SelectedItems.OfType<DemandMVVM>())
+                .ToList();
+        }
+
+        private IEnumerable<DemandMVVM> ShownDemands()
+        {
+            return lvDemandDomestic.Items.OfType<DemandMVVM>()
+                .Concat(lvDemandIntl.Items.OfType<DemandMVVM>())
+                .ToList();
+        }
+
+        private bool TryGetScale(out double factor)
+        {
+            double percent;
+
+            if (!double.TryParse(txtScale.Text.Trim().TrimEnd('%'), out percent) || percent < 0 || percent > 10000)
+            {
+                txtDemandStatus.Text = "Enter a percentage, for example 110.";
+                factor = 1;
+                return false;
+            }
+
+            factor = percent / 100;
+            return true;
+        }
+
+        private void ScaleDemands(List<DemandMVVM> demands)
+        {
+            double factor;
+
+            if (!TryGetScale(out factor))
+            {
+                return;
+            }
+
+            if (demands.Count == 0)
+            {
+                txtDemandStatus.Text = "Select one or more destinations first.";
+                return;
+            }
+
+            foreach (DemandMVVM demand in demands)
+            {
+                demand.Passengers = (int)Math.Round(demand.Passengers * factor);
+                demand.Cargo = (int)Math.Round(demand.Cargo * factor);
+            }
+
+            txtDemandStatus.Text = string.Format("Changed {0} destinations to {1:0.#}%.", demands.Count, factor * 100);
+        }
+
+        private void btnScaleSelected_Click(object sender, RoutedEventArgs e)
+        {
+            ScaleDemands(SelectedDemands().ToList());
+        }
+
+        private void btnScaleShown_Click(object sender, RoutedEventArgs e)
+        {
+            ScaleDemands(ShownDemands().ToList());
+        }
+
+        private void btnUndoDemand_Click(object sender, RoutedEventArgs e)
+        {
+            int changed = 0;
+
+            foreach (ListView list in new[] { lvDemandDomestic, lvDemandIntl })
+            {
+                foreach (DemandMVVM demand in list.ItemsSource.OfType<DemandMVVM>())
+                {
+                    if (demand.Passengers != demand.OriginalPassengers || demand.Cargo != demand.OriginalCargo)
+                    {
+                        demand.Passengers = demand.OriginalPassengers;
+                        demand.Cargo = demand.OriginalCargo;
+                        changed++;
+                    }
+                }
+            }
+
+            txtDemandStatus.Text = changed == 0 ? "Nothing to undo." : string.Format("Restored {0} destinations.", changed);
         }
 
         #endregion

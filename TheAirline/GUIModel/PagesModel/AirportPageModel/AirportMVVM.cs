@@ -737,6 +737,8 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
                 Destination.AirlineContracts.Exists(c => c.Airline == GameObject.GetInstance().HumanAirline);
             HasFreeGates = Destination.Terminals.GetFreeGates(GameObject.GetInstance().HumanAirline.AirlineRouteFocus == Route.RouteType.Cargo ? Terminal.TerminalType.Cargo : Terminal.TerminalType.Passenger) > 0;
             Distance = distance;
+            OriginalPassengers = passengers;
+            OriginalCargo = cargo;
 
             GatesPercent = new List<KeyValuePair<string, int>>();
 
@@ -767,6 +769,17 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
         public List<KeyValuePair<string,int>> GatesPercent { get; set; }
 
         public double Distance { get; set; }
+
+        //the values when the demand page was opened, used by the undo button
+        public int OriginalPassengers { get; private set; }
+
+        public int OriginalCargo { get; private set; }
+
+        //used for sorting and searching
+        public string DestinationName
+        {
+            get { return Destination?.Profile?.Name ?? ""; }
+        }
 
         //the airport the demand is from; edits to Passengers and Cargo are written back to it
         public Airport Origin { get; set; }

@@ -19,7 +19,22 @@
                        Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1001'}"
                        VerticalAlignment="Bottom" />
             <TextBox Margin="5 0 0 0" Text="" VerticalAlignment="Bottom" Width="150"
-                     TextChanged="txtSearch_TextChanged" />
+                     TextChanged="txtSearch_TextChanged"
+                     ToolTip="Search by airport name, IATA or ICAO code, city or country" />
+            <TextBlock Margin="20 0 0 0" Text="Change selected by" VerticalAlignment="Bottom" FontWeight="Bold" />
+            <TextBox x:Name="txtScale" Margin="5 0 0 0" Text="110" Width="45" VerticalAlignment="Bottom"
+                     ToolTip="Percentage: 110 raises demand by 10%, 50 halves it" />
+            <TextBlock Text="%" VerticalAlignment="Bottom" Margin="2 0 0 0" />
+            <Button Margin="5 0 0 0" Content="Selected" Click="btnScaleSelected_Click"
+                    Style="{StaticResource StandardButtonStyle}"
+                    ToolTip="Apply to the highlighted destinations (hold Ctrl or Shift to select several)" />
+            <Button Margin="5 0 0 0" Content="All shown" Click="btnScaleShown_Click"
+                    Style="{StaticResource StandardButtonStyle}"
+                    ToolTip="Apply to every destination in the lists (after searching, only the matches)" />
+            <Button Margin="5 0 0 0" Content="Undo" Click="btnUndoDemand_Click"
+                    Style="{StaticResource StandardButtonStyle}"
+                    ToolTip="Put every demand back to what it was when this page was opened" />
+            <TextBlock x:Name="txtDemandStatus" Margin="10 0 0 0" VerticalAlignment="Bottom" />
         </WrapPanel>
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
@@ -30,7 +45,7 @@
                         <TextBlock
                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1029'}"
                     VerticalAlignment="Bottom" Style="{StaticResource SmallHeaderStyle}" />-->
-                        <ListView x:Name="lvDemandDomestic" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Grid.Column="0"
+                        <ListView x:Name="lvDemandDomestic" SelectionMode="Extended" GridViewColumnHeader.Click="lvDemand_HeaderClick" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Grid.Column="0"
                           ItemsSource="{Binding DomesticDemands}">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -90,11 +105,18 @@
                                     </GridViewColumn>
                                     <GridViewColumn
                                 Header="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1030'}"
-                                Width="300">
+                                Width="230">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <ContentControl VerticalAlignment="Bottom" Content="{Binding Destination}"
                                                         ContentTemplate="{StaticResource AirportCountryLink}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Distance" Width="85">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Distance, Converter={StaticResource DistanceToUnitConverter}}" VerticalAlignment="Bottom" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -125,7 +147,7 @@
              <!--           <TextBlock
                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1057'}"
                     VerticalAlignment="Bottom" Style="{StaticResource SmallHeaderStyle}" />-->
-                        <ListView x:Name="lvDemandIntl" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Grid.Column="1"
+                        <ListView x:Name="lvDemandIntl" SelectionMode="Extended" GridViewColumnHeader.Click="lvDemand_HeaderClick" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Grid.Column="1"
                           ItemsSource="{Binding IntlDemands}">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -173,11 +195,18 @@
                                     </GridViewColumn>
                                     <GridViewColumn
                                 Header="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportInfo 1030'}"
-                                Width="300">
+                                Width="230">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <ContentControl VerticalAlignment="Bottom" Content="{Binding Destination}"
                                                         ContentTemplate="{StaticResource AirportCountryLink}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Distance" Width="85">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Distance, Converter={StaticResource DistanceToUnitConverter}}" VerticalAlignment="Bottom" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
