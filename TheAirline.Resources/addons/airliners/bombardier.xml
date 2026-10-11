@@ -69,7 +69,7 @@
     <specs wingspan="28.40" length="32.81" range="2522" speed="667" fuelcapacity="6526" consumption="0.033"
            runwaylengthrequired="1400" />
     <capacity passengers="78" cockpitcrew="2" cabincrew="2" maxclasses="1" />
-    <produced from="2000" to="2019" rate="36" />
+    <produced from="2000" to="2021" rate="36" />
   </airliner>
   <airliner manufacturer="Bombardier" name="Bombardier Global 5000" price="5499040"> <!--40000000-->
     <type body="SingleAisle" rangetype="LongRange" engine="Jet" />

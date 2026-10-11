@@ -190,21 +190,21 @@
     <specs wingspan="35.70" length="33.60" range="6230" speed="828" fuelcapacity="26020" consumption="0.028"
            runwaylengthrequired="1545" />
     <capacity passengers="148" cockpitcrew="2" cabincrew="3" maxclasses="2" />
-    <produced from="1996" to="2016" rate="160" />
+    <produced from="1996" to="2019" rate="160" />
   </airliner>
   <airliner type="Cargo" manufacturer="Boeing" name="Boeing 737-700C" image="Boeing 737-700" price="9036030"> <!--47900000-->
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
     <specs wingspan="35.70" length="33.60" range="6230" speed="828" fuelcapacity="26020" consumption="0.028"
            runwaylengthrequired="1545" />
     <capacity cockpitcrew="2" cargo="108" />
-    <produced from="1996" to="2016" rate="160" />
+    <produced from="1996" to="2019" rate="160" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 737-800" image="Boeing 737-800" price="10752690"> <!--57000000-->
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
     <specs wingspan="35.70" length="39.50" range="5665" speed="828" fuelcapacity="26020" consumption="0.024"
            runwaylengthrequired="1725" />
     <capacity passengers="189" cockpitcrew="2" cabincrew="4" maxclasses="2" />
-    <produced from="1996" to="2016" rate="160" />
+    <produced from="1996" to="2020" rate="160" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 737-900" image="Boeing 737-900" price="11550360"> <!--67200000-->
     <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
@@ -316,14 +316,14 @@
     <specs wingspan="68.45" length="76.25" range="8130" speed="908" fuelcapacity="227920" consumption="0.036"
            runwaylengthrequired="2790" />
     <capacity cockpitcrew="2" cargo="855" />
-    <produced from="2011" to="2025" rate="32" />
+    <produced from="2011" to="2023" rate="32" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 747-8I" image="Boeing 747-8I" family="Boeing 747" price="43941480"> <!--351400000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
     <specs wingspan="68.45" length="76.25" range="14100" speed="917" fuelcapacity="243120" consumption="0.030"
            runwaylengthrequired="2785" />
     <capacity passengers="605" cockpitcrew="2" cabincrew="12" maxclasses="3" />
-    <produced from="2012" to="2025" rate="32" />
+    <produced from="2012" to="2023" rate="32" />
   </airliner>
    <airliner manufacturer="Boeing" name="Boeing 747SP" family="Boeing 747" price="24690210"> <!--351400000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
@@ -379,7 +379,7 @@
     <specs wingspan="47.6" length="54.9" range="7900" speed="851" fuelcapacity="63000" consumption="0.030"
            runwaylengthrequired="2410" />
     <capacity cockpitcrew="2" cargo="438" />
-    <produced from="1995" to="2015" rate="32" />
+    <produced from="1995" to="2027" rate="32" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 767-300ER" price="23292470"> <!--93100000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
@@ -407,14 +407,14 @@
     <specs wingspan="64.80" length="63.70" range="14310" speed="905" fuelcapacity="171176" consumption="0.027"
            runwaylengthrequired="2600" />
     <capacity passengers="440" cockpitcrew="2" cabincrew="9" maxclasses="3" />
-    <produced from="1997" to="2015" rate="54" />
+    <produced from="1997" to="2019" rate="54" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 777-200LR" image="Boeing 777-200" price="37092510"> <!--252600000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
     <specs wingspan="64.80" length="63.70" range="17370" speed="905" fuelcapacity="181283" consumption="0.024"
            runwaylengthrequired="2970" />
     <capacity passengers="440" cockpitcrew="2" cabincrew="9" maxclasses="3" />
-    <produced from="2006" to="2015" rate="54" />
+    <produced from="2006" to="2016" rate="54" />
   </airliner>
   <airliner type="Cargo" manufacturer="Boeing" name="Boeing 777F" family="Boeing 777" image="Boeing 777-200"
             price="38918140"> <!--295700000-->
@@ -422,7 +422,7 @@
     <specs wingspan="64.80" length="63.70" range="9070" speed="905" fuelcapacity="181283" consumption="0.028"
            runwaylengthrequired="2830" />
     <capacity cockpitcrew="2" cargo="653" />
-    <produced from="2009" to="2020" rate="54" />
+    <produced from="2009" to="2027" rate="54" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 777-300" image="Boeing 777-300" price="38587250"> <!--212500000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
@@ -436,7 +436,7 @@
     <specs wingspan="64.80" length="73.90" range="14690" speed="905" fuelcapacity="181283" consumption="0.022"
            runwaylengthrequired="2780" />
     <capacity passengers="550" cockpitcrew="2" cabincrew="11" maxclasses="3" />
-    <produced from="2004" to="2015" rate="54" />
+    <produced from="2004" to="2023" rate="54" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 777-8X" image="Boeing 777-300" price="44112820"> <!--256000000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
@@ -457,20 +457,27 @@
     <specs wingspan="60.00" length="56.70" range="14500" speed="913" fuelcapacity="126920" consumption="0.032"
            runwaylengthrequired="2260" />
     <capacity passengers="264" cockpitcrew="2" cabincrew="5" maxclasses="3" />
-    <produced from="2011" to="2026" rate="12" />
+    <produced from="2011" to="2199" rate="12" />
   </airliner>
   <airliner manufacturer="Boeing" name="Boeing 787-9" price="29937320"> <!--243600000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
     <specs wingspan="60.00" length="62.80" range="15200" speed="913" fuelcapacity="138700" consumption="0.030"
            runwaylengthrequired="2290" />
     <capacity passengers="290" cockpitcrew="2" cabincrew="5" maxclasses="3" />
-    <produced from="2014" to="2027" rate="12" />
+    <produced from="2014" to="2199" rate="12" />
   </airliner>
     <airliner manufacturer="Boeing" name="Boeing 787-10" price="31239910"> <!--243600000-->
     <type body="WideBody" rangetype="LongRange" engine="Jet" />
     <specs wingspan="60.00" length="62.80" range="13000" speed="913" fuelcapacity="138700" consumption="0.030"
            runwaylengthrequired="2290" />
     <capacity passengers="323" cockpitcrew="2" cabincrew="5" maxclasses="3" />
-    <produced from="2016" to="2029" rate="12" />
+    <produced from="2016" to="2199" rate="12" />
+  </airliner>
+  <airliner manufacturer="Boeing" name="Boeing 737 MAX 10" image="Boeing 737-900" price="13200000">
+    <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
+    <specs wingspan="35.92" length="43.80" range="6110" speed="842" fuelcapacity="29660" consumption="0.020"
+           runwaylengthrequired="2700" />
+    <capacity passengers="230" cockpitcrew="2" cabincrew="4" maxclasses="2" />
+    <produced from="2027" to="2199" rate="100" />
   </airliner>
 </airliners>

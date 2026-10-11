@@ -36,4 +36,18 @@
     <capacity passengers="74" cockpitcrew="2" cabincrew="2" maxclasses="2" />
     <produced from="1997" to="2015" rate="20" />
   </airliner>
+  <airliner manufacturer="ATR" name="ATR 42-600" image="ATR 42" price="2400000">
+    <type body="NarrowBody" rangetype="Regional" engine="Turboprop" />
+    <specs wingspan="24.57" length="22.67" range="1326" speed="556" fuelcapacity="5625" consumption="0.066"
+           runwaylengthrequired="1050" />
+    <capacity passengers="50" cockpitcrew="2" cabincrew="1" maxclasses="1" />
+    <produced from="2011" to="2199" rate="14" />
+  </airliner>
+  <airliner manufacturer="ATR" name="ATR 72-600" image="ATR 72" price="3200000">
+    <type body="NarrowBody" rangetype="Regional" engine="Turboprop" />
+    <specs wingspan="27.05" length="27.17" range="1528" speed="510" fuelcapacity="7840" consumption="0.067"
+           runwaylengthrequired="1333" />
+    <capacity passengers="74" cockpitcrew="2" cabincrew="2" maxclasses="2" />
+    <produced from="2011" to="2199" rate="30" />
+  </airliner>
 </airliners>

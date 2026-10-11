@@ -9,10 +9,17 @@
     <produced from="1980" to="1984" rate="13" />
   </airliner>
   <airliner manufacturer="Comac" name="Comac C919" price="6528370"> <!--7700000-->
-    <type body="NarrowBody" rangetype="Regional" engine="Turboprop" />
-    <specs wingspan="38.9" length="35.8" range="4075" speed="834" fuelcapacity="8300" consumption="0.063"
+    <type body="NarrowBody" rangetype="MediumRange" engine="Jet" />
+    <specs wingspan="38.9" length="35.8" range="4075" speed="834" fuelcapacity="23860" consumption="0.020"
            runwaylengthrequired="1700" />
     <capacity passengers="156" cockpitcrew="2" cabincrew="3" maxclasses="2" />
     <produced from="2016" to="2199" rate="17" />
+  </airliner>
+  <airliner manufacturer="Comac" name="Comac ARJ21" price="4800000">
+    <type body="NarrowBody" rangetype="ShortRange" engine="Jet" />
+    <specs wingspan="27.29" length="33.46" range="2200" speed="828" fuelcapacity="12000" consumption="0.030"
+           runwaylengthrequired="1700" />
+    <capacity passengers="90" cockpitcrew="2" cabincrew="2" maxclasses="2" />
+    <produced from="2016" to="2199" rate="30" />
   </airliner>
 </airliners>

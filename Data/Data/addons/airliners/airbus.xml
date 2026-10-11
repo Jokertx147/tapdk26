@@ -369,7 +369,7 @@
 
     <capacity passengers="420" cockpitcrew="2" cabincrew="8" maxclasses="3" />
 
-    <produced from="2016" to="2027" rate="10" />
+    <produced from="2016" to="2199" rate="10" />
 
   </airliner>
 
@@ -382,7 +382,7 @@
 
     <capacity passengers="420" cockpitcrew="2" cabincrew="8" maxclasses="3" />
 
-    <produced from="2016" to="2027" rate="10" />
+    <produced from="2016" to="2199" rate="10" />
 
   </airliner>
 
@@ -395,7 +395,7 @@
 
     <capacity passengers="550" cockpitcrew="2" cabincrew="11" maxclasses="4" />
 
-    <produced from="2017" to="2033" rate="10" />
+    <produced from="2017" to="2199" rate="10" />
 
   </airliner>
 
@@ -408,7 +408,7 @@
 
     <capacity passengers="853" cockpitcrew="2" cabincrew="17" maxclasses="3" />
 
-    <produced from="2007" to="2025" rate="12" />
+    <produced from="2007" to="2021" rate="12" />
 
   </airliner>
 
@@ -426,4 +426,30 @@
     <capacity passengers="130" cockpitcrew="2" cabincrew="2" maxclasses="2" />
     <produced from="2018" to="2199" rate="24" />
   </airliner>
+  <airliner manufacturer="Airbus" name="Airbus A321XLR" image="Airbus A321" price="14200000">
+
+    <type body="NarrowBody" rangetype="LongRange" engine="Jet" />
+
+    <specs wingspan="35.80" length="44.51" range="8700" speed="828" fuelcapacity="42930" consumption="0.019"
+           runwaylengthrequired="2300" />
+
+    <capacity passengers="236" cockpitcrew="2" cabincrew="4" maxclasses="2" />
+
+    <produced from="2024" to="2199" rate="60" />
+
+  </airliner>
+
+  <airliner type="Cargo" manufacturer="Airbus" name="Airbus A350F" image="Airbus A350-1000" price="36500000">
+
+    <type body="WideBody" rangetype="LongRange" engine="Jet" />
+
+    <specs wingspan="64.75" length="70.80" range="8700" speed="903" fuelcapacity="156000" consumption="0.020"
+           runwaylengthrequired="2900" />
+
+    <capacity cockpitcrew="2" cargo="700" />
+
+    <produced from="2027" to="2199" rate="12" />
+
+  </airliner>
+
 </airliners>
