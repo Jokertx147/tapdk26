@@ -23,8 +23,6 @@
 
   <!-- Source files the old project never compiled. They were stale copies and old EF6 migrations. -->
   <ItemGroup>
-    <Compile Remove="GUIModel\PopUpsModel\**" />
-    <Page Remove="GUIModel\PopUpsModel\**" />
     <Compile Remove="Migrations\201505231846321_Regions.cs" />
   </ItemGroup>
 

@@ -1,9 +1,0 @@
-
-
-<majordestinations>
-<majordestination airport="SYD">
-    <destinations>
-      <destination airport="DFW" pax="391" cargo="60" />
-    </destinations>
-  </majordestination>
-</majordestinations>

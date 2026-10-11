@@ -5,18 +5,6 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheAirline", "TheAirline\TheAirline.csproj", "{63A09097-FD0E-4159-A2ED-528EA26FD097}"
 EndProject
-Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "Installer", "Installer\Installer.wixproj", "{2134C958-1EBA-4A20-B37B-1D58E86C118F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{63A09097-FD0E-4159-A2ED-528EA26FD097} = {63A09097-FD0E-4159-A2ED-528EA26FD097}
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F5470F36-B955-48C8-91EE-D0BAB59ACB0E}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheAirline.Tests", "TheAirline.Tests\TheAirline.Tests.csproj", "{F5B4EC05-E23D-47B5-8C63-0C4996333901}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheAirline.Data", "TheAirline.Data\TheAirline.Data.csproj", "{6AD555FE-D660-4993-A9B2-0F6D48C8818A}"
@@ -49,20 +37,6 @@ Global
 		{63A09097-FD0E-4159-A2ED-528EA26FD097}.Release|x64.Build.0 = Release|x64
 		{63A09097-FD0E-4159-A2ED-528EA26FD097}.Release|x86.ActiveCfg = Release|Any CPU
 		{63A09097-FD0E-4159-A2ED-528EA26FD097}.Release|x86.Build.0 = Release|Any CPU
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|Any CPU.Build.0 = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|x64.ActiveCfg = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|x64.Build.0 = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|x86.ActiveCfg = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Debug|x86.Build.0 = Debug|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|Any CPU.ActiveCfg = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|Any CPU.Build.0 = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|x64.ActiveCfg = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|x64.Build.0 = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|x86.ActiveCfg = Release|x86
-		{2134C958-1EBA-4A20-B37B-1D58E86C118F}.Release|x86.Build.0 = Release|x86
 		{F5B4EC05-E23D-47B5-8C63-0C4996333901}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F5B4EC05-E23D-47B5-8C63-0C4996333901}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{F5B4EC05-E23D-47B5-8C63-0C4996333901}.Debug|x64.ActiveCfg = Debug|Any CPU

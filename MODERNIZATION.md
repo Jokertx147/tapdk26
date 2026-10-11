@@ -72,10 +72,10 @@ Done:
 
 Corrections to the plan above:
 
-- `TheAirline.Resources` and `Data/Data.csproj` are **not in the solution** and nothing references them, so they were left alone. They look like leftovers.
-- `packages/` and `.nuget/` were **kept**. The WiX 3.8 installer still uses them. Remove them when the installer moves to WiX 4 or 5.
-- Build the game with `dotnet build TheAirline\TheAirline.csproj`, not the `.sln`. The solution includes the old WiX installer, which `dotnet build` cannot build.
-- Source files the old project never compiled are excluded: `GUIModel/PopUpsModel/` (a stale copy of `CustomControlsModel/PopUpWindowsModel/`) and `Migrations/201505231846321_Regions.cs` (old EF6 API).
+- `TheAirline.Resources` was a stale duplicate of `Data/Data`. It has been removed; `Data/Data` is the only copy of the game data.
+- `packages/`, `.nuget/`, `Resource/` and the WiX 3.8 installer have been removed. The installer is now an Inno Setup script, see `Installer/Inno`.
+- Build the game with `dotnet build TheAirline\TheAirline.csproj`. The solution no longer contains the WiX installer.
+- Source files the old project never compiled are excluded: `GUIModel/PopUpsModel/` (a stale copy, now deleted) and `Migrations/201505231846321_Regions.cs` (old EF6 API).
 
 Expected first-build errors, roughly in the order to fix them:
 

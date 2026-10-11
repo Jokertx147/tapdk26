@@ -12,11 +12,10 @@
 For Development: Quad Core 3.0GHz, 6+GB RAM
 For Testing: Dual Core 2.0GHz, 2+GB RAM
 
-.NET Framework 4.5
-Windows Vista/7/8
-Visual Studio (2012) or newer
-WiX Toolset 3.8
--https://wix.codeplex.com/releases/view/115492
+.NET 10 SDK
+Windows 10/11
+Visual Studio 2022 or newer (optional)
+Inno Setup 6 (only to build the installer)
 
 <h3>I. Developing</h3>
 If you are developing new features, please do a fork and pull request. Pull requests should generally be made on the current in-development branch nnn-dev.
