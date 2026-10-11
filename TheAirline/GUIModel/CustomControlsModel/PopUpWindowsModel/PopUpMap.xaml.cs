@@ -95,73 +95,334 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             : this(ImageSize * 3)
         {
             this.ShowingAirports = true;
-            this.KeyDown += new KeyEventHandler(PopUpMap_KeyDown);
             this.AirportsList = airports;
-            this.Width = MapSize + 200;
-            this.ZoomCoordinates = new GeoCoordinate(0.0,0.0); 
-            this.Zoom = 1;
-        
 
-            showMap(airports, this.Zoom, this.ZoomCoordinates);
+            PrepareWorldMap();
 
+            foreach (Airport airport in airports)
+            {
+                showAirport(airport, _world, 3, new Point(0, 0));
+            }
+        }
+
+        public PopUpMap(List<Route> routes)
+            : this(ImageSize * 3)
+        {
+            this.RoutesList = routes;
+
+            PrepareWorldMap();
+
+            foreach (Route route in routes)
+            {
+                showRoute(route, _world, 3, new Point(0, 0));
+            }
+        }
+
+        #region Scrolling and zooming world map
+
+        // the whole world as 8 x 8 tiles; routes and airports are drawn in the same coordinates
+        private const int WorldSize = ImageSize * 8;
+        private const double MaxScale = 6;
+        private Canvas _world;
+        private Border _viewport;
+        private double _scale = 1;
+        private double _offsetX;
+        private double _offsetY;
+        private bool _viewFitted;
+        private bool _dragging;
+        private bool _dragMoved;
+        private Point _dragStart;
+        private Point _dragOrigin;
+        private readonly ScaleTransform _worldScale = new ScaleTransform(1, 1);
+        private readonly TranslateTransform _worldOffset = new TranslateTransform();
+        private readonly ScaleTransform _pinCounterScale = new ScaleTransform(1, 1);
+        private readonly List<Path> _routeLines = new List<Path>();
+        private readonly List<Point> _focusPoints = new List<Point>();
+
+        private double MinScale
+        {
+            get
+            {
+                if (_viewport == null || _viewport.ActualHeight < 10)
+                {
+                    return 0.3;
+                }
+
+                return Math.Max(0.1, Math.Min(_viewport.ActualWidth, _viewport.ActualHeight) / WorldSize);
+            }
+        }
+
+        //builds the map window: the world tiles in a viewport that can be dragged and zoomed with the mouse
+        private void PrepareWorldMap()
+        {
+            this.Width = 1150;
+            this.Height = 800;
+            this.MinWidth = 600;
+            this.MinHeight = 400;
+            this.ResizeMode = ResizeMode.CanResize;
+
+            _world = new Canvas { Width = WorldSize, Height = WorldSize };
+
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    string name = string.Format(@"{0}\{1}\{2}.png", 3, x, y);
+
+                    try
+                    {
+                        var imgMap = new Image
+                        {
+                            Width = ImageSize,
+                            Height = ImageSize,
+                            Source = new BitmapImage(new Uri(AppSettings.GetDataPath() + "\\graphics\\maps\\" + name, UriKind.RelativeOrAbsolute))
+                        };
+                        RenderOptions.SetBitmapScalingMode(imgMap, BitmapScalingMode.HighQuality);
+
+                        Canvas.SetTop(imgMap, y * ImageSize);
+                        Canvas.SetLeft(imgMap, x * ImageSize);
+
+                        _world.Children.Add(imgMap);
+                    }
+                    catch (Exception)
+                    {
+                        // a missing tile only leaves a hole in the map
+                    }
+                }
+            }
+
+            var transforms = new TransformGroup();
+            transforms.Children.Add(_worldScale);
+            transforms.Children.Add(_worldOffset);
+            _world.RenderTransform = transforms;
+            _world.RenderTransformOrigin = new Point(0, 0);
+
+            // the canvas is bigger than the window, so it sits in a host that clips it
+            var host = new Canvas { ClipToBounds = true };
+            host.Children.Add(_world);
+
+            _viewport = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x2A, 0x44)),
+                ClipToBounds = true,
+                Child = host,
+                Cursor = Cursors.SizeAll
+            };
+
+            _viewport.PreviewMouseWheel += Viewport_MouseWheel;
+            _viewport.PreviewMouseLeftButtonDown += Viewport_MouseDown;
+            _viewport.PreviewMouseMove += Viewport_MouseMove;
+            _viewport.PreviewMouseLeftButtonUp += Viewport_MouseUp;
+            _viewport.SizeChanged += (o, e) =>
+            {
+                if (!_viewFitted && _viewport.ActualWidth > 10 && _viewport.ActualHeight > 10)
+                {
+                    _viewFitted = true;
+                    FitInitialView();
+                }
+                else
+                {
+                    ClampView();
+                    ApplyView();
+                }
+            };
+
+            StackPanel sidePanel = createAirportSizeSidePanel();
+            sidePanel.Margin = new Thickness(8, 0, 8, 0);
+            sidePanel.Width = 180;
+
+            var layout = new Grid();
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Grid.SetColumn(_viewport, 0);
+            Grid.SetColumn(sidePanel, 1);
+            layout.Children.Add(_viewport);
+            layout.Children.Add(sidePanel);
+
+            this.Content = layout;
+            this.KeyDown += PopUpMap_KeyDown;
+        }
+
+        //starts with the routes or airports in view, or the whole world when there are none
+        private void FitInitialView()
+        {
+            double vw = _viewport.ActualWidth;
+            double vh = _viewport.ActualHeight;
+
+            if (_focusPoints.Count == 0)
+            {
+                _scale = MinScale;
+                _offsetX = (vw - WorldSize * _scale) / 2;
+                _offsetY = (vh - WorldSize * _scale) / 2;
+            }
+            else
+            {
+                double minX = _focusPoints.Min(pt => pt.X);
+                double maxX = _focusPoints.Max(pt => pt.X);
+                double minY = _focusPoints.Min(pt => pt.Y);
+                double maxY = _focusPoints.Max(pt => pt.Y);
+
+                const double margin = 70;
+                double fit = Math.Min(vw / (maxX - minX + 2 * margin), vh / (maxY - minY + 2 * margin));
+
+                _scale = Math.Max(MinScale, Math.Min(MaxScale / 2, fit));
+                _offsetX = vw / 2 - (minX + maxX) / 2 * _scale;
+                _offsetY = vh / 2 - (minY + maxY) / 2 * _scale;
+            }
+
+            ClampView();
+            ApplyView();
+        }
+
+        //keeps the world covering the window, or centred when it is smaller
+        private void ClampView()
+        {
+            if (_viewport == null)
+            {
+                return;
+            }
+
+            double vw = _viewport.ActualWidth;
+            double vh = _viewport.ActualHeight;
+            double size = WorldSize * _scale;
+
+            _offsetX = size <= vw ? (vw - size) / 2 : Math.Min(0, Math.Max(vw - size, _offsetX));
+            _offsetY = size <= vh ? (vh - size) / 2 : Math.Min(0, Math.Max(vh - size, _offsetY));
+        }
+
+        private void ApplyView()
+        {
+            _worldScale.ScaleX = _scale;
+            _worldScale.ScaleY = _scale;
+            _worldOffset.X = _offsetX;
+            _worldOffset.Y = _offsetY;
+
+            // pins and lines keep their size on screen while the map zooms
+            _pinCounterScale.ScaleX = 1 / _scale;
+            _pinCounterScale.ScaleY = 1 / _scale;
+
+            double thickness = Math.Max(0.6, 1.4 / _scale);
+            foreach (Path line in _routeLines)
+            {
+                line.StrokeThickness = thickness;
+            }
+        }
+
+        //zooms in or out around a point in the window
+        private void ZoomAt(Point at, double factor)
+        {
+            double newScale = Math.Max(MinScale, Math.Min(MaxScale, _scale * factor));
+
+            if (Math.Abs(newScale - _scale) < 0.0001)
+            {
+                return;
+            }
+
+            _offsetX = at.X - (at.X - _offsetX) * newScale / _scale;
+            _offsetY = at.Y - (at.Y - _offsetY) * newScale / _scale;
+            _scale = newScale;
+
+            ClampView();
+            ApplyView();
+        }
+
+        private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ZoomAt(e.GetPosition(_viewport), Math.Pow(1.2, e.Delta / 120.0));
+            e.Handled = true;
+        }
+
+        private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragging = true;
+            _dragMoved = false;
+            _dragStart = e.GetPosition(_viewport);
+            _dragOrigin = new Point(_offsetX, _offsetY);
+        }
+
+        private void Viewport_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_dragging || e.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            Point now = e.GetPosition(_viewport);
+            double dx = now.X - _dragStart.X;
+            double dy = now.Y - _dragStart.Y;
+
+            // a small movement is still a click on a pin
+            if (!_dragMoved && Math.Abs(dx) + Math.Abs(dy) > 5)
+            {
+                _dragMoved = true;
+                _viewport.CaptureMouse();
+            }
+
+            if (_dragMoved)
+            {
+                _offsetX = _dragOrigin.X + dx;
+                _offsetY = _dragOrigin.Y + dy;
+
+                ClampView();
+                ApplyView();
+            }
+        }
+
+        private void Viewport_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _dragging = false;
+
+            if (_viewport.IsMouseCaptured)
+            {
+                _viewport.ReleaseMouseCapture();
+            }
         }
 
         private void PopUpMap_KeyDown(object sender, KeyEventArgs e)
         {
-            int zoomer = 4 - this.Zoom;
-           
-            if (e.Key == Key.OemPlus || e.Key == Key.OemMinus)
+            if (_viewport == null)
             {
-                zoomMap(e.Key == Key.OemPlus);
+                return;
             }
-            if (e.Key == Key.Left && this.ZoomCoordinates.Longitude > -180 + (40 * zoomer))
-            {
-                this.ZoomCoordinates = new GeoCoordinate(this.ZoomCoordinates.Latitude, this.ZoomCoordinates.Longitude - 40 * zoomer);
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
 
-            }
-            if (e.Key == Key.Right && this.ZoomCoordinates.Longitude < 180 - (40 * zoomer))
-            {
-                this.ZoomCoordinates = new GeoCoordinate(this.ZoomCoordinates.Latitude, this.ZoomCoordinates.Longitude + 40 * zoomer);
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
+            var center = new Point(_viewport.ActualWidth / 2, _viewport.ActualHeight / 2);
 
-            }
-            if (e.Key == Key.Up && this.ZoomCoordinates.Latitude < 90 - (30 * zoomer))
+            switch (e.Key)
             {
-                this.ZoomCoordinates = new GeoCoordinate(this.ZoomCoordinates.Latitude + 30 * zoomer, this.ZoomCoordinates.Longitude);
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
-
-            }
-            if (e.Key == Key.Down && this.ZoomCoordinates.Latitude > -90 + (30 * zoomer))
-            {
-                this.ZoomCoordinates = new GeoCoordinate(this.ZoomCoordinates.Latitude - 30 * zoomer, this.ZoomCoordinates.Longitude);
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
-
+                case Key.OemPlus:
+                case Key.Add:
+                    ZoomAt(center, 1.25);
+                    break;
+                case Key.OemMinus:
+                case Key.Subtract:
+                    ZoomAt(center, 0.8);
+                    break;
+                case Key.Left:
+                    _offsetX += 80;
+                    ClampView();
+                    ApplyView();
+                    break;
+                case Key.Right:
+                    _offsetX -= 80;
+                    ClampView();
+                    ApplyView();
+                    break;
+                case Key.Up:
+                    _offsetY += 80;
+                    ClampView();
+                    ApplyView();
+                    break;
+                case Key.Down:
+                    _offsetY -= 80;
+                    ClampView();
+                    ApplyView();
+                    break;
             }
         }
-        public PopUpMap(List<Route> routes)
-            : this(ImageSize * 3)
-        {
-            this.KeyDown += new KeyEventHandler(PopUpMap_KeyDown);
-            this.Zoom = 1;
-            this.ZoomCoordinates = new GeoCoordinate(0.0, 0.0);
-            this.Width = MapSize + 200;
-            this.RoutesList = routes;
-          
-            showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates); 
-        }
+
+        #endregion
+
         //creates the side panel for the airport size and zooming
         private StackPanel createAirportSizeSidePanel()
         {
@@ -206,6 +467,11 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             panelZoom.Children.Add(UIHelpers.CreateTextBlock(Translator.GetInstance().GetString("PopUpMap", "1004")));
             panelZoom.Children.Add(UIHelpers.CreateTextBlock(Translator.GetInstance().GetString("PopUpMap", "1005"))); 
 
+            var mouseHint = UIHelpers.CreateTextBlock("Mouse wheel: zoom. Drag: move the map.");
+            mouseHint.TextWrapping = TextWrapping.Wrap;
+            mouseHint.Margin = new Thickness(0, 6, 0, 0);
+            panelZoom.Children.Add(mouseHint);
+
             sidePanel.Children.Add(panelZoom);
 
             //var regions = airports.Select(a => a.Profile.Country.Region).Distinct();//from a in airports select a.Profile.Country.Region;
@@ -248,27 +514,15 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
         {
             zoomMap(true);
         }
-        //zooms the map
+        //zooms the map (the + and - buttons)
         private void zoomMap(Boolean zoomIn)
         {
-            if (zoomIn && this.Zoom < 3)
+            if (_viewport == null)
             {
-                this.Zoom++;
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
+                return;
             }
-            if (!zoomIn && this.Zoom > 1)
-            {
-                this.Zoom--;
-                if (this.ShowingAirports)
-                    showMap(this.AirportsList, this.Zoom, this.ZoomCoordinates);
-                else
-                    showMap(this.RoutesList, this.Zoom, this.ZoomCoordinates);
 
-            }
-          
+            ZoomAt(new Point(_viewport.ActualWidth / 2, _viewport.ActualHeight / 2), zoomIn ? 1.25 : 0.8);
         }
 
         //returns the brush for a specific airport size
@@ -422,140 +676,13 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
           }
           flightPath.Data = flightGeometryGroup;
           panelMap.Children.Add(flightPath);
+          _routeLines.Add(flightPath);
 
         }
         public PopUpMap(Airport airport)
             : this(ImageSize)
         {
             showMap(airport.Profile.Coordinates.ConvertToGeoCoordinate(), true);
-        }
-        //shows the map for a list of routes with specific coordinates in focus
-        private void showMap(List<Route> routes, int zoom, GeoCoordinate focused)
-        {
-            double px, py;
-
-            if (focused != null)
-            {
-                Point pos = UIHelpers.WorldToTilePos(focused, zoom);
-
-                px = Math.Max(1, pos.X);
-                py = Math.Max(1, pos.Y);
-            }
-            else
-            {
-                px = 1;
-                py = 1;
-            }
-
-            Canvas panelMap = new Canvas();
-
-            Canvas panelMainMap = new Canvas();
-            panelMainMap.Width = 2 * ImageSize;
-
-            for (int x = 0; x < 2; x++)
-            {
-                for (int y = 0; y < 2; y++)
-                {
-                    string name = string.Format(@"{0}\{1}\{2}.png", zoom, x - 1 + (int)px, y - 1 + (int)py);
-
-                    Image imgMap = new Image();
-                    imgMap.Width = ImageSize;
-                    imgMap.Height = ImageSize;
-                    imgMap.Source = new BitmapImage(new Uri(AppSettings.GetDataPath() + "\\graphics\\maps\\" + name, UriKind.RelativeOrAbsolute));
-                    RenderOptions.SetBitmapScalingMode(imgMap, BitmapScalingMode.HighQuality);
-
-                    Canvas.SetTop(imgMap, y * ImageSize);
-                    Canvas.SetLeft(imgMap, x * ImageSize);
-
-                    panelMainMap.Children.Add(imgMap);
-
-
-
-                }
-            }
-            ScaleTransform transform = new ScaleTransform();
-            transform.ScaleX = 1.5;
-            transform.ScaleY = 1.5;
-            panelMainMap.RenderTransform = transform;
-
-        
-
-            foreach (Route route in routes)
-                showRoute(route, panelMainMap, zoom, new Point((int)px - 1, (int)py - 1));
-
-          
-            StackPanel sidePanel = createAirportSizeSidePanel();
-            Canvas.SetTop(sidePanel, 0);
-            Canvas.SetLeft(sidePanel, this.MapSize);
-
-            panelMap.Children.Add(panelMainMap);
-            panelMap.Children.Add(sidePanel);
-
-            
-
-            this.Content = panelMap;
-        }
-        //shows the map for a list of airport with specific coordinates in focus
-        private void showMap(List<Airport> airports, int zoom, GeoCoordinate focused)
-        {
-            double px, py;
-
-            if (focused != null)
-            {
-                Point pos = UIHelpers.WorldToTilePos(focused, zoom);
-
-                px = Math.Max(1, pos.X);
-                py = Math.Max(1, pos.Y);
-            }
-            else
-            {
-                px = 1;
-                py = 1;
-            }
-
-            Canvas panelMap = new Canvas();
-
-            Canvas panelMainMap = new Canvas();
-            panelMainMap.Width = 2 * ImageSize;
-
-            for (int x = 0; x < 2; x++)
-            {
-                for (int y = 0; y < 2; y++)
-                {
-                    string name = string.Format(@"{0}\{1}\{2}.png", zoom, x - 1 + (int)px, y - 1 + (int)py);
-
-                    Image imgMap = new Image();
-                    imgMap.Width = ImageSize;
-                    imgMap.Height = ImageSize;
-                    imgMap.Source = new BitmapImage(new Uri(AppSettings.GetDataPath() + "\\graphics\\maps\\" + name, UriKind.RelativeOrAbsolute));
-                    RenderOptions.SetBitmapScalingMode(imgMap, BitmapScalingMode.HighQuality);
-
-                    Canvas.SetTop(imgMap, y * ImageSize);
-                    Canvas.SetLeft(imgMap, x * ImageSize);
-
-                    panelMainMap.Children.Add(imgMap);
-
-
-
-                }
-            }
-            ScaleTransform transform = new ScaleTransform();
-            transform.ScaleX = 1.5;
-            transform.ScaleY = 1.5;
-            panelMainMap.RenderTransform = transform; 
-
-            StackPanel sidePanel = createAirportSizeSidePanel();
-            Canvas.SetTop(sidePanel, 0);
-            Canvas.SetLeft(sidePanel, this.MapSize);
-
-            panelMap.Children.Add(panelMainMap);
-            panelMap.Children.Add(sidePanel);
-
-
-            foreach (Airport airport in airports)
-                showAirport(airport, panelMainMap, zoom, new Point((int)px - 1, (int)py - 1));
-            
-            this.Content = panelMap;
         }
         //creates the map for coordinates
         private void showMap(GeoCoordinate coordinates, Boolean isAirport)
@@ -635,7 +762,10 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             imgPin.Width = imgPin.Height;
             imgPin.Stroke = Brushes.Black;
             imgPin.StrokeThickness = 1;
-            imgPin.MouseDown += new MouseButtonEventHandler(imgPin_MouseDown);
+            imgPin.MouseLeftButtonUp += new MouseButtonEventHandler(imgPin_MouseDown);
+            imgPin.RenderTransform = _pinCounterScale;
+            imgPin.RenderTransformOrigin = new Point(0.5, 0.5);
+            _focusPoints.Add(position);
 
 
             Border brdToolTip = new Border();
@@ -661,7 +791,7 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
 
           private void imgPin_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (!_dragMoved)
             {
                 Airport airport = (Airport)((Ellipse)sender).Tag;
                 PageNavigator.NavigateTo(new PageAirport(airport));

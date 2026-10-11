@@ -25,8 +25,16 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             this.Activated += PopUpWindow_Activated;
       }
 
+        private bool _captionAdded;
+
         private void PopUpWindow_Activated(object sender, EventArgs e)
         {
+            if (_captionAdded)
+            {
+                return;
+            }
+
+            _captionAdded = true;
             this.Height = this.Height + SystemParameters.CaptionHeight;
         }
        
