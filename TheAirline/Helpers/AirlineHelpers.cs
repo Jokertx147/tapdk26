@@ -157,7 +157,11 @@ namespace TheAirline.Helpers
 
         public static FleetAirliner AddAirliner(Airline airline, Airliner airliner, Airport airport, Boolean leased)
         {
-            if ((Countries.GetCountryFromTailNumber(airliner.TailNumber)?.Name) != airline.Profile.Country.Name)
+            // a missing home country falls back to the home airport's country
+            airline.Profile.Country ??= airport?.Profile.Country;
+
+            if (airline.Profile.Country?.TailNumbers != null
+                && (Countries.GetCountryFromTailNumber(airliner.TailNumber)?.Name) != airline.Profile.Country.Name)
             {
                 lock (airline.Profile.Country.TailNumbers)
                 {

@@ -79,7 +79,7 @@ namespace TheAirline.Helpers
             GameObject.GetInstance().FuelPrice =
                 Inflations.GetInflation(GameObject.GetInstance().GameTime.Year).FuelPrice;
 
-            airline.Profile.Country = startData.HomeCountry;
+            airline.Profile.Country = startData.HomeCountry ?? airline.Profile.Country ?? startData.Airport?.Profile.Country;
             airline.Profile.CEO = startData.CEO;
 
             GameObject.GetInstance().SetHumanAirline(airline);
