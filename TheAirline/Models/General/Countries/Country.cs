@@ -24,6 +24,23 @@ namespace TheAirline.Models.General.Countries
 
         protected Country(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
         {
+            // only uid, short name and flag are saved; the rest (region, currencies, tail numbers) comes from the game data
+            Country source = Uid == null ? null : Countries.GetCountry(Uid);
+            if (source != null && !ReferenceEquals(source, this))
+            {
+                Id = source.Id;
+                Name = source.Name;
+                IsoName = source.IsoName;
+                Region = source.Region;
+                TailNumberFormat = source.TailNumberFormat;
+                TailNumbers = source.TailNumbers;
+                Currencies = source.Currencies ?? new List<Currency>();
+            }
+
+            if (Currencies == null)
+            {
+                Currencies = new List<Currency>();
+            }
         }
 
         public Country()
