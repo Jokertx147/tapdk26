@@ -122,7 +122,7 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
                         destination,
                         Airport.GetDestinationPassengersRate(destination, AirlinerClass.ClassType.EconomyClass),
                         (int)Airport.Profile.Pax,
-                        Airport.GetDestinationCargoRate(destination),MathHelpers.GetDistance(destination,Airport)));
+                        Airport.GetDestinationCargoRate(destination),MathHelpers.GetDistance(destination,Airport)) { Origin = Airport });
             }
 
             foreach (Airport destination in domesticDemand)
@@ -132,7 +132,7 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
                         destination,
                         Airport.GetDestinationPassengersRate(destination, AirlinerClass.ClassType.EconomyClass),
                         (int)Airport.Profile.Pax,
-                        Airport.GetDestinationCargoRate(destination), MathHelpers.GetDistance(destination,Airport)));
+                        Airport.GetDestinationCargoRate(destination), MathHelpers.GetDistance(destination,Airport)) { Origin = Airport });
             }
 
             AirportFacilities =
@@ -768,7 +768,24 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
 
         public double Distance { get; set; }
 
-        public int Cargo { get; set; }
+        //the airport the demand is from; edits to Passengers and Cargo are written back to it
+        public Airport Origin { get; set; }
+
+        private int _cargo;
+        private int _passengers;
+
+        public int Cargo
+        {
+            get { return _cargo; }
+            set
+            {
+                value = Math.Max(0, Math.Min(ushort.MaxValue, value));
+                if (value == _cargo) return;
+                _cargo = value;
+                Origin?.SetDestinationCargoDemand(Destination, value);
+                NotifyPropertyChanged("Cargo");
+            }
+        }
 
         public object Type { get; set; }
 
@@ -789,7 +806,18 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
 
         public Airport Destination { get; set; }
 
-        public int Passengers { get; set; }
+        public int Passengers
+        {
+            get { return _passengers; }
+            set
+            {
+                value = Math.Max(0, Math.Min(ushort.MaxValue, value));
+                if (value == _passengers) return;
+                _passengers = value;
+                Origin?.SetDestinationPassengersDemand(Destination, value);
+                NotifyPropertyChanged("Passengers");
+            }
+        }
 
         public int TotalPax { get; set; }
 

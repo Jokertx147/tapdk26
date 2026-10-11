@@ -57,6 +57,40 @@ namespace TheAirline.Models.Airports
             }
         }
 
+        //sets (replaces) the base cargo demand to a destination
+        public void SetCargoDemand(Models.Airports.Airport destination, ushort rate)
+        {
+            lock (_cargoDemand)
+            {
+                var demand = _cargoDemand.Find(a => a.Destination == destination.Profile.IATACode);
+                if (demand == null)
+                {
+                    _cargoDemand.Add(new DestinationDemand(destination.Profile.IATACode, rate));
+                }
+                else
+                {
+                    demand.Rate = rate;
+                }
+            }
+        }
+
+        //sets (replaces) the base passenger demand to a destination
+        public void SetPassengerDemand(Models.Airports.Airport destination, ushort rate)
+        {
+            lock (_passengerDemand)
+            {
+                var demand = _passengerDemand.Find(a => a.Destination == destination.Profile.IATACode);
+                if (demand == null)
+                {
+                    _passengerDemand.Add(new DestinationDemand(destination.Profile.IATACode, rate));
+                }
+                else
+                {
+                    demand.Rate = rate;
+                }
+            }
+        }
+
         public void AddPassengerDemand(DestinationDemand demand)
         {
             lock (_passengerDemand) _passengerDemand.Add(demand);

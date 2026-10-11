@@ -225,6 +225,28 @@ namespace TheAirline.Models.Airports
             }
         }
 
+        //sets the total (economy) passenger demand to a destination, replacing any earlier value
+        public void SetDestinationPassengersDemand(Airport destination, int value)
+        {
+            lock (DestinationPassengers)
+            {
+                DestinationPassengers.RemoveAll(d => d.Destination == destination.Profile.IATACode);
+            }
+
+            Statics.SetPassengerDemand(destination, (ushort) Math.Max(0, Math.Min(ushort.MaxValue, value)));
+        }
+
+        //sets the total cargo demand to a destination, replacing any earlier value
+        public void SetDestinationCargoDemand(Airport destination, int value)
+        {
+            lock (DestinationCargo)
+            {
+                DestinationCargo.RemoveAll(d => d.Destination == destination.Profile.IATACode);
+            }
+
+            Statics.SetCargoDemand(destination, (ushort) Math.Max(0, Math.Min(ushort.MaxValue, value)));
+        }
+
         public void AddDestinationPassengersRate(DestinationDemand passengers)
         {
             Statics.AddPassengerDemand(passengers);

@@ -103,8 +103,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Margin="5 0 0 0" Text="{Binding Passengers}"
-                                                   VerticalAlignment="Bottom" />
+                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -113,7 +112,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Cargo}" VerticalAlignment="Bottom" />
+                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -187,8 +186,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Margin="5 0 0 0" Text="{Binding Passengers}"
-                                                   VerticalAlignment="Bottom" />
+                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -197,7 +195,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Cargo}" VerticalAlignment="Bottom" />
+                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
