@@ -66,6 +66,44 @@ namespace TheAirline
 
             PreviewKeyDown += async (o, args) =>
             {
+                // Escape asks to exit; it still closes an open drop-down list and works as normal in text boxes
+                if (args.Key == System.Windows.Input.Key.Escape)
+                {
+                    object focused = System.Windows.Input.Keyboard.FocusedElement;
+
+                    if (args.IsRepeat
+                        || _askingToExit
+                        || focused is System.Windows.Controls.Primitives.TextBoxBase
+                        || focused is PasswordBox
+                        || (focused is ComboBox openCombo && openCombo.IsDropDownOpen))
+                    {
+                        return;
+                    }
+
+                    args.Handled = true;
+                    _askingToExit = true;
+                    try
+                    {
+                        var answer = GraphicsModel.UserControlModel.MessageBoxModel.WPFMessageBox.Show(
+                            "Exit",
+                            GameObject.GetInstance().HumanAirline == null
+                                ? "Exit The Airline Project?"
+                                : "Exit The Airline Project? Your game will be autosaved.",
+                            GraphicsModel.UserControlModel.MessageBoxModel.WPFMessageBoxButtons.YesNo);
+
+                        if (answer == GraphicsModel.UserControlModel.MessageBoxModel.WPFMessageBoxResult.Yes)
+                        {
+                            Close();
+                        }
+                    }
+                    finally
+                    {
+                        _askingToExit = false;
+                    }
+
+                    return;
+                }
+
                 if (args.Key != System.Windows.Input.Key.Space || args.IsRepeat || GameObject.GetInstance().HumanAirline == null)
                 {
                     return;
@@ -122,6 +160,8 @@ namespace TheAirline
 
             //Setup.SetupGame();
         }
+
+        private bool _askingToExit;
 
         private bool _togglingPause;
 
