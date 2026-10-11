@@ -21,18 +21,17 @@ namespace TheAirline.ViewModels.Game
         {
             _player = (from player in _state.Context.Players
                 where
-                    player.Id == (int) navigationContext.Parameters["player"]
+                    player.Id == navigationContext.Parameters.GetValue<int>("player")
                 select player).FirstOrDefault();
         }
 
         public bool IsNavigationTarget(NavigationContext navigationContext)
         {
-            throw new NotImplementedException();
+            return false;
         }
 
         public void OnNavigatedFrom(NavigationContext navigationContext)
         {
-            throw new NotImplementedException();
         }
     }
 }

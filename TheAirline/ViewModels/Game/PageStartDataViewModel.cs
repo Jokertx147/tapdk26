@@ -95,17 +95,14 @@ namespace TheAirline.ViewModels.Game
             
         }
 
+        // always build a fresh page so the lists and choices are reloaded
         public bool IsNavigationTarget(NavigationContext navigationContext)
         {
-            throw new NotImplementedException();
+            return false;
         }
 
         public void OnNavigatedFrom(NavigationContext navigationContext)
         {
-            if (navigationContext.Uri.Equals(NewAirlineUri))
-            {
-                navigationContext.Parameters.Add("player", _player.Id);
-            }
         }
 
         private void ChangePages(Uri obj)
@@ -115,7 +112,7 @@ namespace TheAirline.ViewModels.Game
                 _player = new Player
                 {
                     Continent = Continent,
-                    Region = SelectedRegion,
+                    Region = ReferenceEquals(SelectedRegion, _allRegions) ? null : SelectedRegion, // "All Regions" is not a database row
                     MajorAirports = MajorAirports,
                     StartYear = Year,
                     Focus = SelectedFocus,
@@ -132,7 +129,13 @@ namespace TheAirline.ViewModels.Game
                 _state.SaveState();
             }
 
-            _regionManager.RequestNavigate("MainContentRegion", obj);
+            var parameters = new NavigationParameters();
+            if (obj.Equals(NewAirlineUri) && _player != null)
+            {
+                parameters.Add("player", _player.Id);
+            }
+
+            _regionManager.RequestNavigate("MainContentRegion", obj, parameters);
         }
 
         private void UpdateRegions(Continent obj)
