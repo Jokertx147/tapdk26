@@ -631,10 +631,35 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
             }
             catch (Exception ex)
             {
-                WPFMessageBox.Show(
-                    Translator.GetInstance().GetString("MessageBox", ex.Message),
-                    Translator.GetInstance().GetString("MessageBox", ex.Message, "message"),
-                    WPFMessageBoxButtons.Ok);
+                TheAirline.Infrastructure.StartupLog.Write("Create route failed: " + ex);
+
+                string reason;
+                switch (ex.Message)
+                {
+                    case "3000":
+                        reason = "No free gates at one of the airports (you need a contract with free gates at both ends, and any stopovers).";
+                        break;
+                    case "3001":
+                        reason = "The distance is too short, or longer than any available aircraft can fly.";
+                        break;
+                    case "3002":
+                        reason = "The route is not of an appropriate type for these airports.";
+                        break;
+                    case "3003":
+                        reason = "Cargo is missing at the airports.";
+                        break;
+                    case "3004":
+                        reason = "Your airline has no license for this route.";
+                        break;
+                    case "3005":
+                        reason = "There are flight restrictions between these countries.";
+                        break;
+                    default:
+                        reason = ex.Message;
+                        break;
+                }
+
+                MessageBox.Show("The route could not be created:\n" + reason, "TheAirline");
 
                 return false;
             }
