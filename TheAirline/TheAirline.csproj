@@ -1,1368 +1,125 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">X64</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{63A09097-FD0E-4159-A2ED-528EA26FD097}</ProjectGuid>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <UseWPF>true</UseWPF>
+    <Platforms>AnyCPU;x64</Platforms>
     <RootNamespace>TheAirline</RootNamespace>
     <AssemblyName>TheAirline</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <SignAssembly>False</SignAssembly>
-    <DelaySign>False</DelaySign>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
-    <NoStdLib>False</NoStdLib>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <ExpressionBlendVersion>5.2.30810.0</ExpressionBlendVersion>
-    <OutputPath>..\bin\$(Configuration)\</OutputPath>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-    <CheckForSystemRuntimeDependency>true</CheckForSystemRuntimeDependency>
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugType>Full</DebugType>
-    <Optimize>false</Optimize>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
-    <DebugSymbols>true</DebugSymbols>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <Prefer32Bit>false</Prefer32Bit>
-    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>PdbOnly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
-    <DebugSymbols>false</DebugSymbols>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
-    <RegisterForComInterop>False</RegisterForComInterop>
-    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <BaseAddress>4194304</BaseAddress>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>Full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Optimize>false</Optimize>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>PdbOnly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup>
     <ApplicationIcon>TheAirline.ico</ApplicationIcon>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- AssemblyInfo.cs and AssemblyVersionInfo.cs already define the assembly attributes. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- AssemblyInfo.cs uses AssemblyVersion("2.0.*"), which needs a non-deterministic build. -->
+    <Deterministic>false</Deterministic>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Lets old .NET Framework only packages and DLLs restore; warnings point at the ones to replace. -->
+    <AssetTargetFallback>$(AssetTargetFallback);net48;net472;net461;net45;net40</AssetTargetFallback>
+    <NoWarn>$(NoWarn);NU1701;MSB3277</NoWarn>
   </PropertyGroup>
+
+  <!-- Source files the old project never compiled. They were stale copies and old EF6 migrations. -->
   <ItemGroup>
+    <Compile Remove="GUIModel\PopUpsModel\**" />
+    <Page Remove="GUIModel\PopUpsModel\**" />
+    <Compile Remove="Migrations\201505231846321_Regions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NLog" Version="5.*" />
+    <PackageReference Include="Prism.Wpf" Version="9.*" />
+    <PackageReference Include="System.ComponentModel.Composition" Version="10.*" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.*" />
+    <PackageReference Include="System.Drawing.Common" Version="10.*" />
+    <PackageReference Include="WpfLocalizeExtension" Version="3.*" />
+    <PackageReference Include="WPFTaskDialog" Version="1.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Checked-in .NET Framework binary. Replace with a current chart library later. -->
     <Reference Include="De.TorstenMandelkow.MetroChart">
       <HintPath>..\Resource\De.TorstenMandelkow.MetroChart.dll</HintPath>
     </Reference>
-    <Reference Include="EntityFrameworkCore.SqlServerCompact40, Version=1.0.0.0, Culture=neutral, PublicKeyToken=9af395b34ac99006, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFrameworkCore.SqlServerCompact40.1.0.0\lib\net451\EntityFrameworkCore.SqlServerCompact40.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MathNet.Numerics, Version=3.11.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MathNet.Numerics.3.11.1\lib\net40\MathNet.Numerics.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Hosting.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Hosting.Abstractions.1.0.0\lib\net451\Microsoft.AspNetCore.Hosting.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Hosting.Server.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Hosting.Server.Abstractions.1.0.0\lib\net451\Microsoft.AspNetCore.Hosting.Server.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Abstractions.1.0.0\lib\net451\Microsoft.AspNetCore.Http.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Features, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Features.1.0.0\lib\net451\Microsoft.AspNetCore.Http.Features.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.EntityFrameworkCore, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.EntityFrameworkCore.1.0.0\lib\net451\Microsoft.EntityFrameworkCore.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.EntityFrameworkCore.Design.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.EntityFrameworkCore.Design.Core.1.0.0-preview2-final\lib\net451\Microsoft.EntityFrameworkCore.Design.Core.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.EntityFrameworkCore.Relational, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.EntityFrameworkCore.Relational.1.0.0\lib\net451\Microsoft.EntityFrameworkCore.Relational.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.EntityFrameworkCore.Relational.Design, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.EntityFrameworkCore.Relational.Design.1.0.0\lib\net451\Microsoft.EntityFrameworkCore.Relational.Design.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.EntityFrameworkCore.Tools, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.EntityFrameworkCore.Tools.1.0.0-preview2-final\lib\net451\Microsoft.EntityFrameworkCore.Tools.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Caching.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Caching.Abstractions.1.0.0\lib\netstandard1.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Caching.Memory, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Caching.Memory.1.0.0\lib\net451\Microsoft.Extensions.Caching.Memory.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.CommandLineUtils, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.CommandLineUtils.1.0.0\lib\net451\Microsoft.Extensions.CommandLineUtils.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.Abstractions.1.0.0\lib\netstandard1.0\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.1.0.0\lib\netstandard1.1\Microsoft.Extensions.DependencyInjection.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.1.0.0\lib\netstandard1.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileProviders.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Abstractions.1.0.0\lib\netstandard1.0\Microsoft.Extensions.FileProviders.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Options, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Options.1.0.0\lib\netstandard1.0\Microsoft.Extensions.Options.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Primitives, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Primitives.1.0.0\lib\netstandard1.0\Microsoft.Extensions.Primitives.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Practices.EnterpriseLibrary.Common, Version=6.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\EnterpriseLibrary.Common.6.0.1304.0\lib\NET45\Microsoft.Practices.EnterpriseLibrary.Common.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Practices.EnterpriseLibrary.ExceptionHandling, Version=6.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\EnterpriseLibrary.ExceptionHandling.6.0.1304.0\lib\NET45\Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.Logging, Version=6.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\EnterpriseLibrary.ExceptionHandling.Logging.6.0.1304.0\lib\NET45\Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Practices.EnterpriseLibrary.Logging, Version=6.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\EnterpriseLibrary.Logging.6.0.1304.0\lib\NET45\Microsoft.Practices.EnterpriseLibrary.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Practices.ServiceLocation, Version=1.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\CommonServiceLocator.1.3\lib\portable-net4+sl5+netcore45+wpa81+wp8\Microsoft.Practices.ServiceLocation.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.3.5\lib\net45\NLog.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="PresentationFramework.Aero" />
-    <Reference Include="Prism, Version=6.1.0.0, Culture=neutral, PublicKeyToken=91a96d2a154366d8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Prism.Core.6.1.0\lib\net45\Prism.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Prism.Mef.Wpf, Version=6.1.0.0, Culture=neutral, PublicKeyToken=91a96d2a154366d8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Prism.Mef.6.1.0\lib\net45\Prism.Mef.Wpf.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Prism.Wpf, Version=6.1.0.0, Culture=neutral, PublicKeyToken=91a96d2a154366d8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Prism.Wpf.6.1.0\lib\net45\Prism.Wpf.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Remotion.Linq, Version=2.1.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
-      <HintPath>..\packages\Remotion.Linq.2.1.1\lib\net45\Remotion.Linq.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Collections.Immutable, Version=1.2.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.2.0\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.ComponentModel.Composition.Registration" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Data.SqlServerCe, Version=4.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.SqlServer.Compact.4.0.8876.1\lib\net40\System.Data.SqlServerCe.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Device" />
-    <Reference Include="System.Diagnostics.DiagnosticSource, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.4.0.0\lib\portable-net45+win8+wpa81\System.Diagnostics.DiagnosticSource.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Interactive.Async, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Interactive.Async.3.0.0\lib\net45\System.Interactive.Async.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.ObjectModel" />
-    <Reference Include="System.Runtime.Caching" />
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Text.Encodings.Web, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encodings.Web.4.0.0\lib\netstandard1.0\System.Text.Encodings.Web.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="TaskDialog, Version=1.7.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WPFTaskDialog.1.7.1\lib\net40-Client\TaskDialog.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="WPFLocalizeExtension, Version=2.3.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WpfLocalizeExtension.2.3.2\lib\net35\WPFLocalizeExtension.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="XAMLMarkupExtensions, Version=1.2.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\XAMLMarkupExtensions.1.2.2\lib\net40\XAMLMarkupExtensions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.AvalonDock, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.AvalonDock.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Aero, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.AvalonDock.Themes.Aero.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Metro, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.AvalonDock.Themes.Metro.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.AvalonDock.Themes.VS2010, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.AvalonDock.Themes.VS2010.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.DataGrid, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.DataGrid.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Xceed.Wpf.Toolkit, Version=2.9.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Extended.Wpf.Toolkit.2.9\lib\net40\Xceed.Wpf.Toolkit.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
+
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Page Include="GUIModel\CustomControlsModel\CalendarModel\AppointmentControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\CalendarModel\DayBoxControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\CalendarModel\ucCalendar.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\MessageBoxModel\WPFMessageBox.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAddCooperation.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerSeatsConfiguration.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirportContract.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCodeshareAgreement.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCompareAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerClassConfiguration.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerConfiguration.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerFacility.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCompareAirports.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCreateSubsidiary.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpExtendContract.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpInviteAlliance.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpMap.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpShowConnectingRoutes.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpShowSpecialContract.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpSingleElement.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\Block.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\ComparerControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpSpecialContracts.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\SplashControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\ucTimeline.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\CustomControlsModel\ucTimeTable.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\MasterPageModel\standard.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\MasterPageModel\standardResources.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\MasterPageModel\standardStyles.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\MasterPageModel\standardTemplates.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineEditAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineFleet.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineInsurance.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineRatings.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirline.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineEmployees.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineFinances.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineInfo.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Airline\PageAirlineServices.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageAirlinersHumanFleet.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageLeasingAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageManufacturer.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageManufacturers.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageNewAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageUsedAirliner.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinersPageModel\PageUsedAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlines.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlinesShares.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlinesStatistics.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirport.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirportDemand.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirportFacilities.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirportGateSchedule.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirportInfo.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportPageModel\PageAirportTraffic.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportsPageModel\PageAirports.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportsPageModel\PageAirportsOverview.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportsPageModel\PageAirportsStatistics.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportsPageModel\PageSearchAirports.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AirportsPageModel\PageShowAirports.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AlliancesPageModel\PageAlliances.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AlliancesPageModel\PageCreateAlliance.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AlliancesPageModel\PageShowAlliance.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\AlliancesPageModel\PageShowAlliances.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerStatistics.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirliner.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerInformation.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerInsurances.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageAirlineData.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageCalendar.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageCreateDifficulty.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageCredits.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageFlights.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageMMLoadGame.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageNewAirline.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageNewGame.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageNews.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageSelectAirports.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageSelectLanguage.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageSelectOpponents.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageSettings.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\GamePageModel\PageShowScenario.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageStartData.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageHeader.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Game\PageStartMenu.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\OptionsPageModel\PageLoadGame.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\OptionsPageModel\PageOptions.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\OptionsPageModel\PageOptionsCredits.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\OptionsPageModel\PageSaveGame.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\OptionsPageModel\PageShowOptions.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\PilotsPageModel\PageFlightSchools.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\PilotsPageModel\PagePilots.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\PilotsPageModel\PagePilotsFS.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\PilotsPageModel\PageShowFlightSchool.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\PilotsPageModel\PageShowPilot.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageAssignAirliners.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageCreateRoute.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageHumanRoutes.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageRoutePlanner.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageRoutes.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="GUIModel\PagesModel\RoutesPageModel\PageShowRoute.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
+    <ProjectReference Include="..\TheAirline.Data\TheAirline.Data.csproj" />
+  </ItemGroup>
+
+  <!-- Designer-generated files -->
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <!-- Language files live in the shared Data folder and are embedded under their old names. -->
+  <ItemGroup>
     <Compile Include="..\Data\Data\languages\language.Designer.cs">
       <Link>Data\languagefiles\language.Designer.cs</Link>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>language.resx</DependentUpon>
     </Compile>
-    <Compile Include="Infrastructure\AirlineBootstrapper.cs" />
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Db\AirlineContext.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\CalendarModel\AppointmentControl.xaml.cs">
-      <DependentUpon>AppointmentControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\CalendarModel\DayBoxControl.xaml.cs">
-      <DependentUpon>DayBoxControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\CalendarModel\ucCalendar.xaml.cs">
-      <DependentUpon>ucCalendar.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\FilterableListView\FilterValue.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\MessageBoxModel\DelegateCommand.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\MessageBoxModel\IconHelper.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\MessageBoxModel\MessageBoxViewModel.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\MessageBoxModel\WPFMessageBox.xaml.cs">
-      <DependentUpon>WPFMessageBox.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAddCooperation.xaml.cs">
-      <DependentUpon>PopUpAddCooperation.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerSeatsConfiguration.xaml.cs">
-      <DependentUpon>PopUpAirlinerSeatsConfiguration.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirportContract.xaml.cs">
-      <DependentUpon>PopUpAirportContract.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCodeshareAgreement.xaml.cs">
-      <DependentUpon>PopUpCodeshareAgreement.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCompareAirliners.xaml.cs">
-      <DependentUpon>PopUpCompareAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerClassConfiguration.xaml.cs">
-      <DependentUpon>PopUpAirlinerClassConfiguration.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerConfiguration.xaml.cs">
-      <DependentUpon>PopUpAirlinerConfiguration.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpAirlinerFacility.xaml.cs">
-      <DependentUpon>PopUpAirlinerFacility.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCompareAirports.xaml.cs">
-      <DependentUpon>PopUpCompareAirports.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpCreateSubsidiary.xaml.cs">
-      <DependentUpon>PopUpCreateSubsidiary.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpExtendContract.xaml.cs">
-      <DependentUpon>PopUpExtendContract.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpInviteAlliance.xaml.cs">
-      <DependentUpon>PopUpInviteAlliance.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpMap.xaml.cs">
-      <DependentUpon>PopUpMap.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpNewAirlinerHomebase.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpShowConnectingRoutes.xaml.cs">
-      <DependentUpon>PopUpShowConnectingRoutes.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpShowSpecialContract.xaml.cs">
-      <DependentUpon>PopUpShowSpecialContract.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpSingleElement.xaml.cs">
-      <DependentUpon>PopUpSingleElement.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpSpecialContracts.xaml.cs">
-      <DependentUpon>PopUpSpecialContracts.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\PopUpWindowsModel\PopUpWindow.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\Block.xaml.cs">
-      <DependentUpon>Block.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\ComparerControl.xaml.cs">
-      <DependentUpon>ComparerControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\FilterableListView\FilterableListView.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\FilterableListView\SortableGridViewColumn.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\FilterableListView\SortableListView.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\SplashControl.xaml.cs">
-      <DependentUpon>SplashControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\TimelineEntry.cs" />
-    <Compile Include="GUIModel\CustomControlsModel\ucTimeline.xaml.cs">
-      <DependentUpon>ucTimeline.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\CustomControlsModel\ucTimeTable.xaml.cs">
-      <DependentUpon>ucTimeTable.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\HelpersModel\Converters.cs" />
-    <Compile Include="GUIModel\HelpersModel\GridViewSort.cs" />
-    <Compile Include="GUIModel\HelpersModel\PageNavigator.cs" />
-    <Compile Include="GUIModel\HelpersModel\QuickInfoValue.cs" />
-    <Compile Include="GUIModel\HelpersModel\UIHelpers.cs" />
-    <Compile Include="GUIModel\MasterPageModel\SharedResourceDictionary.cs" />
-    <Compile Include="GUIModel\MasterPageModel\standardEvents.cs" />
-    <Compile Include="GUIModel\MasterPageModel\StandardMasterPage.cs" />
-    <Compile Include="GUIModel\MasterPageModel\standardStylesEvents.cs" />
-    <Compile Include="GUIModel\MasterPageModel\standardTemplatesEvents.cs" />
-    <Compile Include="GUIModel\ObjectsModel\GUIObject.cs" />
-    <Compile Include="GUIModel\ObjectsModel\StartDataObject.cs" />
-    <Compile Include="Infrastructure\Adapters\EnterpriseLoggerAdapter.cs" />
-    <Compile Include="Infrastructure\AppState.cs" />
-    <Compile Include="Infrastructure\Converters\LanguageFlagConverter.cs" />
-    <Compile Include="Infrastructure\Converters\RadioButtonCheckedConverter.cs" />
-    <Compile Include="Infrastructure\Enums\AirlineFocus.cs" />
-    <Compile Include="Infrastructure\Enums\AirportCode.cs" />
-    <Compile Include="Infrastructure\Enums\GameSpeeds.cs" />
-    <Compile Include="Infrastructure\Enums\Intervals.cs" />
-    <Compile Include="Infrastructure\Enums\ScreenMode.cs" />
-    <Compile Include="Infrastructure\Events\CloseGameEvent.cs" />
-    <Compile Include="Infrastructure\Extensions\EnumListExtension.cs" />
-    <Compile Include="Infrastructure\Services\TaskDialogService.cs" />
-    <Compile Include="Infrastructure\Settings.cs" />
-    <Compile Include="Migrations\20160702051922_SetupTables.cs" />
-    <Compile Include="Migrations\20160702051922_SetupTables.designer.cs">
-      <DependentUpon>20160702051922_SetupTables.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\AirlineContextModelSnapshot.cs" />
-    <Compile Include="Migrations\Seeds\Continents.cs" />
-    <Compile Include="Migrations\Seeds\Countries.cs" />
-    <Compile Include="Migrations\Seeds\Regions.cs" />
-    <Compile Include="Models\BaseModel.cs" />
-    <Compile Include="Models\General\Countries\Currency.cs" />
-    <Compile Include="Models\General\Difficulty.cs" />
-    <Compile Include="Models\General\Player.cs" />
-    <Compile Include="Models\General\Settings.cs" />
-    <Compile Include="ViewModels\Airline\AirlineMVVM.cs" />
-    <Compile Include="ViewModels\Airline\PageAirlineViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageAirlineDataViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageCreditsViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageSelectLanguageViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageSettingsViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageStartDataViewModel.cs" />
-    <Compile Include="ViewModels\Game\PageStartMenuViewModel.cs" />
-    <Compile Include="ViewModels\MainWindowViewModel.cs" />
-    <Compile Include="Views\Airline\PageAirlineEditAirliners.xaml.cs">
-      <DependentUpon>PageAirlineEditAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineFleet.xaml.cs">
-      <DependentUpon>PageAirlineFleet.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineInsurance.xaml.cs">
-      <DependentUpon>PageAirlineInsurance.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineRatings.xaml.cs">
-      <DependentUpon>PageAirlineRatings.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirline.xaml.cs">
-      <DependentUpon>PageAirline.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineEmployees.xaml.cs">
-      <DependentUpon>PageAirlineEmployees.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineFinances.xaml.cs">
-      <DependentUpon>PageAirlineFinances.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineInfo.xaml.cs">
-      <DependentUpon>PageAirlineInfo.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Airline\PageAirlineServices.xaml.cs">
-      <DependentUpon>PageAirlineServices.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\AirlinersMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageAirliners.xaml.cs">
-      <DependentUpon>PageAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageAirlinersHumanFleet.xaml.cs">
-      <DependentUpon>PageAirlinersHumanFleet.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageLeasingAirliners.xaml.cs">
-      <DependentUpon>PageLeasingAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageManufacturer.xaml.cs">
-      <DependentUpon>PageManufacturer.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageManufacturers.xaml.cs">
-      <DependentUpon>PageManufacturers.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageNewAirliners.xaml.cs">
-      <DependentUpon>PageNewAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageUsedAirliner.xaml.cs">
-      <DependentUpon>PageUsedAirliner.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinersPageModel\PageUsedAirliners.xaml.cs">
-      <DependentUpon>PageUsedAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinesPageModel\AirlinesMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlines.xaml.cs">
-      <DependentUpon>PageAirlines.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlinesShares.xaml.cs">
-      <DependentUpon>PageAirlinesShares.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirlinesPageModel\PageAirlinesStatistics.xaml.cs">
-      <DependentUpon>PageAirlinesStatistics.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\AirportMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirport.xaml.cs">
-      <DependentUpon>PageAirport.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirportDemand.xaml.cs">
-      <DependentUpon>PageAirportDemand.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirportFacilities.xaml.cs">
-      <DependentUpon>PageAirportFacilities.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirportGateSchedule.xaml.cs">
-      <DependentUpon>PageAirportGateSchedule.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirportInfo.xaml.cs">
-      <DependentUpon>PageAirportInfo.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportPageModel\PageAirportTraffic.xaml.cs">
-      <DependentUpon>PageAirportTraffic.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\AirportsMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\PageAirports.xaml.cs">
-      <DependentUpon>PageAirports.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\PageAirportsOverview.xaml.cs">
-      <DependentUpon>PageAirportsOverview.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\PageAirportsStatistics.xaml.cs">
-      <DependentUpon>PageAirportsStatistics.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\PageSearchAirports.xaml.cs">
-      <DependentUpon>PageSearchAirports.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AirportsPageModel\PageShowAirports.xaml.cs">
-      <DependentUpon>PageShowAirports.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AlliancesPageModel\AllianceMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\AlliancesPageModel\PageAlliances.xaml.cs">
-      <DependentUpon>PageAlliances.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AlliancesPageModel\PageCreateAlliance.xaml.cs">
-      <DependentUpon>PageCreateAlliance.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AlliancesPageModel\PageShowAlliance.xaml.cs">
-      <DependentUpon>PageShowAlliance.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\AlliancesPageModel\PageShowAlliances.xaml.cs">
-      <DependentUpon>PageShowAlliances.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\FleetAirlinerPageModel\FleetAirlinerMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerStatistics.xaml.cs">
-      <DependentUpon>PageFleetAirlinerStatistics.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirliner.xaml.cs">
-      <DependentUpon>PageFleetAirliner.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerInformation.xaml.cs">
-      <DependentUpon>PageFleetAirlinerInformation.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\FleetAirlinerPageModel\PageFleetAirlinerInsurances.xaml.cs">
-      <DependentUpon>PageFleetAirlinerInsurances.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\DifficultyMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\GamePageModel\GameVersionMVVM.cs" />
-    <Compile Include="Views\Game\PageAirlineData.xaml.cs">
-      <DependentUpon>PageAirlineData.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageCalendar.xaml.cs">
-      <DependentUpon>PageCalendar.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageCreateDifficulty.xaml.cs">
-      <DependentUpon>PageCreateDifficulty.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageCredits.xaml.cs">
-      <DependentUpon>PageCredits.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageFlights.xaml.cs">
-      <DependentUpon>PageFlights.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageMMLoadGame.xaml.cs">
-      <DependentUpon>PageMMLoadGame.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageNewAirline.xaml.cs">
-      <DependentUpon>PageNewAirline.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageNewGame.xaml.cs">
-      <DependentUpon>PageNewGame.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageNews.xaml.cs">
-      <DependentUpon>PageNews.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageSelectAirports.xaml.cs">
-      <DependentUpon>PageSelectAirports.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageSelectLanguage.xaml.cs">
-      <DependentUpon>PageSelectLanguage.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageSelectOpponents.xaml.cs">
-      <DependentUpon>PageSelectOpponents.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageSettings.xaml.cs">
-      <DependentUpon>PageSettings.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\GamePageModel\PageShowScenario.xaml.cs">
-      <DependentUpon>PageShowScenario.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageStartData.xaml.cs">
-      <DependentUpon>PageStartData.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageHeader.xaml.cs">
-      <DependentUpon>PageHeader.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Game\PageStartMenu.xaml.cs">
-      <DependentUpon>PageStartMenu.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\OptionsMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\PageLoadGame.xaml.cs">
-      <DependentUpon>PageLoadGame.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\PageOptions.xaml.cs">
-      <DependentUpon>PageOptions.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\PageOptionsCredits.xaml.cs">
-      <DependentUpon>PageOptionsCredits.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\PageSaveGame.xaml.cs">
-      <DependentUpon>PageSaveGame.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\OptionsPageModel\PageShowOptions.xaml.cs">
-      <DependentUpon>PageShowOptions.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\FlightSchoolMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\PageFlightSchools.xaml.cs">
-      <DependentUpon>PageFlightSchools.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\PagePilots.xaml.cs">
-      <DependentUpon>PagePilots.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\PagePilotsFS.xaml.cs">
-      <DependentUpon>PagePilotsFS.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\PageShowFlightSchool.xaml.cs">
-      <DependentUpon>PageShowFlightSchool.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\PilotsPageModel\PageShowPilot.xaml.cs">
-      <DependentUpon>PageShowPilot.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageAssignAirliners.xaml.cs">
-      <DependentUpon>PageAssignAirliners.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageCreateRoute.xaml.cs">
-      <DependentUpon>PageCreateRoute.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageHumanRoutes.xaml.cs">
-      <DependentUpon>PageHumanRoutes.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageRoutePlanner.xaml.cs">
-      <DependentUpon>PageRoutePlanner.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageRoutes.xaml.cs">
-      <DependentUpon>PageRoutes.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\PageShowRoute.xaml.cs">
-      <DependentUpon>PageShowRoute.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\RouteMVVM.cs" />
-    <Compile Include="GUIModel\PagesModel\RoutesPageModel\RoutePlannerMVVM.cs" />
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Models\Airlines\Airline.cs" />
-    <Compile Include="Models\Airlines\AdvertisementType.cs" />
-    <Compile Include="Models\Airlines\AirlineBudget.cs" />
-    <Compile Include="Models\Airlines\AirlineCooperation\Cooperation.cs" />
-    <Compile Include="Models\Airlines\AirlineCooperation\CooperationType.cs" />
-    <Compile Include="Models\Airlines\AirlineFacilitity.cs" />
-    <Compile Include="Models\Airlines\AirlineFees.cs" />
-    <Compile Include="Models\Airlines\AirlineInsurance.cs" />
-    <Compile Include="Models\Airlines\AirlinePolicy.cs" />
-    <Compile Include="Models\Airlines\AirlineProfile.cs" />
-    <Compile Include="Models\Airlines\AirlineRatings.cs" />
-    <Compile Include="Models\Airlines\AirlineScores.cs" />
-    <Compile Include="Models\Airlines\AirlineShare.cs" />
-    <Compile Include="Models\Airlines\AirlineStartData.cs" />
-    <Compile Include="Models\Airlines\CodeshareAgreement.cs" />
-    <Compile Include="Models\Airliners\AirlinerInsurance.cs" />
-    <Compile Include="Models\Airliners\AirlinerScheduleConfiguration.cs" />
-    <Compile Include="Models\Airliners\EngineType.cs" />
-    <Compile Include="Models\Airports\AirportExpansion.cs" />
-    <Compile Include="Helpers\RouteHelpers.cs" />
-    <Compile Include="Models\General\OperatingData.cs" />
-    <Compile Include="Models\General\SpecialContract.cs" />
-    <Compile Include="Models\General\SpecialContractType.cs" />
-    <Compile Include="Models\Routes\CombiRoute.cs" />
-    <Compile Include="Models\Airports\AirportContract.cs" />
-    <Compile Include="Models\Airlines\Alliance.cs" />
-    <Compile Include="Models\Airlines\AllianceMember.cs" />
-    <Compile Include="Models\Airlines\FeeType.cs" />
-    <Compile Include="Models\Airlines\Subsidiary\AirlineMerger.cs" />
-    <Compile Include="Models\Airlines\Subsidiary\FutureSubsidiaryAirline.cs" />
-    <Compile Include="Models\Airlines\Subsidiary\SubsidiaryAirline.cs" />
-    <Compile Include="Models\Airliners\Airliner.cs" />
-    <Compile Include="Models\Airliners\AirlinerClass.cs" />
-    <Compile Include="Models\Airliners\AirlinerConfiguration.cs" />
-    <Compile Include="Models\Airliners\AirlinerFacility.cs" />
-    <Compile Include="Models\Airliners\AirlinerStatistics.cs" />
-    <Compile Include="Models\Airliners\AirlinerType.cs" />
-    <Compile Include="Models\Airliners\AirlinerTypeConfiguration.cs" />
-    <Compile Include="Models\Airliners\FleetAirliner.cs" />
-    <Compile Include="Models\Airliners\Manufacturer.cs" />
-    <Compile Include="Models\Airliners\ManufacturerContract.cs" />
-    <Compile Include="Models\Airliners\AirlinerOrder.cs" />
-    <Compile Include="Models\Routes\CargoRoute.cs" />
-    <Compile Include="Models\Routes\Flight.cs" />
-    <Compile Include="Models\Routes\FlightAirlinerClass.cs" />
-    <Compile Include="Models\Routes\Route.cs" />
-    <Compile Include="Models\Routes\RouteAirlinerClass.cs" />
-    <Compile Include="Models\Routes\RouteConfiguration.cs" />
-    <Compile Include="Models\Routes\RouteEntryDestination.cs" />
-    <Compile Include="Models\Routes\RouteFacility.cs" />
-    <Compile Include="Models\Routes\PassengerRoute.cs" />
-    <Compile Include="Models\Routes\RouteStatistics.cs" />
-    <Compile Include="Models\Routes\RouteTimeTable.cs" />
-    <Compile Include="Models\Routes\RouteTimeTableEntry.cs" />
-    <Compile Include="Models\Routes\StopoverFlight.cs" />
-    <Compile Include="Models\Routes\StopoverRoute.cs" />
-    <Compile Include="Models\Airports\AirlineAirportFacility.cs" />
-    <Compile Include="Models\Airports\Airport.cs" />
-    <Compile Include="Models\Airports\AirportFacility.cs" />
-    <Compile Include="Models\Airports\AirportProfile.cs" />
-    <Compile Include="Models\Airports\AirportStatistics.cs" />
-    <Compile Include="Models\Airports\AirportStatisticsValue.cs" />
-    <Compile Include="Models\Airports\AirportStatics.cs" />
-    <Compile Include="Models\Airports\Gate.cs" />
-    <Compile Include="Models\Airports\Hub.cs" />
-    <Compile Include="Models\Airports\HubType.cs" />
-    <Compile Include="Models\General\CalendarItem.cs" />
-    <Compile Include="Models\General\Countries\Continent.cs" />
-    <Compile Include="Helpers\EventsHelpers.cs" />
-    <Compile Include="Helpers\SerializedLoadSaveHelpers.cs" />
-    <Compile Include="Models\General\NewsFeed.cs" />
-    <Compile Include="Helpers\BudgetHelpers.cs" />
-    <Compile Include="Helpers\ScenarioHelpers.cs" />
-    <Compile Include="Helpers\StatisticsHelpers.cs" />
-    <Compile Include="Helpers\TimeTableHelpers.cs" />
-    <Compile Include="Models\General\RandomEvent.cs" />
-    <Compile Include="Models\General\Scenarios\Scenario.cs" />
-    <Compile Include="Models\General\Scenarios\ScenarioAirline.cs" />
-    <Compile Include="Models\General\Scenarios\ScenarioFailure.cs" />
-    <Compile Include="Models\General\Scenarios\ScenarioObject.cs" />
-    <Compile Include="Models\General\Scenarios\ScenarioPassengerDemand.cs" />
-    <Compile Include="Models\General\Statistics\Ratings.cs" />
-    <Compile Include="Models\Airports\Runway.cs" />
-    <Compile Include="Models\Airports\Terminal.cs" />
-    <Compile Include="Models\General\Countries\CountryCurrency.cs" />
-    <Compile Include="Models\General\DifficultyLevel.cs" />
-    <Compile Include="Infrastructure\AppSettings.cs" />
-    <Compile Include="Models\General\Configuration.cs" />
-    <Compile Include="Models\General\Coordinates.cs" />
-    <Compile Include="Models\General\Countries\BaseUnit.cs" />
-    <Compile Include="Models\General\Countries\Country.cs" />
-    <Compile Include="Models\General\Countries\CountryTailNumber.cs" />
-    <Compile Include="Models\General\Countries\Towns\State.cs" />
-    <Compile Include="Models\General\Countries\UnionMember.cs" />
-    <Compile Include="Models\General\GameObject.cs" />
-    <Compile Include="Models\General\GameTimeZone.cs" />
-    <Compile Include="Helpers\AIHelpers.cs" />
-    <Compile Include="Helpers\AirlineHelpers.cs" />
-    <Compile Include="Helpers\AirlinerHelpers.cs" />
-    <Compile Include="Helpers\AirportHelpers.cs" />
-    <Compile Include="Helpers\DayTurnHelpers.cs" />
-    <Compile Include="Helpers\FleetAirlinerHelpers.cs" />
-    <Compile Include="Helpers\GameObjectHelpers.cs" />
-    <Compile Include="Helpers\GeneralHelpers.cs" />
-    <Compile Include="Helpers\LoadSaveHelpers.cs" />
-    <Compile Include="Helpers\PerformanceCounter.cs" />
-    <Compile Include="Helpers\Workers\AIWorker.cs" />
-    <Compile Include="Helpers\Workers\GameObjectWorker.cs" />
-    <Compile Include="Models\General\HistoricEvents\HistoricEvent.cs" />
-    <Compile Include="Models\General\HistoricEvents\HistoricEventInfluence.cs" />
-    <Compile Include="Models\General\Holidays\Holiday.cs" />
-    <Compile Include="Models\General\Holidays\HolidayYear.cs" />
-    <Compile Include="Models\General\Inflation.cs" />
-    <Compile Include="Models\General\Finances\Invoice.cs" />
-    <Compile Include="Models\General\Finances\Invoices.cs" />
-    <Compile Include="Models\General\Finances\MonthlyInvoice.cs" />
-    <Compile Include="Infrastructure\Language.cs" />
-    <Compile Include="Models\General\Loan.cs" />
-    <Compile Include="Models\General\Names.cs" />
-    <Compile Include="Models\General\NewsBox.cs" />
-    <Compile Include="Helpers\MathHelpers.cs" />
-    <Compile Include="Helpers\PassengerHelpers.cs" />
-    <Compile Include="Models\General\Countries\TemporaryCountry.cs" />
-    <Compile Include="Models\General\Countries\Union.cs" />
-    <Compile Include="Models\General\Period.cs" />
-    <Compile Include="Models\General\Countries\Towns\Town.cs" />
-    <Compile Include="Infrastructure\Versioning.cs" />
-    <Compile Include="Models\General\Environment\HourlyWeather.cs" />
-    <Compile Include="Models\General\Environment\WeatherAverage.cs" />
-    <Compile Include="Models\Passengers\DestinationDemand.cs" />
-    <Compile Include="Models\Passengers\FlightRestriction.cs" />
-    <Compile Include="Models\Passengers\PassengerRouteFinder.cs" />
-    <Compile Include="Models\General\Countries\Region.cs" />
-    <Compile Include="Infrastructure\Setup.cs" />
-    <Compile Include="Models\General\Statistics\GeneralStatistics.cs" />
-    <Compile Include="Models\General\Statistics\StatisticsType.cs" />
-    <Compile Include="Models\General\Statistics\StatisticsValue.cs" />
-    <Compile Include="Models\General\Translator.cs" />
-    <Compile Include="Models\General\Environment\Weather.cs" />
-    <Compile Include="Models\Pilots\FlightSchool.cs" />
-    <Compile Include="Models\Pilots\Instructor.cs" />
-    <Compile Include="Models\Pilots\Pilot.cs" />
-    <Compile Include="Models\Pilots\PilotProfile.cs" />
-    <Compile Include="Models\Pilots\PilotRating.cs" />
-    <Compile Include="Models\Pilots\PilotStudent.cs" />
-    <Compile Include="Models\Pilots\PilotTraining.cs" />
-    <Compile Include="Models\Pilots\PilotTrainingFacility.cs" />
-    <Compile Include="Models\Pilots\TrainingAircraft.cs" />
-    <Compile Include="Models\Pilots\TrainingAircraftType.cs" />
-    <Compile Include="Properties\AssemblyVersionInfo.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
     <EmbeddedResource Include="..\Data\Data\languages\language.da-DK.resx">
       <Link>Data\languagefiles\language.da-DK.resx</Link>
-      <SubType>Designer</SubType>
-      <DependentOn>language.resx</DependentOn>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.de-DE.resx">
       <Link>Data\languagefiles\language.de-DE.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.en-GB.resx">
       <Link>Data\languagefiles\language.en-GB.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.es-ES.resx">
       <Link>Data\languagefiles\language.es-ES.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.nl-NL.resx">
       <Link>Data\languagefiles\language.nl-NL.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.resx">
       <Link>Data\languagefiles\language.resx</Link>
-      <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>language.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.zh-CN.resx">
       <Link>Data\languagefiles\language.zh-CN.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.it-IT.resx">
       <Link>Data\languagefiles\language.it-IT.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.ru-RU.resx">
       <Link>Data\languagefiles\language.ru-RU.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Data\Data\languages\language.tr-TR.resx">
       <Link>Data\languagefiles\language.tr-TR.resx</Link>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <Content Include="NLog.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <None Include="NLog.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="packages.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <AppDesigner Include="Properties\" />
   </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4 Client Profile %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
-      <Visible>False</Visible>
-      <ProductName>Windows Installer 3.1</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
+
+  <!-- Images are loaded through pack URIs such as /TheAirline;component/Resources/images/... -->
   <ItemGroup>
     <Resource Include="Resources\images\add.png" />
     <Resource Include="Resources\images\Airplane.png" />
@@ -1406,129 +163,56 @@
     <Resource Include="Resources\images\number.png" />
     <Resource Include="Resources\images\age.png" />
     <Resource Include="Resources\images\Luggage.png" />
-    <Content Include="TheAirline.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\Airplane-white.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\BlankImage.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\buy.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\human.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\start.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\contract.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\Pilot.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\stop.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\Key.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\calendar.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\Cargo.png" />
     <Resource Include="Resources\images\Passenger.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\transfer.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\configuration.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\bg.jpg" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\Plane.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\tickgrey.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\pause.png" />
     <Resource Include="Resources\images\play.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\exit.png" />
     <Resource Include="Resources\images\newgame.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\down.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\upgrade.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\mail.png" />
     <Resource Include="Resources\images\nomail.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\fullscreen.png" />
     <Resource Include="Resources\images\windowed.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\up.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\back.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\buytext.png" />
     <Resource Include="Resources\images\selltext.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\search.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\actionmail.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\logo_banner.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\images\star_gold.png" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\TheAirline.Data\TheAirline.Data.csproj">
-      <Project>{6ad555fe-d660-4993-a9b2-0f6d48c8818a}</Project>
-      <Name>TheAirline.Data</Name>
-    </ProjectReference>
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="NLog.xsd" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+
+  <!-- The game reads its XML data from a "data" folder next to the executable. -->
+  <ItemGroup>
+    <GameData Include="..\Data\Data\**\*" Exclude="..\Data\Data\saves\**" />
+  </ItemGroup>
+  <Target Name="CopyGameData" AfterTargets="Build" Inputs="@(GameData)" Outputs="@(GameData->'$(OutDir)data\%(RecursiveDir)%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(GameData)" DestinationFiles="@(GameData->'$(OutDir)data\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
-  <PropertyGroup>
-    <PostBuildEvent>
-    if not exist "$(TargetDir)x86" md "$(TargetDir)x86"
-    xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\x86\*.*" "$(TargetDir)x86"
-    if not exist "$(TargetDir)amd64" md "$(TargetDir)amd64"
-    xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\amd64\*.*" "$(TargetDir)amd64"</PostBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

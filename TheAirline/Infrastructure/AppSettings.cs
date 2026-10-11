@@ -34,7 +34,8 @@ namespace TheAirline.Infrastructure
 
         #region Static Fields
 
-        private static readonly string BasePath = Environment.CurrentDirectory;
+        //the folder of the executable, so the game finds its data folder under "dotnet run" and from a shortcut alike
+        private static readonly string BasePath = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
 
         /*! private static variable dataPath.
          * stores the path to the Data directory.
