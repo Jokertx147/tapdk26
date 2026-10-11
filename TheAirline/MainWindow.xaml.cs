@@ -51,8 +51,8 @@ namespace TheAirline
                 mainPage = new Uri("/PageStartMenu", UriKind.Relative);
             }
 
-            Width = SystemParameters.PrimaryScreenWidth;
-            Height = SystemParameters.PrimaryScreenHeight;
+            // the window is maximized from XAML; forcing the size to the screen made it overflow the display
+            WindowState = WindowState.Maximized;
 
             Loaded += (o, args) =>
             {
