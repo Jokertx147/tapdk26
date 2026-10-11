@@ -209,4 +209,9 @@
     <Copy SourceFiles="@(GameData)" DestinationFiles="@(GameData->'$(OutDir)data\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
+  <!-- dotnet publish only copies the build output, so the game data has to be added to the publish folder as well. -->
+  <Target Name="CopyGameDataToPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(GameData)" DestinationFiles="@(GameData->'$(PublishDir)data\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

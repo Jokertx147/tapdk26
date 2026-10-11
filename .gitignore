@@ -161,3 +161,6 @@ $RECYCLE.BIN/
 /TheAirline.vshost.exe.manifest
 /TheAirline.sln.GhostDoc.xml
 /TheAirline/TheAirline.csproj.DotSettings
+
+# Installer build output
+artifacts/
