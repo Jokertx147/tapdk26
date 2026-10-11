@@ -103,11 +103,11 @@ namespace TheAirline.Models.General
 
                     string attrCountries = attributes[1].Substring(attributes[1].IndexOf("=", StringComparison.Ordinal) + 1);
 
-                    countries.AddRange(attrCountries.Split(',').Select(country => Countries.Countries.GetCountry(country.Replace(']', ' ').Trim())));
+                    countries.AddRange(attrCountries.Split(',').Select(country => Countries.Countries.GetCountry(country.Replace(']', ' ').Trim())).Where(c => c != null));
 
                     string line;
 
-                    while ((line = readLine) != null)
+                    while ((line = reader.ReadLine()) != null)
                     {
                         if (isFirstname)
                         {
