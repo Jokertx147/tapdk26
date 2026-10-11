@@ -109,7 +109,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
                 StartTimes.Add(new TimeSpan(6, i * 15, 0));
             }
 
-            StopoverMinutes = new List<int> { 45, 60, 75, 90, 105, 120 };
+            StopoverMinutes = new List<int> { 30, 45, 60, 75, 90, 105, 120 };
 
             setCanTransferSchedule();
 
@@ -285,6 +285,13 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
 
         private void PageRoutePlanner_Loaded(object sender, RoutedEventArgs e)
         {
+            // default the time between flights to the airliner's minimum (30 minutes for small aircraft)
+            var minGap = (int)FleetAirlinerHelpers.GetMinTimeBetweenFlights(Airliner).TotalMinutes;
+            if (cbDelayMinutes != null && StopoverMinutes.Contains(minGap))
+            {
+                cbDelayMinutes.SelectedItem = minGap;
+            }
+
             var tab_main = UIHelpers.FindChild<TabControl>(Tag as Page, "tabMenu");
 
             if (tab_main != null)
