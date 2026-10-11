@@ -268,7 +268,8 @@ namespace TheAirline.ViewModels.Game
                 Airline = SelectedAirline,
                 Airport = SelectedAirport,
                 CEO = Ceo,
-                Continent = LegacyContinent ?? Continents.GetContinents().First(),
+                // uid "100" is the "all" entry the game setup code checks for
+                Continent = LegacyContinent ?? new Continent("100", "All continents"),
                 Difficulty = DifficultyLevels.GetDifficultyLevel(difficultyName),
                 Focus = _player?.Focus ?? default(Infrastructure.Enums.AirlineFocus),
                 HomeCountry = SelectedCountry,
