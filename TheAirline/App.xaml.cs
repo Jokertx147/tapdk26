@@ -21,7 +21,7 @@ namespace TheAirline
         //Command line tool: TheAirline.exe --set-money <save name without .sav> <amount>
         protected override void OnStartup(StartupEventArgs e)
         {
-            StartupLog.Write("---- start ----");
+            StartupLog.Write("---- start ---- (build of " + System.IO.File.GetLastWriteTime(System.Reflection.Assembly.GetExecutingAssembly().Location) + ")");
             DispatcherUnhandledException += (s, args) => StartupLog.Write("UI thread exception: " + args.Exception);
             AppDomain.CurrentDomain.UnhandledException +=
                 (s, args) => StartupLog.Write("Unhandled exception: " + args.ExceptionObject);
