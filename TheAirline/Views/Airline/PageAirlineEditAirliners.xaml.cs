@@ -13,7 +13,8 @@ using TheAirline.GUIModel.HelpersModel;
 using TheAirline.Infrastructure;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
-using TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel;
+using AirlinerClassMVVM = TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel.AirlinerClassMVVM;
+using AirlinerFacilityMVVM = TheAirline.GUIModel.PagesModel.FleetAirlinerPageModel.AirlinerFacilityMVVM;
 
 namespace TheAirline.Views.Airline
 {
