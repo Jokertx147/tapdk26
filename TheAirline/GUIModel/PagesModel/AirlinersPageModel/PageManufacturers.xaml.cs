@@ -21,7 +21,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             var airlinerTypes = new List<AirlinerType>(AirlinerTypes.GetAllTypes());
             this.AllManufacturers = (from a in airlinerTypes
                 where
-                    a !=null 
+                    a != null && a.Manufacturer != null
                     && a.Produced.From <= GameObject.GetInstance().GameTime
                     && a.Produced.To >= GameObject.GetInstance().GameTime
                 orderby a.Manufacturer.Name

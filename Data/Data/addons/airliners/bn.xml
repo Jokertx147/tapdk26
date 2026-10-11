@@ -3,7 +3,7 @@
 
 <airliners>
  
-<airliner manufacturer="BN" name="Islander" price="503850"> <!--12800000-->
+<airliner manufacturer="Britten" name="Islander" price="503850"> <!--12800000-->
 	
 <type body="SingleAisle" rangetype="ShortRange" engine="Turboprop"/>
     
@@ -15,7 +15,7 @@
   
 </airliner>
 
-<airliner manufacturer="BN" name="Trislander" price="703850"> <!--12800000-->
+<airliner manufacturer="Britten" name="Trislander" price="703850"> <!--12800000-->
 	
 <type body="NarrowBody" rangetype="ShortRange" engine="Turboprop"/>
     
