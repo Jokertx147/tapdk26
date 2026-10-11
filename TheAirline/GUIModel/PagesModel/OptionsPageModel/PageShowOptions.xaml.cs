@@ -39,6 +39,28 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         #region Methods
 
+        private void btnSetMoney_Click(object sender, RoutedEventArgs e)
+        {
+            double amount;
+            string text = (txtMoney.Text ?? "").Replace(",", "").Replace(" ", "").Trim();
+            if (!double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out amount))
+            {
+                MessageBox.Show("Enter the new amount as a number, for example 50000000.", "Set money");
+                return;
+            }
+
+            GameObject game = GameObject.GetInstance();
+            if (game.HumanAirline == null)
+            {
+                MessageBox.Show("There is no player airline. Start or load a game first.", "Set money");
+                return;
+            }
+
+            game.HumanAirline.Money = amount;
+            game.HumanMoney = amount;
+            MessageBox.Show("Your airline's money is now " + amount.ToString("N0", System.Globalization.CultureInfo.CurrentCulture) + ".", "Set money");
+        }
+
         private void PageShowOptions_Loaded(object sender, RoutedEventArgs e)
         {
             setIntevalValues();

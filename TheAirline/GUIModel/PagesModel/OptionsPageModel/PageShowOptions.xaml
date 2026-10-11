@@ -15,6 +15,11 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
         <StackPanel HorizontalAlignment="Center">
             <WrapPanel Style="{DynamicResource WrapPanelStyle}">
+                <TextBlock Text="Set money" VerticalAlignment="Bottom" FontWeight="Bold" Width="150" />
+                <TextBox Name="txtMoney" Width="150" VerticalAlignment="Bottom" ToolTip="The new amount for your airline, for example 50000000" />
+                <Button Content="Set" Margin="5 0 0 0" Click="btnSetMoney_Click" Style="{StaticResource StandardButtonStyle}" />
+            </WrapPanel>
+            <WrapPanel Style="{DynamicResource WrapPanelStyle}">
                 <TextBlock
                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageShowOptions 1000'}"
                     VerticalAlignment="Bottom" FontWeight="Bold" Width="150" />
