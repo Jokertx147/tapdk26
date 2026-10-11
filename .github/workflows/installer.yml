@@ -28,3 +28,31 @@ jobs:
         with:
           name: TheAirlineProject-Setup
           path: artifacts/TheAirlineProject-Setup-*.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publish-folder
+          path: artifacts/publish
+          if-no-files-found: error
+
+  linux-wine:
+    needs: installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: publish-folder
+          path: package
+
+      - name: Add the Linux launcher and make the tarball
+        run: |
+          cp Linux/theairline.sh Linux/install.sh Linux/README.md package/
+          chmod +x package/theairline.sh package/install.sh
+          tar -czf TheAirlineProject-Linux-Wine.tar.gz --transform 's,^package,TheAirlineProject,' package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheAirlineProject-Linux-Wine
+          path: TheAirlineProject-Linux-Wine.tar.gz
