@@ -150,7 +150,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinesPageModel
                         airline.Airline.RemoveSubsidiaryAirline(subAirline);
                     }
                 }
-                if (airline.Airline.License > GameObject.GetInstance().HumanAirline.License)
+                if (AirlineHelpers.GetLicenseRank(airline.Airline.License) > AirlineHelpers.GetLicenseRank(GameObject.GetInstance().HumanAirline.License))
                 {
                     GameObject.GetInstance().HumanAirline.License = airline.Airline.License;
                 }
@@ -198,7 +198,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinesPageModel
                     airline.Airline.RemoveSubsidiaryAirline(subAirline);
                 }
 
-                if (airline.Airline.License > GameObject.GetInstance().HumanAirline.License)
+                if (AirlineHelpers.GetLicenseRank(airline.Airline.License) > AirlineHelpers.GetLicenseRank(GameObject.GetInstance().HumanAirline.License))
                 {
                     GameObject.GetInstance().HumanAirline.License = airline.Airline.License;
                 }

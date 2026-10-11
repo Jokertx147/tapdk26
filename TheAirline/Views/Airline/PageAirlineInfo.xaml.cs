@@ -306,7 +306,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinePageModel
         {
             double upgradeLicensPrice = GeneralHelpers.GetInflationPrice(1000000);
 
-            Airline.AirlineLicense nextLicenseType = Airline.License + 1;
+            Airline.AirlineLicense nextLicenseType = AirlineHelpers.GetNextLicense(Airline.License);
 
             WPFMessageBoxResult result = WPFMessageBox.Show(
                 Translator.GetInstance().GetString("MessageBox", "2119"),

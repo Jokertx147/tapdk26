@@ -124,11 +124,11 @@ namespace TheAirline.Infrastructure
                     folded = Convert.ToInt16(infoElement.Attributes["to"].Value);
                 }
 
-                var license = Airline.AirlineLicense.Domestic;
+                var license = Airline.AirlineLicense.Regional;
 
                 if (market == AirlineFocus.Global)
                 {
-                    license = mentality == Airline.AirlineMentality.Aggressive ? Airline.AirlineLicense.LongHaul : Airline.AirlineLicense.ShortHaul;
+                    license = mentality == Airline.AirlineMentality.Aggressive ? Airline.AirlineLicense.LongHaul : Airline.AirlineLicense.Domestic;
                 }
 
                 if (market == AirlineFocus.Regional)

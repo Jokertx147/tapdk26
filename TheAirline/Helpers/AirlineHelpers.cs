@@ -653,19 +653,42 @@ namespace TheAirline.Helpers
             bool isInUnion =
                 Unions.GetUnions(airport1.Profile.Country, GameObject.GetInstance().GameTime).Intersect(Unions.GetUnions(airport2.Profile.Country, GameObject.GetInstance().GameTime)).Any();
 
+            // path: Regional -> Domestic -> Long haul; each tier covers everything the one below it does
             if (airline.License == Airline.AirlineLicense.LongHaul)
                 return true;
 
-            if (airline.License == Airline.AirlineLicense.ShortHaul && (MathHelpers.GetDistance(airport1, airport2) < 2000 || isInUnion))
+            if (continent1 == continent2 || isInUnion)
                 return true;
 
-            if (airline.License == Airline.AirlineLicense.Domestic && airport1.Profile.Country == airport2.Profile.Country)
-                return true;
-
-            if (airline.License == Airline.AirlineLicense.Regional && (continent1 == continent2 || isInUnion))
-                return true;
+            if (airline.License == Airline.AirlineLicense.Domestic || airline.License == Airline.AirlineLicense.ShortHaul)
+                return airport1.Profile.Country == airport2.Profile.Country || MathHelpers.GetDistance(airport1, airport2) < 2000;
 
             return false;
+        }
+
+        //the order of the license tiers: Regional, Domestic, Long haul (the old Short haul counts as Domestic)
+        public static int GetLicenseRank(Airline.AirlineLicense license)
+        {
+            switch (license)
+            {
+                case Airline.AirlineLicense.Regional:
+                    return 0;
+                case Airline.AirlineLicense.LongHaul:
+                    return 2;
+                default:
+                    return 1;
+            }
+        }
+
+        public static Airline.AirlineLicense GetNextLicense(Airline.AirlineLicense license)
+        {
+            switch (GetLicenseRank(license))
+            {
+                case 0:
+                    return Airline.AirlineLicense.Domestic;
+                default:
+                    return Airline.AirlineLicense.LongHaul;
+            }
         }
 
         //returns the monthly payroll for an airline
