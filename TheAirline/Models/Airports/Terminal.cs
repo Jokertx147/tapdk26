@@ -134,12 +134,15 @@ namespace TheAirline.Models.Airports
             int gates = 0;
 
             int i = 0;
-            while (gates < contracts)
+
+            List<Terminal> freeTerminals =
+                Airport.Terminals.AirportTerminals.Where(
+                    a => a.Airline == null && a.Type == Type && a.DeliveryDate <= GameObject.GetInstance().GameTime).ToList();
+
+            // when the contracts need more gates than the free terminals have, every free terminal counts as used
+            while (gates < contracts && i < freeTerminals.Count)
             {
-                gates +=
-                    Airport.Terminals.AirportTerminals.Where(
-                        a => a.Airline == null && a.Type == Type && a.DeliveryDate <= GameObject.GetInstance().GameTime).ToList()[i].Gates
-                                                                                                                                    .NumberOfGates;
+                gates += freeTerminals[i].Gates.NumberOfGates;
 
                 if (gates < contracts)
                 {
