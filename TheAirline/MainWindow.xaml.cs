@@ -4,9 +4,12 @@ using System.Windows.Controls;
 using NLog;
 using Prism.Events;
 using Prism.Navigation.Regions;
+using TheAirline.Helpers;
+using TheAirline.Helpers.Workers;
 using TheAirline.Infrastructure;
 using TheAirline.Infrastructure.Enums;
 using TheAirline.Infrastructure.Events;
+using TheAirline.Models.General;
 using TheAirline.ViewModels;
 using WPFLocalizeExtension.Engine;
 
@@ -61,13 +64,48 @@ namespace TheAirline
                 regionManager.RequestNavigate("MainContentRegion", mainPage);
             };
 
-            Closing += (o, args) =>
+            Closing += async (o, args) =>
             {
                 state.SaveState();
+
+                // autosave a running game when the window is closed
+                if (_autosaveDone || GameObject.GetInstance().HumanAirline == null)
+                {
+                    return;
+                }
+
+                args.Cancel = true;
+                if (_autosaving)
+                {
+                    return;
+                }
+
+                _autosaving = true;
+                try
+                {
+                    Title = "Saving...";
+                    GameObjectWorker.GetInstance().RequestCancel();
+                    for (int i = 0; i < 300 && GameObjectWorker.GetInstance().IsBusy(); i++)
+                    {
+                        await System.Threading.Tasks.Task.Delay(50);
+                    }
+
+                    await System.Threading.Tasks.Task.Run(() => SerializedLoadSaveHelpers.SaveGame("autosave"));
+                }
+                catch (Exception ex)
+                {
+                    StartupLog.Write("Autosave on close failed: " + ex);
+                }
+
+                _autosaveDone = true;
+                Close();
             };
 
             //Setup.SetupGame();
         }
+
+        private bool _autosaveDone;
+        private bool _autosaving;
 
         public MainWindowViewModel ViewModel
         {
