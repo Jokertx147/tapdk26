@@ -90,7 +90,7 @@ namespace TheAirline.Models.General.Countries.Towns
 
         public override int GetHashCode()
         {
-            return Name.GetHashCode() ^ Country.GetHashCode();
+            return (Name?.GetHashCode() ?? 0) ^ (Country?.GetHashCode() ?? 0);
         }
 
         #endregion

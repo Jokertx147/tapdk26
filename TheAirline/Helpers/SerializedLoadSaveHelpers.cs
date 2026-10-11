@@ -228,6 +228,10 @@ namespace TheAirline.Helpers
                     }); //close parallel.invoke
 
             StartupLog.Write("LoadGame: lists restored");
+            foreach (Airport bad in Airports.GetAllAirports().Where(a => a.Profile.Town == null || a.Profile.Town.Country == null || a.Profile.Town.Name == null).Take(20))
+            {
+                StartupLog.Write("LoadGame: airport with incomplete town: " + bad.Profile.IATACode + " " + bad.Profile.Name);
+            }
             //for 0.3.9.2 and the issue with no saved facilities on a route classes
             IEnumerable<RouteClassConfiguration> emptyRouteClassesFacilities =
                 Configurations.GetConfigurations(Configuration.ConfigurationType.Routeclasses)
