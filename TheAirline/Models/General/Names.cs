@@ -51,7 +51,7 @@ namespace TheAirline.Models.General
         //returns a random first name from a country
         public string GetRandomFirstName(Country country)
         {
-            if (!_firstNames.ContainsKey(country))
+            if ((object) country == null || !_firstNames.ContainsKey(country))
             {
                 IEnumerable<Country> countries = _firstNames.Select(n => n.Key);
                 var enumerable = countries as Country[] ?? countries.ToArray();
@@ -64,7 +64,7 @@ namespace TheAirline.Models.General
         //returns a random last name
         public string GetRandomLastName(Country country)
         {
-            if (!_lastNames.ContainsKey(country))
+            if ((object) country == null || !_lastNames.ContainsKey(country))
             {
                 IEnumerable<Country> countries = _firstNames.Select(n => n.Key);
                 var enumerable = countries as Country[] ?? countries.ToArray();
@@ -113,7 +113,7 @@ namespace TheAirline.Models.General
                         {
                             foreach (Country country in countries)
                             {
-                                if (!_firstNames.ContainsKey(country))
+                                if ((object) country == null || !_firstNames.ContainsKey(country))
                                 {
                                     _firstNames.Add(country, new List<string>());
                                 }
@@ -124,7 +124,7 @@ namespace TheAirline.Models.General
                         {
                             foreach (Country country in countries)
                             {
-                                if (!_lastNames.ContainsKey(country))
+                                if ((object) country == null || !_lastNames.ContainsKey(country))
                                 {
                                     _lastNames.Add(country, new List<string>());
                                 }
