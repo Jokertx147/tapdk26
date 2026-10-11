@@ -689,9 +689,9 @@ namespace TheAirline.Models.Airlines
             value += Money;
 
             var fleet =
-                new List<FleetAirliner>(Fleet.FindAll(f => f.Purchased != FleetAirliner.PurchasedType.Leased));
+                new List<FleetAirliner>(Fleet.FindAll(f => f != null && f.Purchased != FleetAirliner.PurchasedType.Leased));
 
-            value = fleet.Aggregate(value, (current, airliner) => current + airliner.Airliner.GetPrice());
+            value = fleet.Where(f => f.Airliner != null).Aggregate(value, (current, airliner) => current + airliner.Airliner.GetPrice());
 
             var facilities = new List<AirlineFacility>(Facilities);
             value += facilities.Sum(facility => facility.Price);

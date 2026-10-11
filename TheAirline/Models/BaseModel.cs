@@ -47,9 +47,9 @@ namespace TheAirline.Models
                         fieldInfo.SetValue(this, entry.Value);
                     }
 
-                    else if (((PropertyInfo) prop).GetSetMethod(true) != null)
+                    else
                     {
-                        ((PropertyInfo) prop).SetValue(this, entry.Value);
+                        SetProperty((PropertyInfo) prop, entry.Value);
                     }
                 }
             }
@@ -68,11 +68,35 @@ namespace TheAirline.Models
                     {
                         set.SetValue(this, ver.DefaultValue);
                     }
-                    else if (((PropertyInfo) notSet).GetSetMethod(true) != null)
+                    else
                     {
-                        ((PropertyInfo) notSet).SetValue(this, ver.DefaultValue);
+                        SetProperty((PropertyInfo) notSet, ver.DefaultValue);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        ///     Sets a property, also when it is a get-only auto property (the compiler backing field is written then).
+        /// </summary>
+        private void SetProperty(PropertyInfo property, object value)
+        {
+            if (property.GetSetMethod(true) != null)
+            {
+                property.SetValue(this, value);
+                return;
+            }
+
+            FieldInfo backingField = null;
+            for (Type t = GetType(); t != null && backingField == null; t = t.BaseType)
+            {
+                backingField = t.GetField("<" + property.Name + ">k__BackingField",
+                                          BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+            }
+
+            if (backingField != null)
+            {
+                backingField.SetValue(this, value);
             }
         }
 
