@@ -63,7 +63,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
 
             var routeType =
                 (Route.RouteType)
-                    Enum.Parse(typeof(Route.RouteType), Airliner.Airliner.Type.TypeAirliner.ToString(), true);
+                    TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Route.RouteType), Airliner.Airliner.Type.TypeAirliner.ToString(), true);
             ;
             
             foreach (

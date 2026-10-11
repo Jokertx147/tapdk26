@@ -602,7 +602,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
         private void rbRouteType_Checked(object sender, RoutedEventArgs e)
         {
             string type = ((RadioButton)sender).Tag.ToString();
-            RouteType = (Route.RouteType)Enum.Parse(typeof(Route.RouteType), type, true);
+            RouteType = (Route.RouteType)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Route.RouteType), type, true);
 
             while (Airports.Count > 0)
             {

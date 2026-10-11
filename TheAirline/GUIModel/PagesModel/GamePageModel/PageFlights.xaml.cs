@@ -61,7 +61,7 @@ namespace TheAirline.GUIModel.PagesModel.GamePageModel
 
             string selection = ((TabItem)control.SelectedItem).Tag.ToString();
 
-            var day = (DayOfWeek)Enum.Parse(typeof(DayOfWeek), selection, true);
+            var day = (DayOfWeek)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(DayOfWeek), selection, true);
 
             var lvFlights = UIHelpers.FindChild<ListView>(this, "lvFlights");
 

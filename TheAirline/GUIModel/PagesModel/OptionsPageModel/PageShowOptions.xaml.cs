@@ -81,7 +81,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
                     if (rbInterval.IsChecked.Value)
                     {
                         Infrastructure.Settings.GetInstance().AutoSave =
-                            (Intervals)Enum.Parse(typeof(Intervals), rbInterval.Tag.ToString(), true);
+                            (Intervals)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Intervals), rbInterval.Tag.ToString(), true);
                     }
                 }
 
@@ -92,7 +92,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
                     if (rbInterval.IsChecked.Value)
                     {
                         Infrastructure.Settings.GetInstance().ClearStats =
-                            (Intervals)Enum.Parse(typeof(Intervals), rbInterval.Tag.ToString(), true);
+                            (Intervals)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Intervals), rbInterval.Tag.ToString(), true);
                     }
                 }
             }

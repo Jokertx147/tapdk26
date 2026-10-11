@@ -121,7 +121,7 @@ namespace TheAirline.Helpers
                     {
                         var airlinerType =
                             (AirlinerType.TypeOfAirliner)
-                            Enum.Parse(typeof (AirlinerType.TypeOfAirliner), airlinerTypeNode.Attributes["type"].Value);
+                            TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlinerType.TypeOfAirliner), airlinerTypeNode.Attributes["type"].Value);
                         AirlinerType baseType = AirlinerTypes.GetType(airlinerTypeNode.Attributes["basetype"].Value);
                         string airlinerTypeName = airlinerTypeNode.Attributes["name"].Value;
 
@@ -236,7 +236,7 @@ namespace TheAirline.Helpers
                                         {
                                             var airlinerClassType =
                                                 (AirlinerClass.ClassType)
-                                                Enum.Parse(
+                                                TheAirline.Infrastructure.DataParsing.ParseEnum(
                                                     typeof (AirlinerClass.ClassType),
                                                     airlinerClassNode.Attributes["type"].Value);
                                             int airlinerClassSeating = Convert.ToInt16(airlinerClassNode.Attributes["seating"].Value);
@@ -250,7 +250,7 @@ namespace TheAirline.Helpers
                                                 {
                                                     var airlinerFacilityType =
                                                         (AirlinerFacility.FacilityType)
-                                                        Enum.Parse(
+                                                        TheAirline.Infrastructure.DataParsing.ParseEnum(
                                                             typeof (AirlinerFacility.FacilityType),
                                                             airlinerClassFacilityNode.Attributes["type"].Value);
 
@@ -326,7 +326,7 @@ namespace TheAirline.Helpers
                             int toYear = Convert.ToInt16(paxElement.Attributes["to"].Value);
                             var airportSize =
                                 (GeneralHelpers.Size)
-                                Enum.Parse(typeof (GeneralHelpers.Size), paxElement.Attributes["size"].Value);
+                                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (GeneralHelpers.Size), paxElement.Attributes["size"].Value);
                             double pax = Convert.ToDouble(paxElement.Attributes["pax"].Value);
                             double inflationBefore = Convert.ToDouble(paxElement.Attributes["inflationbefore"].Value);
                             double inflationAfter = Convert.ToDouble(paxElement.Attributes["inflationafter"].Value);
@@ -344,7 +344,7 @@ namespace TheAirline.Helpers
                             long runwayLenght = Convert.ToInt64(runwayElement.Attributes["lenght"].Value);
                             var runwaySurface =
                                 (Runway.SurfaceType)
-                                Enum.Parse(typeof (Runway.SurfaceType), runwayElement.Attributes["surface"].Value);
+                                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Runway.SurfaceType), runwayElement.Attributes["surface"].Value);
                             DateTime runwayDate = DateTime.Parse(
                                 runwayElement.Attributes["date"].Value,
                                 new CultureInfo("de-DE", false));
@@ -372,19 +372,19 @@ namespace TheAirline.Helpers
                                 new CultureInfo("de-DE", false));
                             var windDirection =
                                 (Weather.WindDirection)
-                                Enum.Parse(
+                                TheAirline.Infrastructure.DataParsing.ParseEnum(
                                     typeof (Weather.WindDirection),
                                     airportWeatherElement.Attributes["direction"].Value);
                             var windSpeed =
                                 (Weather.eWindSpeed)
-                                Enum.Parse(typeof (Weather.eWindSpeed), airportWeatherElement.Attributes["windspeed"].Value);
+                                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Weather.eWindSpeed), airportWeatherElement.Attributes["windspeed"].Value);
                             Weather.CloudCover cover = airportWeatherElement.HasAttribute("cover")
                                                            ? (Weather.CloudCover)
-                                                             Enum.Parse(typeof (Weather.CloudCover), airportWeatherElement.Attributes["cover"].Value)
+                                                             TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Weather.CloudCover), airportWeatherElement.Attributes["cover"].Value)
                                                            : Weather.CloudCover.Clear;
                             Weather.Precipitation precip = airportWeatherElement.HasAttribute("precip")
                                                                ? (Weather.Precipitation)
-                                                                 Enum.Parse(typeof (Weather.Precipitation), airportWeatherElement.Attributes["precip"].Value)
+                                                                 TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Weather.Precipitation), airportWeatherElement.Attributes["precip"].Value)
                                                                : Weather.Precipitation.None;
                             double temperatureLow = airportWeatherElement.HasAttribute("temperatureLow")
                                                         ? Convert.ToDouble(
@@ -408,20 +408,20 @@ namespace TheAirline.Helpers
                                     new CultureInfo("de-DE", false));
                                 var hourlyCover =
                                     (Weather.CloudCover)
-                                    Enum.Parse(typeof (Weather.CloudCover), airportTemperatureNode.Attributes["cover"].Value);
+                                    TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Weather.CloudCover), airportTemperatureNode.Attributes["cover"].Value);
                                 var hourlyPrecip =
                                     (Weather.Precipitation)
-                                    Enum.Parse(
+                                    TheAirline.Infrastructure.DataParsing.ParseEnum(
                                         typeof (Weather.Precipitation),
                                         airportTemperatureNode.Attributes["precip"].Value);
                                 var hourlyWindspeed =
                                     (Weather.eWindSpeed)
-                                    Enum.Parse(
+                                    TheAirline.Infrastructure.DataParsing.ParseEnum(
                                         typeof (Weather.eWindSpeed),
                                         airportTemperatureNode.Attributes["windspeed"].Value);
                                 var hourlyDirection =
                                     (Weather.WindDirection)
-                                    Enum.Parse(
+                                    TheAirline.Infrastructure.DataParsing.ParseEnum(
                                         typeof (Weather.WindDirection),
                                         airportTemperatureNode.Attributes["direction"].Value);
 
@@ -602,7 +602,7 @@ namespace TheAirline.Helpers
                     instructorNode.Attributes["birthdate"].Value,
                     new CultureInfo("de-DE", false));
                 Town town = Towns.GetTown(instructorNode.Attributes["town"].Value);
-                //Pilot.PilotRating rating = (Pilot.PilotRating)Enum.Parse(typeof(Pilot.PilotRating), instructorNode.Attributes["rating"].Value);
+                //Pilot.PilotRating rating = (Pilot.PilotRating)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Pilot.PilotRating), instructorNode.Attributes["rating"].Value);
                 string id = instructorNode.Attributes["id"].Value;
 
                 var instructor = new Instructor(
@@ -653,7 +653,7 @@ namespace TheAirline.Helpers
                     pilotNode.Attributes["education"].Value,
                     new CultureInfo("de-DE", false));
 
-                //Pilot.PilotRating rating = (Pilot.PilotRating)Enum.Parse(typeof(Pilot.PilotRating), pilotNode.Attributes["rating"].Value);
+                //Pilot.PilotRating rating = (Pilot.PilotRating)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(Pilot.PilotRating), pilotNode.Attributes["rating"].Value);
 
                 var pilot = new Pilot(
                     new PilotProfile(firstname, lastname, birthdate, town),
@@ -740,7 +740,7 @@ namespace TheAirline.Helpers
                         new CultureInfo("de-DE"));
                     var pendingType =
                         (PendingAllianceMember.AcceptType)
-                        Enum.Parse(typeof (PendingAllianceMember.AcceptType), pendingNode.Attributes["type"].Value);
+                        TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (PendingAllianceMember.AcceptType), pendingNode.Attributes["type"].Value);
 
                     alliance.AddPendingMember(
                         new PendingAllianceMember(pendingDate, alliance, pendingAirline, pendingType));
@@ -770,7 +770,7 @@ namespace TheAirline.Helpers
                     int regularseating = Convert.ToInt16(classElement.Attributes["regularseating"].Value);
                     var classType =
                         (AirlinerClass.ClassType)
-                        Enum.Parse(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
+                        TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
 
                     var classConf = new AirlinerClassConfiguration(classType, seating, regularseating);
                     foreach (
@@ -803,7 +803,7 @@ namespace TheAirline.Helpers
                 {
                     var classType =
                         (AirlinerClass.ClassType)
-                        Enum.Parse(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
+                        TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), classElement.Attributes["type"].Value);
 
                     var classConf = new RouteClassConfiguration(classType);
                     foreach (RouteFacility.FacilityType facType in Enum.GetValues(typeof (RouteFacility.FacilityType)))
@@ -905,7 +905,7 @@ namespace TheAirline.Helpers
 
             Infrastructure.Settings.GetInstance().AirportCodeDisplay =
                 (AirportCode)
-                Enum.Parse(typeof (AirportCode), gameSettingsNode.Attributes["airportcode"].Value);
+                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirportCode), gameSettingsNode.Attributes["airportcode"].Value);
             if (gameSettingsNode.HasAttribute("minutesperturn"))
             {
                 Infrastructure.Settings.GetInstance().MinutesPerTurn =
@@ -921,7 +921,7 @@ namespace TheAirline.Helpers
             foreach (XmlElement itemNode in itemsList)
             {
                 var itemType =
-                    (CalendarItem.ItemType) Enum.Parse(typeof (CalendarItem.ItemType), itemNode.Attributes["type"].Value);
+                    (CalendarItem.ItemType) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (CalendarItem.ItemType), itemNode.Attributes["type"].Value);
                 DateTime itemDate = DateTime.Parse(itemNode.Attributes["date"].Value, new CultureInfo("de-DE", false));
                 string itemHeader = itemNode.Attributes["header"].Value;
                 string itemSubject = itemNode.Attributes["subject"].Value;
@@ -935,7 +935,7 @@ namespace TheAirline.Helpers
             foreach (XmlElement newsNode in newsList)
             {
                 DateTime newsDate = DateTime.Parse(newsNode.Attributes["date"].Value, new CultureInfo("de-DE", false));
-                var newsType = (News.NewsType) Enum.Parse(typeof (News.NewsType), newsNode.Attributes["type"].Value);
+                var newsType = (News.NewsType) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (News.NewsType), newsNode.Attributes["type"].Value);
                 string newsSubject = newsNode.Attributes["subject"].Value;
                 string newsBody = newsNode.Attributes["body"].Value;
                 Boolean newsIsRead = Convert.ToBoolean(newsNode.Attributes["isread"].Value);
@@ -1977,14 +1977,14 @@ namespace TheAirline.Helpers
             int reputation = Convert.ToInt16(airlineNode.Attributes["reputation"].Value);
             var mentality =
                 (Airline.AirlineMentality)
-                Enum.Parse(typeof (Airline.AirlineMentality), airlineNode.Attributes["mentality"].Value);
+                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Airline.AirlineMentality), airlineNode.Attributes["mentality"].Value);
             var market =
-                (AirlineFocus) Enum.Parse(typeof (AirlineFocus), airlineNode.Attributes["market"].Value);
+                (AirlineFocus) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlineFocus), airlineNode.Attributes["market"].Value);
             var license =
                 (Airline.AirlineLicense)
-                Enum.Parse(typeof (Airline.AirlineLicense), airlineNode.Attributes["license"].Value);
+                TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Airline.AirlineLicense), airlineNode.Attributes["license"].Value);
             Route.RouteType routefocus = airlineNode.HasAttribute("routefocus")
-                                             ? (Route.RouteType) Enum.Parse(typeof (Route.RouteType), airlineNode.Attributes["routefocus"].Value)
+                                             ? (Route.RouteType) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Route.RouteType), airlineNode.Attributes["routefocus"].Value)
                                              : Route.RouteType.Passenger;
 
             Boolean isReal = !airlineNode.HasAttribute("real") || Convert.ToBoolean(airlineNode.Attributes["real"].Value);
@@ -2144,7 +2144,7 @@ namespace TheAirline.Helpers
             {
                 var type =
                     (Invoice.InvoiceType)
-                    Enum.Parse(typeof (Invoice.InvoiceType), airlineInvoiceNode.Attributes["type"].Value);
+                    TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Invoice.InvoiceType), airlineInvoiceNode.Attributes["type"].Value);
                 int invoiceYear = Convert.ToInt16(airlineInvoiceNode.Attributes["year"].Value);
                 int invoiceMonth = Convert.ToInt16(airlineInvoiceNode.Attributes["month"].Value);
                 double invoiceAmount = Convert.ToDouble(
@@ -2161,7 +2161,7 @@ namespace TheAirline.Helpers
             {
                 var type =
                     (AdvertisementType.AirlineAdvertisementType)
-                    Enum.Parse(
+                    TheAirline.Infrastructure.DataParsing.ParseEnum(
                         typeof (AdvertisementType.AirlineAdvertisementType),
                         advertisementNode.Attributes["type"].Value);
                 string advertisementName = advertisementNode.Attributes["name"].Value;
@@ -2240,7 +2240,7 @@ namespace TheAirline.Helpers
                 Airport homebase = Airports.GetAirport(airlineAirlinerNode.Attributes["homebase"].Value);
                 var purchasedtype =
                     (FleetAirliner.PurchasedType)
-                    Enum.Parse(
+                    TheAirline.Infrastructure.DataParsing.ParseEnum(
                         typeof (FleetAirliner.PurchasedType),
                         airlineAirlinerNode.Attributes["purchased"].Value);
                 DateTime purchasedDate = DateTime.Parse(
@@ -2248,7 +2248,7 @@ namespace TheAirline.Helpers
                     new CultureInfo("de-DE", false));
                 var status =
                     (FleetAirliner.AirlinerStatus)
-                    Enum.Parse(typeof (FleetAirliner.AirlinerStatus), airlineAirlinerNode.Attributes["status"].Value);
+                    TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (FleetAirliner.AirlinerStatus), airlineAirlinerNode.Attributes["status"].Value);
                 DateTime groundedDate = DateTime.Parse(
                     airlineAirlinerNode.Attributes["groundeddate"].Value,
                     new CultureInfo("de-DE", false));
@@ -2321,7 +2321,7 @@ namespace TheAirline.Helpers
                     {
                         string destination = flightNode.Attributes["destination"].Value;
 
-                        var day = (DayOfWeek) Enum.Parse(typeof (DayOfWeek), flightNode.Attributes["day"].Value);
+                        var day = (DayOfWeek) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (DayOfWeek), flightNode.Attributes["day"].Value);
                         TimeSpan time = TimeSpan.Parse(flightNode.Attributes["time"].Value);
                         DateTime flightTime = DateTime.Parse(
                             flightNode.Attributes["flighttime"].Value,
@@ -2348,7 +2348,7 @@ namespace TheAirline.Helpers
                                 {
                                     var airlinerClassType =
                                         (AirlinerClass.ClassType)
-                                        Enum.Parse(
+                                        TheAirline.Infrastructure.DataParsing.ParseEnum(
                                             typeof (AirlinerClass.ClassType),
                                             flightClassNode.Attributes["type"].Value);
                                     int flightPassengers =
@@ -2392,7 +2392,7 @@ namespace TheAirline.Helpers
                                     List<FlightAirlinerClass> stopoverFlightClasses = (from XmlElement stopoverFlightClassNode in stopoverFlightClassList
                                                                                        let stopoverAirlinerClassType =
                                                                                            (AirlinerClass.ClassType)
-                                                                                           Enum.Parse(typeof (AirlinerClass.ClassType), stopoverFlightClassNode.Attributes["type"].Value)
+                                                                                           TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), stopoverFlightClassNode.Attributes["type"].Value)
                                                                                        let stopoverFlightPassengers = Convert.ToInt16(stopoverFlightClassNode.Attributes["passengers"].Value)
                                                                                        select
                                                                                            new FlightAirlinerClass(((PassengerRoute) route).GetRouteAirlinerClass(stopoverAirlinerClassType),
@@ -2470,7 +2470,7 @@ namespace TheAirline.Helpers
 
             if (routeNode.HasAttribute("type"))
             {
-                routetype = (Route.RouteType) Enum.Parse(typeof (Route.RouteType), routeNode.Attributes["type"].Value);
+                routetype = (Route.RouteType) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Route.RouteType), routeNode.Attributes["type"].Value);
             }
 
             Route route;
@@ -2534,13 +2534,13 @@ namespace TheAirline.Helpers
                     {
                         var airlinerClassType =
                             (AirlinerClass.ClassType)
-                            Enum.Parse(typeof (AirlinerClass.ClassType), routeClassNode.Attributes["type"].Value);
+                            TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (AirlinerClass.ClassType), routeClassNode.Attributes["type"].Value);
                         double fareprice = Convert.ToDouble(
                             routeClassNode.Attributes["fareprice"].Value,
                             new CultureInfo("de-DE", false));
                         var seatingType =
                             (RouteAirlinerClass.SeatingType)
-                            Enum.Parse(
+                            TheAirline.Infrastructure.DataParsing.ParseEnum(
                                 typeof (RouteAirlinerClass.SeatingType),
                                 routeClassNode.Attributes["seating"].Value);
 
@@ -2584,7 +2584,7 @@ namespace TheAirline.Helpers
                 {
                     Airport entryDest = Airports.GetAirport(entryNode.Attributes["destination"].Value);
                     string flightCode = entryNode.Attributes["flightcode"].Value;
-                    var day = (DayOfWeek) Enum.Parse(typeof (DayOfWeek), entryNode.Attributes["day"].Value);
+                    var day = (DayOfWeek) TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (DayOfWeek), entryNode.Attributes["day"].Value);
                     TimeSpan time = TimeSpan.Parse(entryNode.Attributes["time"].Value);
                     FleetAirliner airliner = entryNode.Attributes["airliner"].Value == "-"
                                                  ? null
@@ -2628,7 +2628,7 @@ namespace TheAirline.Helpers
                 {
                     var type =
                         (Invoice.InvoiceType)
-                        Enum.Parse(typeof (Invoice.InvoiceType), routeInvoiceNode.Attributes["type"].Value);
+                        TheAirline.Infrastructure.DataParsing.ParseEnum(typeof (Invoice.InvoiceType), routeInvoiceNode.Attributes["type"].Value);
                     int invoiceYear = Convert.ToInt16(routeInvoiceNode.Attributes["year"].Value);
                     int invoiceMonth = Convert.ToInt16(routeInvoiceNode.Attributes["month"].Value);
                     double invoiceAmount = Convert.ToDouble(

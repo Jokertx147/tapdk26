@@ -57,7 +57,7 @@ namespace TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel
         private void rbContractType_Checked(object sender, RoutedEventArgs e)
         {
             string type = ((RadioButton)sender).Tag.ToString();
-            this.SelectedType = (AirportContract.ContractType)Enum.Parse(typeof(AirportContract.ContractType), type, true);
+            this.SelectedType = (AirportContract.ContractType)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(AirportContract.ContractType), type, true);
         }
     }
     //the converter for the price of an airport contract
@@ -67,7 +67,7 @@ namespace TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             Airport airport = (Airport)values[0];
-            AirportContract.ContractType type = (AirportContract.ContractType)Enum.Parse(typeof(AirportContract.ContractType), values[1].ToString(), true);
+            AirportContract.ContractType type = (AirportContract.ContractType)TheAirline.Infrastructure.DataParsing.ParseEnum(typeof(AirportContract.ContractType), values[1].ToString(), true);
 
             double price = AirportHelpers.GetYearlyContractPayment(airport,type, 2, 2);
 
