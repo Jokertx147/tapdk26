@@ -243,6 +243,11 @@
                         <TextBlock Text="-" Name="txtDistance" />
                     </h:QuickInfoValue.Value>
                 </h:QuickInfoValue>
+                <h:QuickInfoValue Text="Demand">
+                    <h:QuickInfoValue.Value>
+                        <TextBlock Text="0" Name="txtDemand" />
+                    </h:QuickInfoValue.Value>
+                </h:QuickInfoValue>
 
                 <h:QuickInfoValue
                     Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageCreateRoute 1013'}">

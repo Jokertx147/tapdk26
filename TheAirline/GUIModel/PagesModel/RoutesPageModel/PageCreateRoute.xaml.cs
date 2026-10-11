@@ -143,6 +143,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
             {
                 _routetype = value;
                 NotifyPropertyChanged("RouteType");
+                UpdateDemand();
             }
         }
 
@@ -341,8 +342,50 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
                 }
             }
         }
+        //shows the demand between the two selected airports, 0 when there is none
+        private void UpdateDemand()
+        {
+            if (txtDemand == null || cbDestination1 == null || cbDestination2 == null)
+            {
+                return;
+            }
+
+            var origin = cbDestination1.SelectedItem as Airport;
+            var target = cbDestination2.SelectedItem as Airport;
+            if (origin == null || target == null)
+            {
+                txtDemand.Text = "0";
+                return;
+            }
+
+            var parts = new List<string>();
+            string a = origin.Profile.IATACode;
+            string b = target.Profile.IATACode;
+
+            if (RouteType != Route.RouteType.Cargo)
+            {
+                int ab = 0;
+                int ba = 0;
+                foreach (AirlinerClass.ClassType classType in Enum.GetValues(typeof (AirlinerClass.ClassType)))
+                {
+                    ab += origin.GetDestinationPassengersRate(target, classType);
+                    ba += target.GetDestinationPassengersRate(origin, classType);
+                }
+                parts.Add(string.Format("Passengers {0}->{1}: {2}, {1}->{0}: {3}", a, b, ab, ba));
+            }
+
+            if (RouteType == Route.RouteType.Cargo || RouteType == Route.RouteType.Mixed)
+            {
+                parts.Add(string.Format("Cargo {0}->{1}: {2}, {1}->{0}: {3}", a, b,
+                                        origin.GetDestinationCargoRate(target), target.GetDestinationCargoRate(origin)));
+            }
+
+            txtDemand.Text = string.Join("  |  ", parts);
+        }
+
         private void cbDestination_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            UpdateDemand();
             if (cbDestination1 != null && cbDestination2 != null && txtDistance != null)
             {
                 while (Contracts.Count > 0)
