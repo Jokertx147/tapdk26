@@ -17,15 +17,18 @@ namespace TheAirline.Models.General.Countries
             Section = section;
             Region = region;
             TailNumberFormat = tailNumberFormat;
-            //TailNumbers = new CountryTailNumber(this);
-            //Currencies = new List<CountryCurrency>();
+            TailNumbers = new CountryTailNumber(this);
+            Currencies = new List<Currency>();
         }
 
         protected Country(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
         {
         }
 
-        public Country() { }
+        public Country()
+        {
+            Currencies = new List<Currency>();
+        }
 
         #endregion
 
@@ -37,7 +40,7 @@ namespace TheAirline.Models.General.Countries
 
         public List<Currency> Currencies { get; set; }
 
-        public bool HasLocalCurrency => Currencies.Count > 0;
+        public bool HasLocalCurrency => Currencies != null && Currencies.Count > 0;
 
         //public override string Name => Translator.GetInstance().GetString(Section, Uid);
 
