@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using TheAirline.Infrastructure;
@@ -26,6 +26,9 @@ namespace TheAirline.Helpers
             {
                 return "Save not found: " + path;
             }
+
+            // some game classes read game data in their static constructors, so the data has to be there before a save is read
+            GameDataLoader.EnsureLoaded();
 
             var save = FileSerializer.Deserialize<SaveObject>(path);
             if (save == null)
