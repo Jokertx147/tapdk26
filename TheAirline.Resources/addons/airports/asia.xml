@@ -9287,6 +9287,7 @@
     </runways>
   </airport>
   <airport name="Beijing Nanyuan Airport" icao="ZBNY" iata="NAY" type="LongHaulInternational" season="AllYear">
+    <period from="01.01.1900 00:00:00" to="09.25.2019 00:00:00" />
     <town town="Beijing" country="148" GMT="08:00:00" DST="08:00:00" />
     <coordinates>
       <latitude value="39°46'57''N" />
@@ -10126,6 +10127,58 @@
     </terminals>
     <runways>
       <runway name="08/26" length="2880" surface="Asphalt" />
+    </runways>
+  </airport>
+  <airport name="Beijing Daxing International Airport" icao="ZBAD" iata="PKX" type="LongHaulInternational" season="AllYear">
+    <period from="09.25.2019 00:00:00" to="01.01.2199 00:00:00" />
+    <town town="Beijing" country="148" GMT="08:00:00" DST="08:00:00" />
+    <coordinates>
+      <latitude value="039°30'33''N" />
+      <longitude value="116°24'38''E" />
+    </coordinates>
+    <size value="Verylarge" pax="31000" cargo="Medium" cargovolume="100" />
+    <terminals>
+      <terminal name="Terminal" gates="120" />
+    </terminals>
+    <runways>
+      <runway name="01/19" length="3800" surface="Asphalt" />
+      <runway name="11L/29R" length="3800" surface="Asphalt" />
+      <runway name="11R/29L" length="3800" surface="Asphalt" />
+      <runway name="05L/23R" length="3800" surface="Asphalt" />
+      <runway name="05R/23L" length="3800" surface="Asphalt" />
+    </runways>
+  </airport>
+  <airport name="Chengdu Tianfu International Airport" icao="ZUTF" iata="TFU" type="LongHaulInternational" season="AllYear">
+    <period from="06.27.2021 00:00:00" to="01.01.2199 00:00:00" />
+    <town town="Chengdu" country="148" GMT="08:00:00" DST="08:00:00" />
+    <coordinates>
+      <latitude value="030°19'08''N" />
+      <longitude value="104°26'39''E" />
+    </coordinates>
+    <size value="Verylarge" pax="40000" cargo="Medium" cargovolume="100" />
+    <terminals>
+      <terminal name="Terminal" gates="100" />
+    </terminals>
+    <runways>
+      <runway name="02L/20R" length="4000" surface="Asphalt" />
+      <runway name="02R/20L" length="4000" surface="Asphalt" />
+      <runway name="11/29" length="3600" surface="Asphalt" />
+    </runways>
+  </airport>
+  <airport name="Navi Mumbai International Airport" icao="VANM" iata="NMI" type="LongHaulInternational" season="AllYear">
+    <period from="10.08.2025 00:00:00" to="01.01.2199 00:00:00" />
+    <town town="Navi Mumbai" country="152" GMT="05:30:00" DST="05:30:00" />
+    <coordinates>
+      <latitude value="018°59'31''N" />
+      <longitude value="073°04'00''E" />
+    </coordinates>
+    <size value="Large" pax="10000" cargo="Medium" cargovolume="100" />
+    <terminals>
+      <terminal name="Terminal" gates="50" />
+    </terminals>
+    <runways>
+      <runway name="08/26" length="3700" surface="Asphalt" />
+      <runway name="17/35" length="3700" surface="Asphalt" />
     </runways>
   </airport>
 </airports>

@@ -7118,4 +7118,20 @@
       <runway name="13/31" length="2134" surface="Concrete" />
     </runways>
   </airport>
+  <airport name="Felipe Ángeles International Airport" icao="MMSM" iata="NLU" type="Long_Haul_International" season="AllYear">
+    <period from="03.21.2022 00:00:00" to="01.01.2199 00:00:00" />
+    <town town="Zumpango" country="157" GMT="-05:00:00" DST="-06:00:00" />
+    <coordinates>
+      <latitude value="019°44'05''N" />
+      <longitude value="099°00'57''W" />
+    </coordinates>
+    <size value="Medium" pax="1500" cargo="Small" cargovolume="20" />
+    <terminals>
+      <terminal name="Terminal" gates="20" />
+    </terminals>
+    <runways>
+      <runway name="04L/22R" length="4500" surface="Asphalt" />
+      <runway name="04R/22L" length="4500" surface="Asphalt" />
+    </runways>
+  </airport>
 </airports>

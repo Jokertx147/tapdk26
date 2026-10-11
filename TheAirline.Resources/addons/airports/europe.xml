@@ -386,7 +386,7 @@
     </runways>
   </airport>
   <airport name="Berlin Brandenburg Airport" icao="EDDB" iata="BER" type="LongHaulInternational" season="AllYear">
-    <period from="03.17.2022 00:00:00" to="01.01.2199 00:00:00" />
+    <period from="10.31.2020 00:00:00" to="01.01.2199 00:00:00" />
     <town town="Berlin" country="1002" GMT="02:00:00" DST="01:00:00" />
     <coordinates>
       <latitude value="052°22'00''N" />
@@ -402,7 +402,7 @@
     </runways>
   </airport>
   <airport name="Berlin Schönefeld Airport" icao="EDDB" iata="SXF" type="LongHaulInternational" season="AllYear">
-    <period from="10.15.1934 00:00:00" to="03.17.2022 00:00:00" />
+    <period from="10.15.1934 00:00:00" to="10.31.2020 00:00:00" />
     <town town="Berlin" country="1001" GMT="02:00:00" DST="01:00:00" />
     <coordinates>
       <latitude value="052°22'43''N" />
@@ -578,7 +578,7 @@
     </runways>
   </airport>
   <airport name="Berlin Tegel Airport" icao="EDDT" iata="TXL" type="LongHaulInternational" season="AllYear">
-    <period from="01.01.1960 00:00:00" to="03.17.2022 00:00:00" />
+    <period from="01.01.1960 00:00:00" to="11.08.2020 00:00:00" />
     <town town="Berlin" country="1002" GMT="02:00:00" DST="01:00:00" />
     <coordinates>
       <latitude value="052°33'34''N" />
@@ -6395,6 +6395,7 @@
     </runways>
   </airport>
   <airport name="Atatürk International Airport" icao="LTBA" iata="IST" type="LongHaulInternational" season="AllYear">
+    <period from="01.01.1900 00:00:00" to="04.06.2019 00:00:00" />
     <town town="Istanbul" country="161" GMT="03:00:00" DST="02:00:00" />
     <coordinates>
       <latitude value="040°58'36''N" />
@@ -8736,6 +8737,25 @@
     </terminals>
     <runways>
       <runway name="16/34" length="2450" surface="Asphalt" />
+    </runways>
+  </airport>
+  <airport name="Istanbul Airport" icao="LTFM" iata="IST" type="LongHaulInternational" season="AllYear">
+    <period from="04.06.2019 00:00:00" to="01.01.2199 00:00:00" />
+    <town town="Istanbul" country="161" GMT="03:00:00" DST="02:00:00" />
+    <coordinates>
+      <latitude value="041°15'39''N" />
+      <longitude value="028°44'35''E" />
+    </coordinates>
+    <size value="Largest" pax="68000" cargo="Large" cargovolume="800" />
+    <terminals>
+      <terminal name="Terminal" gates="200" />
+    </terminals>
+    <runways>
+      <runway name="16L/34R" length="3750" surface="Asphalt" />
+      <runway name="16R/34L" length="4100" surface="Asphalt" />
+      <runway name="17L/35R" length="4100" surface="Asphalt" />
+      <runway name="17R/35L" length="4100" surface="Asphalt" />
+      <runway name="18/36" length="3750" surface="Asphalt" />
     </runways>
   </airport>
 </airports>
