@@ -191,7 +191,7 @@ namespace TheAirline.ViewModels.Game
             var region = LegacyRegion;
 
             TimeZones = Models.General.TimeZones.GetTimeZones();
-            OnPropertyChanged(() => TimeZones);
+            RaisePropertyChanged(nameof(TimeZones));
 
             var airlines = AirlinesList.GetAirlines(a =>
             {
