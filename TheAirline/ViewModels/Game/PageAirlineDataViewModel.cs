@@ -43,13 +43,14 @@ namespace TheAirline.ViewModels.Game
             _state = state;
             _regionManager = regionManager;
 
-            Airlines = new ObservableCollection<AirlineModel>();
-            Airports = new ObservableCollection<Airport>();
-            Countries = new ObservableCollection<Country>();
+            _airlines = new ObservableCollection<AirlineModel>();
+            _airports = new ObservableCollection<Airport>();
+            _countries = new ObservableCollection<Country>();
             TimeZones = new List<GameTimeZone>();
 
-            CreateGameCommand = new DelegateCommand(CreateGame, () => SelectedAirline != null && !IsCreating)
+            CreateGameCommand = new DelegateCommand(CreateGame, () => SelectedAirline != null && SelectedAirport != null && !IsCreating)
                 .ObservesProperty(() => SelectedAirline)
+                .ObservesProperty(() => SelectedAirport)
                 .ObservesProperty(() => IsCreating);
             BackCommand = new DelegateCommand(() => _regionManager.RequestNavigate("MainContentRegion",
                 new Uri("/PageStartData", UriKind.Relative)));
@@ -57,9 +58,28 @@ namespace TheAirline.ViewModels.Game
                 new Uri("/PageStartMenu", UriKind.Relative)));
         }
 
-        public ObservableCollection<AirlineModel> Airlines { get; }
-        public ObservableCollection<Airport> Airports { get; }
-        public ObservableCollection<Country> Countries { get; }
+        // the lists are replaced as a whole (not cleared and refilled) so the combo boxes reset cleanly
+        private ObservableCollection<AirlineModel> _airlines;
+        private ObservableCollection<Airport> _airports;
+        private ObservableCollection<Country> _countries;
+
+        public ObservableCollection<AirlineModel> Airlines
+        {
+            get { return _airlines; }
+            private set { SetProperty(ref _airlines, value); }
+        }
+
+        public ObservableCollection<Airport> Airports
+        {
+            get { return _airports; }
+            private set { SetProperty(ref _airports, value); }
+        }
+
+        public ObservableCollection<Country> Countries
+        {
+            get { return _countries; }
+            private set { SetProperty(ref _countries, value); }
+        }
         public List<GameTimeZone> TimeZones { get; private set; }
 
         public DelegateCommand CreateGameCommand { get; }
@@ -190,6 +210,9 @@ namespace TheAirline.ViewModels.Game
             var continent = LegacyContinent;
             var region = LegacyRegion;
 
+            // airports are only "active" relative to the game clock, so set it to the start year first
+            GameObject.GetInstance().GameTime = new DateTime(year, 1, 1);
+
             TimeZones = Models.General.TimeZones.GetTimeZones();
             RaisePropertyChanged(nameof(TimeZones));
 
@@ -202,12 +225,9 @@ namespace TheAirline.ViewModels.Game
                 return inArea && a.Profile.Founded <= year && a.Profile.Folded > year;
             }).OrderBy(a => a.Profile.Name);
 
-            Airlines.Clear();
-            foreach (var airline in airlines)
-            {
-                Airlines.Add(airline);
-            }
+            Airlines = new ObservableCollection<AirlineModel>(airlines);
 
+            SelectedAirline = null;
             SelectedAirline = Airlines.FirstOrDefault();
         }
 
@@ -215,11 +235,10 @@ namespace TheAirline.ViewModels.Game
         {
             var airline = SelectedAirline;
 
-            Airports.Clear();
-            Countries.Clear();
-
             if (airline == null)
             {
+                Airports = new ObservableCollection<Airport>();
+                Countries = new ObservableCollection<Country>();
                 return;
             }
 
@@ -227,18 +246,12 @@ namespace TheAirline.ViewModels.Game
             Ceo = airline.Profile.CEO;
             Narrative = airline.Profile.Narrative;
 
-            foreach (var country in airline.Profile.Countries)
-            {
-                Countries.Add(country);
-            }
+            Countries = new ObservableCollection<Country>(airline.Profile.Countries);
             SelectedCountry = airline.Profile.Country ?? Countries.FirstOrDefault();
 
-            foreach (var airport in Models.Airports.Airports.GetAllActiveAirports()
+            Airports = new ObservableCollection<Airport>(Models.Airports.Airports.GetAllActiveAirports()
                 .Where(a => airline.Profile.Countries.Contains(a.Profile.Country))
-                .OrderBy(a => a.Profile.Name))
-            {
-                Airports.Add(airport);
-            }
+                .OrderBy(a => a.Profile.Name));
 
             SelectedAirport = Airports.Contains(airline.Profile.PreferedAirport)
                 ? airline.Profile.PreferedAirport
