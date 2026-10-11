@@ -22,6 +22,11 @@ namespace TheAirline.Infrastructure
             try
             {
                 Setup.SetupGame();
+                if (Setup.SetupError != null)
+                {
+                    throw new System.InvalidOperationException("Loading the game data failed: " + Setup.SetupError.Message,
+                        Setup.SetupError);
+                }
                 _loaded = true;
             }
             finally

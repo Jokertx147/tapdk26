@@ -389,8 +389,12 @@ namespace TheAirline.Infrastructure
          * Tries to create game´s environment and base configuration.
          */
 
+        /// <summary>The exception that stopped the last SetupGame() call, or null if it completed.</summary>
+        public static Exception SetupError { get; private set; }
+
         public static void SetupGame()
         {
+            SetupError = null;
             try
             {
                 ReadSettingsFile();
@@ -458,6 +462,8 @@ namespace TheAirline.Infrastructure
                 //file.Close();
 
                 Logger.Error("Failed to setup game", e);
+                SetupError = e;
+                return;
             }
 
 
@@ -472,7 +478,10 @@ namespace TheAirline.Infrastructure
             Airport lbb = Airports.GetAirport("LBB");
             Airport dfw = Airports.GetAirport("DFW");
 
-            Console.WriteLine(@"Distance: " + MathHelpers.GetDistance(lbb, dfw));
+            if (lbb != null && dfw != null)
+            {
+                Console.WriteLine(@"Distance: " + MathHelpers.GetDistance(lbb, dfw));
+            }
 
             /*
             System.IO.StreamWriter aFile = new System.IO.StreamWriter("c:\\bbm\\airports.csv");
