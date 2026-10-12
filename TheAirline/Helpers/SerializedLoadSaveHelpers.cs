@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -277,7 +277,19 @@ namespace TheAirline.Helpers
             GameObjectWorker.GetInstance().StartPaused();
 
             //Task is needed this unlocks the game agian.
-            Task.Factory.StartNew(action);
+            // the demand is built before the load finishes (the loading screen stays up meanwhile); building it in the
+            // background let the player start the clock first, and the flights then ran with no demand
+            StartupLog.Write("LoadGame: creating the demand");
+            var demandWatch = Stopwatch.StartNew();
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                StartupLog.Write("LoadGame: creating the demand failed: " + ex);
+            }
+            StartupLog.Write("LoadGame: demand ready after " + demandWatch.ElapsedMilliseconds + " ms");
             StartupLog.Write("LoadGame: finished");
         }
 
