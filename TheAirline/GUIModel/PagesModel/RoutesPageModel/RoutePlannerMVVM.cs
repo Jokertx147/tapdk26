@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -14,15 +14,6 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
         Day,
 
         Week
-    }
-
-    public enum OpsType
-    {
-        Regular,
-
-        Business,
-
-        Whole_Day
     }
 
     //the class for the route planner mvvm item

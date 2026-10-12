@@ -43,6 +43,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TheAirline.Core\TheAirline.Core.csproj" />
     <ProjectReference Include="..\TheAirline.Data\TheAirline.Data.csproj" />
   </ItemGroup>
 

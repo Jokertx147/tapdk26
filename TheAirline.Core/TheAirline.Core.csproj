@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The game logic: models, helpers, data loading, saving. No user interface code, so it builds and runs on any OS. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TheAirline</RootNamespace>
+    <AssemblyName>TheAirline.Core</AssemblyName>
+    <Platforms>AnyCPU;x64</Platforms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>false</Deterministic>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);NU1701;MSB3277;CS8981;CA1416;CS0618;SYSLIB0011;SYSLIB0050;SYSLIB0051</NoWarn>
+  </PropertyGroup>
+
+  <!-- Language files live in the shared Data folder and are embedded under their old names. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Data\Data\languages\language.da-DK.resx">
+      <Link>Data\languagefiles\language.da-DK.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.de-DE.resx">
+      <Link>Data\languagefiles\language.de-DE.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.en-GB.resx">
+      <Link>Data\languagefiles\language.en-GB.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.es-ES.resx">
+      <Link>Data\languagefiles\language.es-ES.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.nl-NL.resx">
+      <Link>Data\languagefiles\language.nl-NL.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.resx">
+      <Link>Data\languagefiles\language.resx</Link>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>language.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.zh-CN.resx">
+      <Link>Data\languagefiles\language.zh-CN.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.it-IT.resx">
+      <Link>Data\languagefiles\language.it-IT.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.ru-RU.resx">
+      <Link>Data\languagefiles\language.ru-RU.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Data\Data\languages\language.tr-TR.resx">
+      <Link>Data\languagefiles\language.tr-TR.resx</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

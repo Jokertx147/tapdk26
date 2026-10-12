@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -138,98 +138,22 @@ namespace TheAirline.GUIModel.HelpersModel
     //the converter for a value to the current currency
     public class ValueCurrencyConverter : IValueConverter
     {
-        // game values are in US dollars, so without a local currency they are shown as dollars whatever the language
-        private static readonly CultureInfo BaseCurrencyCulture = CultureInfo.GetCultureInfo("en-US");
-
-        #region Public Methods and Operators
+        private readonly ValueCurrencyFormatter _formatter = new ValueCurrencyFormatter();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            try
-            {
-                var v = double.Parse(value.ToString());
-
-                if (GameObject.GetInstance().CurrencyCountry == null || double.IsInfinity(v))
-                {
-                    return string.Format(BaseCurrencyCulture, "{0:C}", value);
-                }
-                var currency =
-                    GameObject.GetInstance().CurrencyCountry.GetCurrency(GameObject.GetInstance().GameTime);
-
-                if (currency == null)
-                {
-                    if (Settings.GetInstance().CurrencyShorten)
-                    {
-                        if (v >= 1000000000 || v <= -1000000000)
-                        {
-                            return string.Format(
-                                BaseCurrencyCulture,
-                                "{0:C} {1}",
-                                v/1000000000,
-                                Translator.GetInstance().GetString("General", "2001"));
-                        }
-                        if (v >= 1000000 || v <= -1000000)
-                        {
-                            return string.Format(
-                                BaseCurrencyCulture,
-                                "{0:C} {1}",
-                                v/1000000,
-                                Translator.GetInstance().GetString("General", "2000"));
-                        }
-                        return string.Format(BaseCurrencyCulture, "{0:C}", value);
-                    }
-                    return string.Format(BaseCurrencyCulture, "{0:C}", value);
-                }
-                var currencyValue = v*currency.Exchange;
-
-                if (Settings.GetInstance().CurrencyShorten)
-                {
-                    if (currencyValue >= 1000000 || currencyValue <= -1000000)
-                    {
-                        var sValue = currencyValue/1000000;
-                        var sFormat = Translator.GetInstance().GetString("General", "2000");
-
-                        if (currencyValue >= 1000000000 || currencyValue <= -1000000000)
-                        {
-                            sValue = currencyValue/1000000000;
-                            sFormat = Translator.GetInstance().GetString("General", "2001");
-                        }
-
-                        if (currency.SymbolOnRight)
-                        {
-                            return string.Format("{0:#,0.##} {2} {1}", sValue, currency.Symbol, sFormat);
-                        }
-                        return string.Format("{1}{0:#,0.##} {2}", sValue, currency.Symbol, sFormat);
-                    }
-                    if (currency.SymbolOnRight)
-                    {
-                        return string.Format("{0:#,0.##} {1}", currencyValue, currency.Symbol);
-                    }
-                    return string.Format("{1}{0:#,0.##}", currencyValue, currency.Symbol);
-                }
-                if (currency.SymbolOnRight)
-                {
-                    return string.Format("{0:#,0.##} {1}", currencyValue, currency.Symbol);
-                }
-                return string.Format("{1}{0:#,0.##}", currencyValue, currency.Symbol);
-            }
-            catch (Exception)
-            {
-                return string.Format(BaseCurrencyCulture, "{0:C}", value);
-            }
+            return _formatter.Convert(value);
         }
 
         public object Convert(object value)
         {
-            return Convert(value, null, null, null);
+            return _formatter.Convert(value);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
-
-        #endregion
     }
 
     //the converter for a boolean to visibility
@@ -353,52 +277,22 @@ namespace TheAirline.GUIModel.HelpersModel
     //the converter for a country to get current country (used for temporary countries)
     public class CountryCurrentCountryConverter : IValueConverter
     {
-        #region Public Methods and Operators
+        private readonly CountryCurrentCountryResolver _formatter = new CountryCurrentCountryResolver();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is Union)
-            {
-                return value;
-            }
-
-            var country = (Country) value;
-
-            if (country is TerritoryCountry)
-            {
-                return ((TerritoryCountry) country).MainCountry;
-            }
-            if (!(country is TemporaryCountry))
-            {
-                var tempCountry = TemporaryCountries.GetTemporaryCountry(
-                    country,
-                    GameObject.GetInstance().GameTime);
-
-                if (tempCountry == null)
-                {
-                    return country;
-                }
-                if (tempCountry.GetCurrentCountry(GameObject.GetInstance().GameTime, country) == null)
-                {
-                    return country;
-                }
-                return tempCountry.GetCurrentCountry(GameObject.GetInstance().GameTime, country);
-            }
-            return ((TemporaryCountry) country).GetCurrentCountry(GameObject.GetInstance().GameTime, country);
-            //return country is TemporaryCountry ? ((TemporaryCountry)country).getCurrentCountry(GameObject.GetInstance().GameTime) : country;
+            return _formatter.Convert(value);
         }
 
         public object Convert(object value)
         {
-            return Convert(value, null, null, null);
+            return _formatter.Convert(value);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
-
-        #endregion
     }
 
     //the converter for a text with _ to text without
@@ -518,25 +412,22 @@ namespace TheAirline.GUIModel.HelpersModel
     //the converter for a small distance (in m) to the selected unit
     public class SmallDistanceToUnitConverter : IValueConverter
     {
-        #region Public Methods and Operators
+        private readonly SmallDistanceFormatter _formatter = new SmallDistanceFormatter();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var v = double.Parse(value.ToString());
+            return _formatter.Convert(value);
+        }
 
-            if (AppSettings.GetInstance().GetLanguage().Unit == Language.UnitSystem.Metric)
-            {
-                return v + " m.";
-            }
-            return string.Format("{0:#,0} feet", MathHelpers.MeterToFeet(v));
+        public object Convert(object value)
+        {
+            return _formatter.Convert(value);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
-
-        #endregion
     }
 
     //the converter for a number (in km/h) to the selected unit
@@ -597,34 +488,22 @@ namespace TheAirline.GUIModel.HelpersModel
     //converter for airport code
     public class AirportCodeConverter : IValueConverter
     {
-        #region Public Methods and Operators
+        private readonly AirportCodeFormatter _formatter = new AirportCodeFormatter();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is Airport)
-            {
-                var airport = (Airport) value;
-
-                if (Settings.GetInstance().AirportCodeDisplay == AirportCode.Iata)
-                {
-                    return airport.Profile.IATACode;
-                }
-                return airport.Profile.ICAOCode;
-            }
-            return "";
+            return _formatter.Convert(value);
         }
 
         public object Convert(object value)
         {
-            return Convert(value, null, null, null);
+            return _formatter.Convert(value);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
-
-        #endregion
     }
 
     //the converter for a string to a language string

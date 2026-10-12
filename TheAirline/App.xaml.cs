@@ -1,10 +1,14 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows;
 using Prism.Ioc;
 using TheAirline.Helpers;
 using TheAirline.Infrastructure;
+using TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel;
+using TheAirline.GUIModel.HelpersModel;
 using TheAirline.Infrastructure.Services;
+using TheAirline.Models.Airports;
+using TheAirline.Views.Airline;
 using TheAirline.Views.Game;
 
 /*!
@@ -58,7 +62,31 @@ namespace TheAirline
             }
 
             AppTheme.Initialize(this);
+            ConnectGameLogic();
             base.OnStartup(e);
+        }
+
+        //the game logic lives in TheAirline.Core and asks the user interface for a few things through these hooks
+        private void ConnectGameLogic()
+        {
+            UserInterface.PrepareMaps = MapImageHelpers.CreateBigImageCanvas;
+
+            UserInterface.SetBusy = busy =>
+                System.Windows.Input.Mouse.OverrideCursor = busy ? System.Windows.Input.Cursors.Wait : null;
+
+            UserInterface.ShowMessage = (title, text) =>
+                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(text, title)));
+
+            UserInterface.ChooseHomebase = airliner =>
+                Dispatcher.Invoke(() => (Airport) PopUpNewAirlinerHomebase.ShowPopUp(airliner));
+
+            UserInterface.ScenarioStarted = airline =>
+                Dispatcher.Invoke(
+                    () =>
+                        {
+                            PageNavigator.NavigateTo(new PageAirline(airline));
+                            PageNavigator.ClearNavigator();
+                        });
         }
 
         protected override Window CreateShell()

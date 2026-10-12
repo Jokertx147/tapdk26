@@ -9,7 +9,7 @@
              xmlns:system="clr-namespace:System;assembly=mscorlib"
              xmlns:converters="clr-namespace:TheAirline.Infrastructure.Converters"
              xmlns:extensions="clr-namespace:TheAirline.Infrastructure.Extensions"
-             xmlns:enums="clr-namespace:TheAirline.Infrastructure.Enums"
+             xmlns:enums="clr-namespace:TheAirline.Infrastructure.Enums;assembly=TheAirline.Core"
              lex:LocalizeDictionary.DesignCulture="en"
              lex:ResxLocalizationProvider.DefaultAssembly="TheAirline"
              lex:ResxLocalizationProvider.DefaultDictionary="language"
