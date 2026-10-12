@@ -209,6 +209,48 @@ namespace TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel
             txtInfo.Text = "";
         }
 
+        //offers to sign a gate contract when the airline has none at the airport; false if the player backs out
+        private bool EnsureGates(Airport airport)
+        {
+            if (AirportHelpers.HasFreeGates(airport, GameObject.GetInstance().HumanAirline, Terminal.TerminalType.Passenger))
+            {
+                return true;
+            }
+
+            string name = airport.Profile.Name;
+
+            if (!RouteCreator.NeedsContract(airport))
+            {
+                MessageBox.Show(
+                    "All your gates at " + name + " are in use. Free a gate or extend your contract there first.", Title);
+                return false;
+            }
+
+            if (RouteCreator.GetFreePassengerGates(airport) == 0)
+            {
+                MessageBox.Show("There are no free gates at " + name + " to lease.", Title);
+                return false;
+            }
+
+            if (MessageBox.Show(
+                "You have no gate at " + name + ". Do you want to lease gates there now?",
+                Title,
+                MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+            {
+                return false;
+            }
+
+            object o = PopUpAirportContract.ShowPopUp(airport);
+
+            if (o == null)
+            {
+                return false;
+            }
+
+            RouteCreator.SignContract(airport, (AirportContract.ContractType) o);
+            return true;
+        }
+
         private void btnOk_Click(object sender, RoutedEventArgs e)
         {
             var request = new NewRouteRequest
@@ -228,6 +270,11 @@ namespace TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel
                 request.StartTime = cbStart.SelectedItem == null
                     ? new TimeSpan(6, 0, 0)
                     : TimeSpan.Parse((string) cbStart.SelectedItem);
+            }
+
+            if (!EnsureGates(_origin) || !EnsureGates(_destination))
+            {
+                return;
             }
 
             string message;

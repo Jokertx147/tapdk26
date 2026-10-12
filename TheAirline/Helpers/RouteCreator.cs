@@ -8,6 +8,7 @@ using TheAirline.Models.Airlines;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
 using TheAirline.Models.General.Environment;
+using TheAirline.Models.General.Finances;
 using TheAirline.Models.Routes;
 
 namespace TheAirline.Helpers
@@ -242,6 +243,51 @@ namespace TheAirline.Helpers
             }
 
             return route;
+        }
+
+        //true when the human airline has no passenger contract at the airport, so a contract can fix a missing gate
+        public static bool NeedsContract(Airport airport)
+        {
+            Airline airline = GameObject.GetInstance().HumanAirline;
+
+            return !airport.GetAirlineContracts(airline).Any(c => c.TerminalType == Terminal.TerminalType.Passenger);
+        }
+
+        public static int GetFreePassengerGates(Airport airport)
+        {
+            return airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
+        }
+
+        //signs a passenger gate contract (up to two gates, two years) and takes the gates; same rules as the airport page
+        public static void SignContract(Airport airport, AirportContract.ContractType contractType)
+        {
+            Airline airline = GameObject.GetInstance().HumanAirline;
+            DateTime now = GameObject.GetInstance().GameTime;
+
+            int gates = Math.Min(2, GetFreePassengerGates(airport));
+
+            if (contractType == AirportContract.ContractType.Full
+                && airport.GetAirportFacility(airline, AirportFacility.FacilityType.CheckIn).TypeLevel == 0)
+            {
+                AirportFacility checkin =
+                    AirportFacilities.GetFacilities(AirportFacility.FacilityType.CheckIn).Find(f => f.TypeLevel == 1);
+
+                airport.AddAirportFacility(airline, checkin, now);
+                AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.Purchases, -checkin.Price);
+            }
+
+            double yearlyPayment = AirportHelpers.GetYearlyContractPayment(airport, contractType, gates, 2);
+
+            var contract = new AirportContract(
+                airline, airport, contractType, Terminal.TerminalType.Passenger, now, gates, 2, yearlyPayment, true);
+
+            AirportHelpers.AddAirlineContract(contract);
+
+            for (int i = 0; i < gates; i++)
+            {
+                Gate gate = airport.Terminals.GetGates().First(g => g.Airline == null);
+                gate.Airline = airline;
+            }
         }
 
         public static string DescribeError(string code)
