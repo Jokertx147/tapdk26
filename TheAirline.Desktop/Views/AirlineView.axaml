@@ -52,6 +52,9 @@
           <TabItem Header="Finances">
             <v:FinanceView DataContext="{Binding Finance}" />
           </TabItem>
+          <TabItem Header="Loans">
+            <v:LoansView DataContext="{Binding Loans}" />
+          </TabItem>
           <TabItem Header="Pilots">
             <v:PilotsView DataContext="{Binding Pilots}" />
           </TabItem>

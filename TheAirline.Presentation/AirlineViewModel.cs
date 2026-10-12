@@ -97,6 +97,7 @@ namespace TheAirline.Presentation
             Pilots = new PilotsViewModel(OnGameChanged);
             Finance = new FinanceViewModel();
             AirportManager = new AirportManagerViewModel(OnGameChanged);
+            Loans = new LoansViewModel(OnGameChanged);
             Refresh();
         }
 
@@ -105,6 +106,7 @@ namespace TheAirline.Presentation
         public PilotsViewModel Pilots { get; }
         public FinanceViewModel Finance { get; }
         public AirportManagerViewModel AirportManager { get; }
+        public LoansViewModel Loans { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;
@@ -138,12 +140,14 @@ namespace TheAirline.Presentation
             get { return _routeDetail != null; }
         }
         private string _financeDate;
+        private int _loanMonth;
 
         private void OnGameChanged()
         {
             Airports.ReloadAdvice();
             Pilots.Reload();
             AirportManager?.Reload();
+            Loans?.Reload();
             _financeDate = null;
             Refresh();
         }
@@ -276,6 +280,13 @@ namespace TheAirline.Presentation
             {
                 _financeDate = Date;
                 Finance.Refresh();
+
+                // loan payments are taken once a month
+                if (_loanMonth != game.GameTime.Month)
+                {
+                    _loanMonth = game.GameTime.Month;
+                    Loans.Reload();
+                }
             }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));
             IsRunning = !GameObjectWorker.GetInstance().IsPaused;

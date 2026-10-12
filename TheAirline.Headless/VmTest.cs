@@ -64,6 +64,26 @@ static class VmTest
             Console.WriteLine("create: " + ap.Status + " | info=" + cr.Info);
             foreach (var o in cr.Offers.ToList()) { Console.WriteLine("  gate offer: " + o.Text); o.LeaseCommand.Execute(null); }
             if (ap.Create != null) { ap.Create.CreateCommand.Execute(null); Console.WriteLine("create2: " + ap.Status + " | info=" + ap.Create?.Info); }
+            // loans
+            var ln = av.Loans;
+            Console.WriteLine("LOANS: " + ln.Summary);
+            ln.AmountText = "10000000"; ln.Years = 5;
+            Console.WriteLine("offer: " + ln.OfferText);
+            double mBefore = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money;
+            ln.TakeLoanCommand.Execute(null);
+            Console.WriteLine("take: " + ln.Status + " money change=" + (TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money - mBefore) + " loans=" + ln.Loans.Count);
+            Console.WriteLine("  " + ln.Loans[0].Text + " | " + ln.Loans[0].Detail);
+            ln.AmountText = "900000000000"; ln.TakeLoanCommand.Execute(null);
+            Console.WriteLine("too big: " + ln.Status);
+            ln.AmountText = "abc"; ln.TakeLoanCommand.Execute(null);
+            Console.WriteLine("bad: " + ln.Status);
+            ln.Loans[0].PayText = "2500000"; ln.Loans[0].PayCommand.Execute(null);
+            Console.WriteLine("pay: " + ln.Status + " | " + ln.Loans[0].Detail);
+            for (int i = 0; i < 35; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            ln.Reload();
+            Console.WriteLine("after a month: " + ln.Loans[0].Detail);
+            ln.Loans[0].PayOffCommand.Execute(null);
+            Console.WriteLine("payoff: " + ln.Status + " loans=" + ln.Loans.Count);
             // airport manager
             var am = av.AirportManager;
             Console.WriteLine("MY AIRPORTS: " + string.Join(", ", am.Airports.Select(a => a.Text.Split(' ')[0])));
