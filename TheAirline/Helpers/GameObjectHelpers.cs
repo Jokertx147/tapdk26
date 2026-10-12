@@ -264,15 +264,9 @@ namespace TheAirline.Helpers
 
             GeneralHelpers.CreateHolidays(GameObject.GetInstance().GameTime.Year);
 
-            Infrastructure.StartupLog.Write("CreateGame: starting game worker");
-            if (startData.IsPaused)
-            {
-                GameObjectWorker.GetInstance().StartPaused();
-            }
-            else
-            {
-                GameObjectWorker.GetInstance().Start();
-            }
+            // the clock must not run before the route demand exists, otherwise months pass with empty flights
+            Infrastructure.StartupLog.Write("CreateGame: game worker waits for the demand");
+            GameObjectWorker.GetInstance().IsPaused = true;
 
             GameObject.GetInstance()
                       .NewsBox.AddNews(
@@ -290,10 +284,27 @@ namespace TheAirline.Helpers
                     var swPax = new Stopwatch();
                     swPax.Start();
 
-                    PassengerHelpers.CreateDestinationDemand();
+                    try
+                    {
+                        PassengerHelpers.CreateDestinationDemand();
+                    }
+                    catch (Exception ex)
+                    {
+                        Infrastructure.StartupLog.Write("CreateGame: creating the demand failed: " + ex);
+                    }
 
                     Console.WriteLine(@"Demand have been created in {0} ms.", swPax.ElapsedMilliseconds);
                     swPax.Stop();
+
+                    Infrastructure.StartupLog.Write("CreateGame: demand ready after " + swPax.ElapsedMilliseconds + " ms, starting game worker");
+                    if (startData.IsPaused)
+                    {
+                        GameObjectWorker.GetInstance().StartPaused();
+                    }
+                    else
+                    {
+                        GameObjectWorker.GetInstance().Start();
+                    }
                 };
 
             Infrastructure.StartupLog.Write("CreateGame: finished, demand creation continues in background");
