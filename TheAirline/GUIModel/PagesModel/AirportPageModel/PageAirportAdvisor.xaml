@@ -1,0 +1,77 @@
+<Page x:Class="TheAirline.GUIModel.PagesModel.AirportPageModel.PageAirportAdvisor"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:util="clr-namespace:TheAirline.GUIModel.HelpersModel"
+      Name="pageAirportAdvisor"
+      Title="PageAirportAdvisor">
+
+    <Border Style="{StaticResource RoundedBorderStyle}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="{Binding Heading, ElementName=pageAirportAdvisor}" Style="{StaticResource SmallHeaderStyle}" />
+                <TextBlock TextWrapping="Wrap" Margin="4 6 4 8" MaxWidth="900" HorizontalAlignment="Left"
+                           Text="The routes below are estimated from demand between the airports, fares and the airlines that already fly them. They do not include running costs, so a long route needs a fitting aircraft to be profitable. Routes you already fly are left out." />
+                <TextBlock Text="No suitable routes were found." Margin="4" FontStyle="Italic"
+                           Visibility="{Binding NoResults, ElementName=pageAirportAdvisor, Converter={StaticResource BooleanToVisibility}}" />
+                <ListView BorderThickness="0" Background="Transparent" ItemsSource="{Binding Advice, ElementName=pageAirportAdvisor}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="#" Width="40">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom" Text="{Binding Rank}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Destination" Width="260">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ContentControl Content="{Binding Item.Destination}" VerticalAlignment="Bottom"
+                                                        ContentTemplate="{StaticResource AirportCountryLink}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Distance" Width="100">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom"
+                                                   Text="{Binding Item.Distance, Converter={StaticResource DistanceToUnitConverter}}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Passengers / day" Width="120">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom" Text="{Binding Item.DailyDemand}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Competitors" Width="100">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom" Text="{Binding Item.Competitors}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Revenue / day (est.)" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom"
+                                                   Text="{Binding Item.ScoreRevenuePerDay, Converter={StaticResource ValueCurrencyConverter}}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Notes" Width="380">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Bottom" Text="{Binding Item.Advice}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Page>

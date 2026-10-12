@@ -99,6 +99,11 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
                 frmContent.Navigate(new PageAirportGateSchedule(Airport) { Tag = this });
             }
 
+            if (selection == "Advisory" && frmContent != null)
+            {
+                frmContent.Navigate(new PageAirportAdvisor(Airport) { Tag = this });
+            }
+
             if (selection == "Demand" && frmContent != null)
             {
                 frmContent.Navigate(new PageAirportDemand(Airport) { Tag = this });
