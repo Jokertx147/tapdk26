@@ -126,7 +126,7 @@ namespace TheAirline.Models.General.Countries
 
         public override int GetHashCode()
         {
-            return Uid.GetHashCode() ^ ShortName.GetHashCode();
+            return (Uid?.GetHashCode() ?? 0) ^ (ShortName?.GetHashCode() ?? 0);
         }
 
         #endregion

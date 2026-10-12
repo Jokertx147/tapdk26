@@ -241,7 +241,8 @@ namespace TheAirline.Models.General.Countries
                                 where ((TemporaryCountry)country).Type == TemporaryCountry.TemporaryType.ManyToOne
                                 select (Country)new CountryCurrentCountryConverter().Convert(country));
 
-            return tCountries.Distinct().ToList();
+            // a country without an id would crash later (hashing, lookups), so it is left out
+            return tCountries.Where(c => (object) c != null && c.Uid != null).Distinct().ToList();
         }
 
         //returns the list of countries from a region
