@@ -45,6 +45,39 @@
         </StackPanel>
         <TextBlock Text="{Binding PriceText}" Opacity="0.8" TextWrapping="Wrap" />
 
+        <TextBlock Text="Terminals" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ItemsControl ItemsSource="{Binding Terminals}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,3">
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Buy" Command="{Binding BuyCommand}" IsVisible="{Binding CanBuy}" Margin="8,0,0,0" />
+                <Button Grid.Column="2" Content="{Binding ActionText}" Command="{Binding SellCommand}" IsVisible="{Binding CanSell}" Margin="8,0,0,0" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="Build a terminal" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBox Text="{Binding TerminalName}" Width="160" Watermark="name" />
+          <ComboBox ItemsSource="{Binding TerminalGateChoices}" SelectedItem="{Binding TerminalGates}" MinWidth="70" />
+          <TextBlock Text="gates" VerticalAlignment="Center" />
+          <CheckBox Content="Cargo" IsChecked="{Binding TerminalCargo}" />
+          <Button Content="Build" Command="{Binding BuildTerminalCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding TerminalPriceText}" Opacity="0.8" TextWrapping="Wrap" />
+
+        <Border IsVisible="{Binding HasPending}" Background="#3A2E1A" CornerRadius="4" Padding="10">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Yes" Command="{Binding ConfirmPendingCommand}" />
+              <Button Content="No" Command="{Binding CancelPendingCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
         <TextBlock Text="Facilities (needs a contract here)" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
         <ItemsControl ItemsSource="{Binding Facilities}">
           <ItemsControl.ItemTemplate>

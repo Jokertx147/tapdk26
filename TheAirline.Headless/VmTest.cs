@@ -86,6 +86,30 @@ static class VmTest
             am.ConfirmEndCommand.Execute(null);
             Console.WriteLine("end result: " + am.Status + " contracts=" + am.Contracts.Count);
             am.Search = "";
+            // terminals
+            am.Search = "";
+            am.Selected = am.Airports.First();
+            foreach (var t in am.Terminals.Take(4)) Console.WriteLine("  terminal " + t.Text + " buy=" + t.CanBuy + " sell=" + t.CanSell);
+            Console.WriteLine("terminal price: " + am.TerminalPriceText);
+            am.TerminalName = "Test Terminal"; am.TerminalGates = 5;
+            double moneyBefore = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money;
+            am.BuildTerminalCommand.Execute(null);
+            Console.WriteLine("pending: " + am.PendingText);
+            am.ConfirmPendingCommand.Execute(null);
+            Console.WriteLine("build: " + am.Status + " money change=" + (TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money - moneyBefore));
+            var mine = am.Terminals.First(t => t.Text.StartsWith("Test Terminal"));
+            Console.WriteLine("  " + mine.Text + " sell/cancel=" + mine.CanSell + " " + mine.ActionText);
+            for (int i = 0; i < 125; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            am.Reload();
+            Console.WriteLine("after delivery: " + am.GateSummary + " contracts=" + am.Contracts.Count + " | " + string.Join(" ; ", am.Contracts.Select(c => c.Text)));
+            mine = am.Terminals.First(t => t.Text.StartsWith("Test Terminal"));
+            Console.WriteLine("  " + mine.Text + " sell=" + mine.CanSell + " " + mine.ActionText);
+            mine.SellCommand.Execute(null);
+            Console.WriteLine("pending: " + am.PendingText);
+            am.ConfirmPendingCommand.Execute(null);
+            Console.WriteLine("sell: " + am.Status);
+            var buy = am.Terminals.FirstOrDefault(t => t.CanBuy);
+            if (buy != null) { buy.BuyCommand.Execute(null); Console.WriteLine("buy pending: " + am.PendingText); am.CancelPendingCommand.Execute(null); }
             // crew the aircraft, then start it
             var pv = av.Pilots;
             Console.WriteLine("targets: " + string.Join(" | ", pv.Targets.Select(t => t.Name)) + " ; available(any)=" + pv.Available.Count);

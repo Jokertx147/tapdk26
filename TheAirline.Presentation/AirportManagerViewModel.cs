@@ -18,6 +18,17 @@ namespace TheAirline.Presentation
         public string Text { get; set; }
     }
 
+    public class TerminalItem
+    {
+        public Terminal Terminal { get; set; }
+        public string Text { get; set; }
+        public bool CanBuy { get; set; }
+        public bool CanSell { get; set; }
+        public string ActionText { get; set; }
+        public ICommand BuyCommand { get; set; }
+        public ICommand SellCommand { get; set; }
+    }
+
     public class FacilityItem
     {
         public AirportFacility.FacilityType Type { get; set; }
@@ -41,6 +52,11 @@ namespace TheAirline.Presentation
         private int _gates = 1;
         private bool _confirmEnd;
         private ContractItem _selectedContract;
+        private string _terminalName = "Terminal";
+        private int _terminalGates = 10;
+        private bool _terminalCargo;
+        private Action _pending;
+        private string _pendingText;
 
         public AirportManagerViewModel(Action changed)
         {
@@ -58,6 +74,17 @@ namespace TheAirline.Presentation
             LeaseCommand = new RelayCommand(Lease, () => _selected != null);
             EndContractCommand = new RelayCommand(() => ConfirmEnd = true, () => _selectedContract != null);
             ConfirmEndCommand = new RelayCommand(EndContract);
+            Terminals = new ObservableCollection<TerminalItem>();
+            TerminalGateChoices = new List<int> { 5, 10, 15, 20, 30, 40, 50 };
+            BuildTerminalCommand = new RelayCommand(AskBuildTerminal, () => _selected != null);
+            ConfirmPendingCommand = new RelayCommand(
+                () =>
+                    {
+                        var action = _pending;
+                        PendingText = null;
+                        action?.Invoke();
+                    });
+            CancelPendingCommand = new RelayCommand(() => PendingText = null);
             CancelEndCommand = new RelayCommand(() => ConfirmEnd = false);
 
             ApplySearch();
@@ -68,6 +95,69 @@ namespace TheAirline.Presentation
         public ObservableCollection<ContractItem> Contracts { get; }
         public ObservableCollection<FacilityItem> Facilities { get; }
         public ObservableCollection<int> GateChoices { get; }
+        public ObservableCollection<TerminalItem> Terminals { get; }
+        public List<int> TerminalGateChoices { get; }
+        public ICommand BuildTerminalCommand { get; }
+        public ICommand ConfirmPendingCommand { get; }
+        public ICommand CancelPendingCommand { get; }
+
+        public string TerminalName
+        {
+            get { return _terminalName; }
+            set { SetProperty(ref _terminalName, value); }
+        }
+
+        public int TerminalGates
+        {
+            get { return _terminalGates; }
+            set { SetProperty(ref _terminalGates, value); OnPropertyChanged(nameof(TerminalPriceText)); }
+        }
+
+        /// <summary>Build a cargo terminal instead of a passenger terminal.</summary>
+        public bool TerminalCargo
+        {
+            get { return _terminalCargo; }
+            set { SetProperty(ref _terminalCargo, value); }
+        }
+
+        public string TerminalPriceText
+        {
+            get
+            {
+                if (_selected == null)
+                {
+                    return "";
+                }
+
+                var a = _selected.Airport;
+                return string.Format(
+                    "Price {0}, ready in {1} days. Your own terminal gives you gates at a lower yearly cost once it is finished.",
+                    Money(TerminalPrice(a, _terminalGates)), _terminalGates * 10 + 60);
+            }
+        }
+
+        /// <summary>A question to confirm (build, buy, sell); empty when nothing is pending.</summary>
+        public string PendingText
+        {
+            get { return _pendingText; }
+            private set
+            {
+                if (SetProperty(ref _pendingText, value))
+                {
+                    if (value == null)
+                    {
+                        _pending = null;
+                    }
+
+                    OnPropertyChanged(nameof(HasPending));
+                }
+            }
+        }
+
+        public bool HasPending
+        {
+            get { return _pendingText != null; }
+        }
         public List<ContractChoice> ContractTypes { get; }
 
         public ICommand LeaseCommand { get; }
@@ -95,8 +185,10 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _selected, value))
                 {
                     ConfirmEnd = false;
+                    PendingText = null;
                     LoadDetail();
                     (LeaseCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (BuildTerminalCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -232,6 +324,7 @@ namespace TheAirline.Presentation
             Contracts.Clear();
             Facilities.Clear();
             GateChoices.Clear();
+            Terminals.Clear();
 
             if (_selected == null)
             {
@@ -279,6 +372,9 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(Gates));
             OnPropertyChanged(nameof(PriceText));
 
+            LoadTerminals(airport);
+            OnPropertyChanged(nameof(TerminalPriceText));
+
             // facilities can only be bought where the airline has a contract
             bool hasContract = Contracts.Count > 0;
             foreach (AirportFacility.FacilityType type in Enum.GetValues(typeof(AirportFacility.FacilityType)))
@@ -314,6 +410,139 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(Title));
             OnPropertyChanged(nameof(Info));
             OnPropertyChanged(nameof(GateSummary));
+        }
+
+        private static double TerminalPrice(Airport airport, int gates)
+        {
+            return gates * airport.GetTerminalGatePrice() + airport.GetTerminalPrice();
+        }
+
+        private void LoadTerminals(Airport airport)
+        {
+            var airline = Human;
+            var now = GameObject.GetInstance().GameTime;
+
+            foreach (var t in airport.Terminals.GetTerminals())
+            {
+                bool mine = t.Airline == airline;
+                string owner = mine ? "yours" : t.Airline == null ? "airport" : t.Airline.Profile.Name;
+                string state = t.DeliveryDate > now ? "ready " + t.DeliveryDate.ToString("d MMM yyyy") : "in use";
+                var terminal = t;
+
+                bool buyable = t.DeliveryDate <= now && t.IsBuyable;
+
+                int totalRented = airport.AirlineContracts.Sum(c => c.NumberOfGates);
+                bool free = airport.Terminals.GetNumberOfGates(t.Type) - t.Gates.NumberOfGates >= totalRented;
+                bool constructing = t.DeliveryDate > now;
+
+                Terminals.Add(
+                    new TerminalItem
+                    {
+                        Terminal = t,
+                        Text = string.Format("{0}  |  {1}  |  {2} gates  |  {3}  |  {4}", t.Name, t.Type, t.Gates.NumberOfGates, owner, state),
+                        CanBuy = buyable,
+                        CanSell = mine && (constructing || free),
+                        ActionText = constructing ? "Cancel" : "Sell",
+                        BuyCommand = new RelayCommand(() => AskBuyTerminal(airport, terminal)),
+                        SellCommand = new RelayCommand(() => AskSellTerminal(airport, terminal))
+                    });
+            }
+        }
+
+        private void AskBuildTerminal()
+        {
+            if (_selected == null)
+            {
+                return;
+            }
+
+            var airport = _selected.Airport;
+            double price = TerminalPrice(airport, _terminalGates);
+
+            if (price > Human.Money)
+            {
+                Status = "You can't afford a terminal here (" + Money(price) + ").";
+                return;
+            }
+
+            string name = string.IsNullOrWhiteSpace(_terminalName) ? "Terminal" : _terminalName.Trim();
+            var type = _terminalCargo ? Terminal.TerminalType.Cargo : Terminal.TerminalType.Passenger;
+            int gates = _terminalGates;
+            _pending = () => BuildTerminal(airport, name, gates, type, price);
+            PendingText = string.Format("Build {0} ({1} gates, {2}) at {3} for {4}?", name, gates, type, airport.Profile.IATACode, Money(price));
+        }
+
+        private void BuildTerminal(Airport airport, string name, int gates, Terminal.TerminalType type, double price)
+        {
+            var airline = Human;
+            var delivery = GameObject.GetInstance().GameTime.AddDays(gates * 10 + 60);
+            airport.AddTerminal(new Terminal(airport, airline, name, gates, delivery, type));
+            AirlineHelpers.AddAirlineInvoice(
+                airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Purchases, -price);
+
+            Status = name + " ordered, ready " + delivery.ToString("d MMM yyyy") + ".";
+            LoadDetail();
+            _changed();
+        }
+
+        private void AskBuyTerminal(Airport airport, Terminal terminal)
+        {
+            double price = terminal.Gates.NumberOfGates * airport.GetTerminalGatePrice() + airport.GetTerminalPrice();
+            if (price > Human.Money)
+            {
+                Status = "You can't afford this terminal (" + Money(price) + ").";
+                return;
+            }
+
+            _pending = () =>
+                {
+                    terminal.PurchaseTerminal(Human);
+                    AirlineHelpers.AddAirlineInvoice(
+                        Human, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Purchases, -price);
+                    Status = "You bought " + terminal.Name + ".";
+                    LoadDetail();
+                    _changed();
+                };
+            PendingText = "Buy " + terminal.Name + " (" + terminal.Gates.NumberOfGates + " gates) for " + Money(price) + "?";
+        }
+
+        private void AskSellTerminal(Airport airport, Terminal terminal)
+        {
+            var now = GameObject.GetInstance().GameTime;
+
+            if (terminal.DeliveryDate > now)
+            {
+                _pending = () =>
+                    {
+                        airport.RemoveTerminal(terminal);
+                        Status = "Construction of " + terminal.Name + " cancelled.";
+                        LoadDetail();
+                        _changed();
+                    };
+                PendingText = "Cancel the construction of " + terminal.Name + "? The money is not refunded.";
+                return;
+            }
+
+            double price = (terminal.Gates.NumberOfGates * airport.GetTerminalGatePrice() + airport.GetTerminalPrice()) / 2;
+            _pending = () =>
+                {
+                    var contract = airport.AirlineContracts.FirstOrDefault(
+                        c => c.Airline == terminal.Airline && c.NumberOfGates == terminal.Gates.NumberOfGates);
+
+                    AirlineHelpers.AddAirlineInvoice(Human, now, Invoice.InvoiceType.Purchases, price);
+                    terminal.Airline = null;
+
+                    if (contract != null)
+                    {
+                        contract.YearlyPayment = AirportHelpers.GetYearlyContractPayment(
+                            airport, AirportContract.ContractType.Full, terminal.Gates.NumberOfGates, 20);
+                    }
+
+                    Status = "Sold " + terminal.Name + " for " + Money(price) + ". You keep the gates on a lease.";
+                    LoadDetail();
+                    _changed();
+                };
+            PendingText = "Sell " + terminal.Name + " for " + Money(price) + "? You keep the gates, but now pay a lease for them.";
         }
 
         private static double FacilityPrice(Airport airport, AirportFacility facility)
