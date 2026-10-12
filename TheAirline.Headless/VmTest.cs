@@ -25,6 +25,13 @@ static class VmTest
             var ng = (NewGameViewModel)shell.Current;
             await Wait(() => !ng.IsBusy, "new game screen loads");
             Console.WriteLine("airlines for " + ng.StartYear + ": " + ng.Airlines.Count);
+            Console.WriteLine("continents: " + string.Join(", ", ng.Continents.Select(c => c.Name)));
+            ng.SelectedContinent = ng.Continents.First(c => c.Name == "North America");
+            Console.WriteLine("NA regions: " + string.Join(", ", ng.Regions.Select(r => r.Name)) + " -> airlines " + ng.Airlines.Count);
+            ng.SelectedRegion = ng.Regions[1];
+            Console.WriteLine("region " + ng.SelectedRegion.Name + " -> airlines " + ng.Airlines.Count + " e.g. " + ng.Airlines.First().Profile.Name);
+            ng.SelectedRegion = ng.Regions[0];
+            Console.WriteLine("all -> airlines " + ng.Airlines.Count);
             ng.SelectedAirline = ng.Airlines.First(a => a.Profile.IATACode == "DL") ;
             ng.CreateCommand.Execute(null);
             await Wait(() => shell.Current is AirlineViewModel, "game created");

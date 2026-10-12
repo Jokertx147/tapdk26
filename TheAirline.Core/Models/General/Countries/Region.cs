@@ -42,6 +42,25 @@ namespace TheAirline.Models.General.Countries
 
         #region Public Methods and Operators
 
+        //the name shown to the player, from the translations in regions.xml
+        public static string GetDisplayName(Region region)
+        {
+            try
+            {
+                string text = Translator.GetInstance().GetString(Region.Section, region.Uid);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    return text;
+                }
+            }
+            catch (System.Exception)
+            {
+                // fall through to the code
+            }
+
+            return "Region " + region.Uid;
+        }
+
         public static void AddRegion(Region region)
         {
             _regions.Add(region);

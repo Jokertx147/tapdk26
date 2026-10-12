@@ -114,14 +114,14 @@ namespace TheAirline.Helpers
                 List<Airline> airlines =
                     Airlines.GetAirlines(
                         a =>
-                        a.Profile.Country?.Region == region
-                        || (region.Uid == "100" && continent.HasRegion(a.Profile.Country?.Region))
+                        (a.Profile.Country?.Region == region
+                        || (region.Uid == "100" && continent.HasRegion(a.Profile.Country?.Region)))
                         && a.Profile.Founded <= startYear && a.Profile.Folded > startYear);
                 List<Airport> airports =
                     Airports.GetAirports(
                         a =>
-                        a.Profile.Country?.Region == region
-                        || (region.Uid == "100" && continent.HasRegion(a.Profile.Country?.Region))
+                        (a.Profile.Country?.Region == region
+                        || (region.Uid == "100" && continent.HasRegion(a.Profile.Country?.Region)))
                         && a.Profile.Period.From.Year <= startYear && a.Profile.Period.To.Year > startYear);
 
                 Airports.Clear();

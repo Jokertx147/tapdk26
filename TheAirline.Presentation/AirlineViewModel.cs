@@ -63,6 +63,8 @@ namespace TheAirline.Presentation
                 () =>
                     {
                         GameSession.StopClock();
+                        // the game changes the loaded data, so it is read again for the next game
+                        TheAirline.Infrastructure.GameDataLoader.Invalidate();
                         _shell.ShowMainMenu();
                     });
             Market = new MarketViewModel(OnGameChanged);

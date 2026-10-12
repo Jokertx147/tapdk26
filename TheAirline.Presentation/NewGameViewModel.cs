@@ -12,6 +12,29 @@ using TheAirline.Models.General.Countries;
 namespace TheAirline.Presentation
 {
     /// <summary>Choose an airline, a start year and a difficulty, then start a new game.</summary>
+    /// <summary>A region with the name shown to the player (from the region translations).</summary>
+    public class RegionChoice
+    {
+        public RegionChoice(Region region, string name)
+        {
+            Region = region;
+            Name = name ?? TranslatedName(region);
+        }
+
+        public Region Region { get; }
+        public string Name { get; }
+
+        private static string TranslatedName(Region region)
+        {
+            return Regions.GetDisplayName(region);
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+
     public class NewGameViewModel : ObservableObject
     {
         private readonly ShellViewModel _shell;
@@ -24,6 +47,11 @@ namespace TheAirline.Presentation
         private DifficultyLevel _selectedDifficulty;
         private int _opponents = 5;
         private bool _useDayTurns = true;
+        private bool _majorAirports, _sameRegion = true;
+        private List<Continent> _continents = new List<Continent>();
+        private List<RegionChoice> _regions = new List<RegionChoice>();
+        private Continent _continent;
+        private RegionChoice _region;
         private List<Airline> _airlines = new List<Airline>();
         private List<DifficultyLevel> _difficulties = new List<DifficultyLevel>();
 
@@ -118,6 +146,64 @@ namespace TheAirline.Presentation
             set { SetProperty(ref _opponents, value); }
         }
 
+        public List<Continent> Continents
+        {
+            get { return _continents; }
+            private set { SetProperty(ref _continents, value); }
+        }
+
+        public Continent SelectedContinent
+        {
+            get { return _continent; }
+            set
+            {
+                if (value != null && SetProperty(ref _continent, value))
+                {
+                    var list = new List<RegionChoice> { new RegionChoice(Models.General.Countries.Regions.GetRegion("100"), "All regions") };
+                    if (value.Uid != "100")
+                    {
+                        list.AddRange(value.Regions.Select(r => new RegionChoice(r, null)));
+                    }
+                    _region = list[0];
+                    Regions = list;
+                    OnPropertyChanged(nameof(SelectedRegion));
+                    RefreshAirlines();
+                }
+            }
+        }
+
+        public List<RegionChoice> Regions
+        {
+            get { return _regions; }
+            private set { SetProperty(ref _regions, value); }
+        }
+
+        public RegionChoice SelectedRegion
+        {
+            get { return _region; }
+            set
+            {
+                if (value != null && SetProperty(ref _region, value))
+                {
+                    RefreshAirlines();
+                }
+            }
+        }
+
+        /// <summary>Start with the major airports only.</summary>
+        public bool MajorAirports
+        {
+            get { return _majorAirports; }
+            set { SetProperty(ref _majorAirports, value); }
+        }
+
+        /// <summary>Opponents are airlines from the same region as the player.</summary>
+        public bool SameRegion
+        {
+            get { return _sameRegion; }
+            set { SetProperty(ref _sameRegion, value); }
+        }
+
         public bool UseDayTurns
         {
             get { return _useDayTurns; }
@@ -129,6 +215,13 @@ namespace TheAirline.Presentation
             try
             {
                 await GameSession.EnsureDataLoadedAsync();
+
+                var allContinents = new Continent("100", "All continents");
+                allContinents.Regions = Models.General.Countries.Regions.GetRegions();
+                Continents = new List<Continent> { allContinents };
+                Continents.AddRange(Models.General.Countries.Continents.GetContinents());
+                _isLoading = true;
+                SelectedContinent = Continents[0];
 
                 Difficulties = DifficultyLevels.GetDifficultyLevels();
                 SelectedDifficulty = Difficulties.FirstOrDefault(d => d.Name == "Normal") ?? Difficulties.FirstOrDefault();
@@ -158,11 +251,22 @@ namespace TheAirline.Presentation
             }
 
             int year = StartYear;
-            Airlines = Models.Airlines.Airlines.GetAirlines(a => a.Profile.Founded <= year && a.Profile.Folded > year)
+            Airlines = Models.Airlines.Airlines.GetAirlines(a => a.Profile.Founded <= year && a.Profile.Folded > year && InSelectedArea(a))
                                                .OrderBy(a => a.Profile.Name)
                                                .ToList();
             SelectedAirline = Airlines.FirstOrDefault();
             Status = Airlines.Count + " airlines in " + year;
+        }
+
+        private bool InSelectedArea(Airline a)
+        {
+            var region = a.Profile.Country?.Region;
+            if (_region == null || _region.Region.Uid == "100")
+            {
+                return _continent == null || _continent.Uid == "100" || _continent.HasRegion(region);
+            }
+
+            return region != null && region.Uid == _region.Region.Uid;
         }
 
         private async Task CreateAsync()
@@ -191,18 +295,18 @@ namespace TheAirline.Presentation
                         Airport = airport,
                         CEO = string.IsNullOrWhiteSpace(Ceo) ? "CEO" : Ceo.Trim(),
                         // uid "100" is the "all" entry the game setup code checks for
-                        Continent = new Continent("100", "All continents"),
+                        Continent = _continent ?? new Continent("100", "All continents"),
                         Difficulty = SelectedDifficulty,
                         Focus = default(Infrastructure.Enums.AirlineFocus),
                         HomeCountry = airport.Profile.Country ?? airline.Profile.Country,
                         IsPaused = true,
                         LocalCurrency = false,
-                        MajorAirports = false,
+                        MajorAirports = MajorAirports,
                         NumberOfOpponents = Opponents,
                         RandomOpponents = true,
                         RealData = false,
-                        Region = Regions.GetRegion("100"),
-                        SameRegion = true,
+                        Region = _region?.Region ?? Models.General.Countries.Regions.GetRegion("100"),
+                        SameRegion = SameRegion,
                         TimeZone = airport.Profile.TimeZone ?? TimeZones.GetTimeZones().First(),
                         UseDayTurns = UseDayTurns,
                         Year = StartYear

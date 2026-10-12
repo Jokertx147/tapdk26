@@ -7,6 +7,14 @@
     <StackPanel Grid.Row="1" Spacing="10">
       <TextBlock Text="Start year" />
       <ComboBox ItemsSource="{Binding StartYears}" SelectedItem="{Binding StartYear}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="Continent" />
+      <ComboBox ItemsSource="{Binding Continents}" SelectedItem="{Binding SelectedContinent}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="Region" />
+      <ComboBox ItemsSource="{Binding Regions}" SelectedItem="{Binding SelectedRegion}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
       <TextBlock Text="CEO name" />
       <TextBox Text="{Binding Ceo}" />
       <TextBlock Text="Difficulty" />
@@ -14,6 +22,8 @@
       <TextBlock Text="Opponents" />
       <ComboBox ItemsSource="{Binding OpponentChoices}" SelectedItem="{Binding Opponents}" HorizontalAlignment="Stretch" />
       <CheckBox Content="One turn per day" IsChecked="{Binding UseDayTurns}" />
+      <CheckBox Content="Major airports only" IsChecked="{Binding MajorAirports}" />
+      <CheckBox Content="Opponents from the same region" IsChecked="{Binding SameRegion}" />
     </StackPanel>
 
     <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="Auto,*,Auto">
