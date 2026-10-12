@@ -23,7 +23,17 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             this.BorderBrush = new SolidColorBrush(Colors.Black);
 
             this.Activated += PopUpWindow_Activated;
+
+            // the pop ups have a blue background in both themes, so they keep the dark theme's white text
+            UseDarkThemeBrushes();
+            this.Loaded += (s, e) => UseDarkThemeBrushes();
       }
+
+        private void UseDarkThemeBrushes()
+        {
+            this.Resources["AppTextBrush"] = new SolidColorBrush(Colors.White);
+            this.Resources["PanelRowBrush"] = new SolidColorBrush(Color.FromArgb(0x73, 0, 0, 0));
+        }
 
         private bool _captionAdded;
 

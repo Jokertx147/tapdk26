@@ -55,7 +55,12 @@
                         CanFilter="True" SortPropertyName="Type.AirlinerFamily" Width="150">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock VerticalAlignment="Bottom" Margin="5 0 0 0" Text="{Binding Type.Name}" />
+                                <TextBlock VerticalAlignment="Bottom" Margin="5 0 0 0">
+                                    <Hyperlink Click="lnkAirlinerType_Click" Tag="{Binding Type}"
+                                               ToolTip="Show picture and specifications">
+                                        <Run Text="{Binding Type.Name, Mode=OneWay}" />
+                                    </Hyperlink>
+                                </TextBlock>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </filter:SortableGridViewColumn>

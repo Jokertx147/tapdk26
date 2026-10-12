@@ -89,6 +89,13 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
         #region Methods
 
+        private void lnkAirlinerType_Click(object sender, RoutedEventArgs e)
+        {
+            var type = (AirlinerType)((System.Windows.Documents.Hyperlink)sender).Tag;
+
+            PopUpAirlinerTypeInfo.ShowPopUp(type);
+        }
+
         private void btnOrder_Click(object sender, RoutedEventArgs e)
         {
             Boolean contractedOrder = false;
