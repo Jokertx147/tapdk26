@@ -46,6 +46,9 @@
           <TabItem Header="Aircraft market">
             <v:MarketView DataContext="{Binding Market}" />
           </TabItem>
+          <TabItem Header="Pilots">
+            <v:PilotsView DataContext="{Binding Pilots}" />
+          </TabItem>
         </TabControl>
       </TabItem>
 
@@ -83,12 +86,18 @@
               <ListBox Grid.Row="1" ItemsSource="{Binding Fleet}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
-                    <StackPanel Margin="2">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Opacity="0.7">
-                        <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" />
-                      </TextBlock>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" Margin="2">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Opacity="0.7">
+                          <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" /><Run Text="  |  " /><Run Text="{Binding Crew}" /><Run Text="  |  " /><Run Text="{Binding Routes}" /><Run Text=" route(s)" />
+                        </TextBlock>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Content="Start" Command="{Binding StartCommand}" IsVisible="{Binding CanStart}" />
+                        <Button Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding CanStop}" />
+                      </StackPanel>
+                    </Grid>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>

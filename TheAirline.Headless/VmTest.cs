@@ -64,6 +64,19 @@ static class VmTest
             Console.WriteLine("create: " + ap.Status + " | info=" + cr.Info);
             foreach (var o in cr.Offers.ToList()) { Console.WriteLine("  gate offer: " + o.Text); o.LeaseCommand.Execute(null); }
             if (ap.Create != null) { ap.Create.CreateCommand.Execute(null); Console.WriteLine("create2: " + ap.Status + " | info=" + ap.Create?.Info); }
+            // crew the aircraft, then start it
+            var pv = av.Pilots;
+            Console.WriteLine("targets: " + string.Join(" | ", pv.Targets.Select(t => t.Name)) + " ; available(any)=" + pv.Available.Count);
+            pv.Target = pv.Targets.First(t => t.Airliner != null);
+            Console.WriteLine("available for target=" + pv.Available.Count);
+            pv.HireCrewCommand.Execute(null);
+            Console.WriteLine("pilots: " + pv.Status + " hired=" + pv.Hired.Count);
+            av.Refresh();
+            var fi = av.Fleet.First();
+            Console.WriteLine("fleet: " + fi.Name + " " + fi.Status + " " + fi.Crew + " canStart=" + fi.CanStart);
+            fi.StartCommand.Execute(null);
+            av.Refresh();
+            Console.WriteLine("after start: " + av.Fleet.First().Status + " | " + av.Status);
             av.Refresh();
             Console.WriteLine(av.Summary + " flights listed=" + av.Flights.Count + " first=" + av.Flights.FirstOrDefault()?.When + " " + av.Flights.FirstOrDefault()?.Route);
             Console.WriteLine("routes=" + av.Routes.Count + " " + string.Join(",", av.Routes.Select(r => r.Name + " " + r.Balance)));

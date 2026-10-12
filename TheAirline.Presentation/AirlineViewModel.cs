@@ -5,6 +5,7 @@ using System.Windows.Input;
 using TheAirline.Helpers;
 using TheAirline.Helpers.Workers;
 using TheAirline.Infrastructure;
+using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
 
 namespace TheAirline.Presentation
@@ -16,6 +17,12 @@ namespace TheAirline.Presentation
         public string Status { get; set; }
         public string Homebase { get; set; }
         public int Routes { get; set; }
+        public string Crew { get; set; }
+        public string Note { get; set; }
+        public bool CanStart { get; set; }
+        public bool CanStop { get; set; }
+        public ICommand StartCommand { get; set; }
+        public ICommand StopCommand { get; set; }
     }
 
     public class RouteItem
@@ -77,15 +84,18 @@ namespace TheAirline.Presentation
                     });
             Market = new MarketViewModel(OnGameChanged);
             Airports = new AirportsViewModel(OnGameChanged);
+            Pilots = new PilotsViewModel(OnGameChanged);
             Refresh();
         }
 
         public MarketViewModel Market { get; }
         public AirportsViewModel Airports { get; }
+        public PilotsViewModel Pilots { get; }
 
         private void OnGameChanged()
         {
             Airports.ReloadAdvice();
+            Pilots.Reload();
             Refresh();
         }
 
@@ -149,6 +159,34 @@ namespace TheAirline.Presentation
             }
         }
 
+        private void StartAirliner(FleetAirliner f)
+        {
+            if (f.Routes.Count == 0)
+            {
+                Status = f.Name + " has no route. Create a route for it first.";
+            }
+            else if (f.Pilots.Count < f.Airliner.Type.CockpitCrew)
+            {
+                Status = f.Name + " needs " + f.Airliner.Type.CockpitCrew + " pilots (it has " + f.Pilots.Count + "). Hire them under Airline > Pilots.";
+            }
+            else
+            {
+                f.Status = GameObject.GetInstance().DayRoundEnabled
+                    ? FleetAirliner.AirlinerStatus.OnRoute
+                    : FleetAirliner.AirlinerStatus.ToRouteStart;
+                Status = f.Name + " is flying.";
+            }
+
+            Refresh();
+        }
+
+        private void StopAirliner(FleetAirliner f)
+        {
+            f.Status = FleetAirliner.AirlinerStatus.Stopped;
+            Status = f.Name + " stopped.";
+            Refresh();
+        }
+
         private void TogglePause()
         {
             var worker = GameObjectWorker.GetInstance();
@@ -191,7 +229,7 @@ namespace TheAirline.Presentation
             var fleet = airline.Fleet.ToList();
             var routes = airline.Routes.ToList();
             var entries = routes.SelectMany(r => r.TimeTable.Entries).ToList();
-            string signature = string.Join(",", fleet.Select(f => f.Name + f.Status + f.Routes.Count))
+            string signature = string.Join(",", fleet.Select(f => f.Name + f.Status + f.Routes.Count + f.Pilots.Count))
                                + "|" + routes.Count + "|" + entries.Count;
             if (signature != _signature)
             {
@@ -207,7 +245,13 @@ namespace TheAirline.Presentation
                             Type = f.Airliner?.Type?.Name,
                             Status = f.Status.ToString(),
                             Homebase = f.Homebase?.Profile.IATACode,
-                            Routes = f.Routes.Count
+                            Routes = f.Routes.Count,
+                            Crew = f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + " pilots",
+                            CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped,
+                            CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped,
+                            Note = f.Routes.Count == 0 ? "no route yet" : null,
+                            StartCommand = new RelayCommand(() => StartAirliner(f)),
+                            StopCommand = new RelayCommand(() => StopAirliner(f))
                         });
                 }
 
