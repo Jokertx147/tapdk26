@@ -683,6 +683,7 @@ namespace TheAirline.Infrastructure
 
         public static void ClearLists()
         {
+            DemandOverrides.Clear();
             AdvertisementTypes.Clear();
             TimeZones.Clear();
             SpecialContractTypes.Clear();

@@ -227,6 +227,7 @@ namespace TheAirline.Helpers
                         }
                     }); //close parallel.invoke
 
+            DemandOverrides.Restore(deserializedSaveObject.DemandOverridesList);
             StartupLog.Write("LoadGame: lists restored");
             foreach (Airport bad in Airports.GetAllAirports().Where(a => a.Profile.Town == null || a.Profile.Town.Country == null || a.Profile.Town.Name == null).Take(20))
             {
@@ -253,6 +254,7 @@ namespace TheAirline.Helpers
                     swPax.Start();
 
                     PassengerHelpers.CreateDestinationDemand();
+                    DemandOverrides.Apply();
 
                     //Console.WriteLine("Demand have been created in {0} ms.", swPax.ElapsedMilliseconds);
                     swPax.Stop();
@@ -286,6 +288,7 @@ namespace TheAirline.Helpers
 
             StartupLog.Write("SaveGame: " + name + " start");
             var so = new SaveObject();
+            so.DemandOverridesList = DemandOverrides.ToStrings();
             Parallel.Invoke(
                 () =>
                     {
@@ -516,6 +519,10 @@ namespace TheAirline.Helpers
 
         [Versioning("feetypes")]
         public List<FeeType> FeeTypeslist { get; set; }
+
+        // demand values edited by the player, see DemandOverrides
+        [Versioning("demandoverrides")]
+        public List<string> DemandOverridesList { get; set; }
 
         [Versioning("instance")]
         public GameObject Instance { get; set; }

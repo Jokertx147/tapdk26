@@ -233,6 +233,7 @@ namespace TheAirline.Models.Airports
                 DestinationPassengers.RemoveAll(d => d.Destination == destination.Profile.IATACode);
             }
 
+            DemandOverrides.Set(this, destination, false, value);
             Statics.SetPassengerDemand(destination, (ushort) Math.Max(0, Math.Min(ushort.MaxValue, value)));
         }
 
@@ -244,6 +245,7 @@ namespace TheAirline.Models.Airports
                 DestinationCargo.RemoveAll(d => d.Destination == destination.Profile.IATACode);
             }
 
+            DemandOverrides.Set(this, destination, true, value);
             Statics.SetCargoDemand(destination, (ushort) Math.Max(0, Math.Min(ushort.MaxValue, value)));
         }
 
