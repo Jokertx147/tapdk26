@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -1141,6 +1141,8 @@ namespace TheAirline.Helpers
 
                 if (Infrastructure.Settings.GetInstance().MailsOnBadWeather
                     && humanAirlines.SelectMany(a => a.Airports.FindAll(aa => aa == airport)).Any()
+                    && airport.Weather != null
+                    && airport.Weather[airport.Weather.Length - 1] != null
                     && (airport.Weather[airport.Weather.Length - 1].WindSpeed == Weather.eWindSpeed.ViolentStorm
                         || airport.Weather[airport.Weather.Length - 1].WindSpeed == Weather.eWindSpeed.Hurricane))
                 {
