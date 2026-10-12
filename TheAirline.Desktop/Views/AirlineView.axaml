@@ -46,6 +46,9 @@
           <TabItem Header="Aircraft market">
             <v:MarketView DataContext="{Binding Market}" />
           </TabItem>
+          <TabItem Header="Finances">
+            <v:FinanceView DataContext="{Binding Finance}" />
+          </TabItem>
           <TabItem Header="Pilots">
             <v:PilotsView DataContext="{Binding Pilots}" />
           </TabItem>
@@ -56,19 +59,56 @@
       <TabItem Header="Routes">
         <TabControl Classes="sub">
           <TabItem Header="My routes">
-            <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
-              <TextBlock Text="Routes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
-              <ListBox Grid.Row="1" ItemsSource="{Binding Routes}">
-                <ListBox.ItemTemplate>
-                  <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" MinWidth="120" />
-                      <TextBlock Text="{Binding Distance}" Opacity="0.7" MinWidth="90" />
-                      <TextBlock Text="{Binding Balance}" Opacity="0.7" />
-                    </StackPanel>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
+            <Grid ColumnDefinitions="300,12,*" Margin="0,10,0,0">
+              <Grid RowDefinitions="Auto,*">
+                <TextBlock Text="Routes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <ListBox Grid.Row="1" ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Margin="2">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Opacity="0.7">
+                          <Run Text="{Binding Distance}" /><Run Text="  |  " /><Run Text="{Binding Balance}" />
+                        </TextBlock>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+
+              <ScrollViewer Grid.Column="2" IsVisible="{Binding HasRouteDetail}" DataContext="{Binding RouteDetail}">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="{Binding Code}" FontSize="22" FontWeight="Bold" />
+                  <TextBlock Text="{Binding Title}" Opacity="0.8" />
+                  <TextBlock Text="{Binding Numbers}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding AircraftText}" TextWrapping="Wrap" Opacity="0.8" />
+
+                  <TextBlock Text="Fares" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+                  <ItemsControl ItemsSource="{Binding Fares}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,3">
+                          <TextBlock Text="{Binding ClassName}" Width="150" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Seats}" Width="60" VerticalAlignment="Center" Opacity="0.7" />
+                          <TextBox Text="{Binding Price}" Width="120" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Content="Save fares" Command="{Binding SaveFaresCommand}" />
+                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
+                  </StackPanel>
+
+                  <Border Height="1" Background="#404040" Margin="0,10" />
+                  <Button Content="Delete route" Command="{Binding DeleteCommand}" IsVisible="{Binding NotConfirmDelete}" HorizontalAlignment="Left" />
+                  <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding ConfirmDelete}">
+                    <TextBlock Text="Delete this route and its flights?" VerticalAlignment="Center" />
+                    <Button Content="Yes, delete" Command="{Binding ConfirmDeleteCommand}" />
+                    <Button Content="Cancel" Command="{Binding CancelDeleteCommand}" />
+                  </StackPanel>
+                </StackPanel>
+              </ScrollViewer>
             </Grid>
           </TabItem>
           <TabItem Header="Create route">

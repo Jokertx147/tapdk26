@@ -79,6 +79,19 @@ static class VmTest
             Console.WriteLine("after start: " + av.Fleet.First().Status + " | " + av.Status);
             av.Refresh();
             Console.WriteLine(av.Summary + " flights listed=" + av.Flights.Count + " first=" + av.Flights.FirstOrDefault()?.When + " " + av.Flights.FirstOrDefault()?.Route);
+            // route detail: select, change a fare, save, delete
+            av.SelectedRoute = av.Routes.First();
+            var rd = av.RouteDetail;
+            Console.WriteLine("ROUTE " + rd.Code + " | " + rd.Numbers + " | " + rd.AircraftText);
+            Console.WriteLine("fares: " + string.Join(", ", rd.Fares.Select(f => f.ClassName + " " + f.Price)));
+            rd.Fares[0].Price = "199.5"; rd.SaveFaresCommand.Execute(null);
+            Console.WriteLine("fare save: " + rd.Status);
+            rd.Fares[0].Price = "abc"; rd.SaveFaresCommand.Execute(null);
+            Console.WriteLine("bad fare: " + rd.Status);
+            rd.DeleteCommand.Execute(null); rd.ConfirmDeleteCommand.Execute(null);
+            av.Refresh();
+            Console.WriteLine("after delete routes=" + av.Routes.Count + " detail=" + (av.RouteDetail == null ? "none" : "still") + " fleet status=" + av.Fleet.First().Status);
+            foreach (var fr in av.Finance.Rows) Console.WriteLine("FIN " + fr.Label + ": " + string.Join(" ; ", fr.Values));
             Console.WriteLine("routes=" + av.Routes.Count + " " + string.Join(",", av.Routes.Select(r => r.Name + " " + r.Balance)));
             if (!av.IsRunning) av.TogglePauseCommand.Execute(null);
             Thread.Sleep(5000);

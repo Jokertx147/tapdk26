@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
@@ -7,6 +8,7 @@ using TheAirline.Helpers.Workers;
 using TheAirline.Infrastructure;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
+using TheAirline.Models.Routes;
 
 namespace TheAirline.Presentation
 {
@@ -25,11 +27,19 @@ namespace TheAirline.Presentation
         public ICommand StopCommand { get; set; }
     }
 
-    public class RouteItem
+    public class RouteItem : ObservableObject
     {
+        private string _balance;
+
+        public Route Route { get; set; }
         public string Name { get; set; }
         public string Distance { get; set; }
-        public string Balance { get; set; }
+
+        public string Balance
+        {
+            get { return _balance; }
+            set { SetProperty(ref _balance, value); }
+        }
     }
 
     public class FlightItem
@@ -85,17 +95,53 @@ namespace TheAirline.Presentation
             Market = new MarketViewModel(OnGameChanged);
             Airports = new AirportsViewModel(OnGameChanged);
             Pilots = new PilotsViewModel(OnGameChanged);
+            Finance = new FinanceViewModel();
             Refresh();
         }
 
         public MarketViewModel Market { get; }
         public AirportsViewModel Airports { get; }
         public PilotsViewModel Pilots { get; }
+        public FinanceViewModel Finance { get; }
+
+        private RouteItem _selectedRoute;
+        private RouteDetailViewModel _routeDetail;
+
+        public RouteItem SelectedRoute
+        {
+            get { return _selectedRoute; }
+            set
+            {
+                if (SetProperty(ref _selectedRoute, value))
+                {
+                    RouteDetail = value == null ? null : new RouteDetailViewModel(value.Route, OnGameChanged);
+                }
+            }
+        }
+
+        public RouteDetailViewModel RouteDetail
+        {
+            get { return _routeDetail; }
+            private set
+            {
+                if (SetProperty(ref _routeDetail, value))
+                {
+                    OnPropertyChanged(nameof(HasRouteDetail));
+                }
+            }
+        }
+
+        public bool HasRouteDetail
+        {
+            get { return _routeDetail != null; }
+        }
+        private string _financeDate;
 
         private void OnGameChanged()
         {
             Airports.ReloadAdvice();
             Pilots.Reload();
+            _financeDate = null;
             Refresh();
         }
 
@@ -223,6 +269,11 @@ namespace TheAirline.Presentation
 
             AirlineName = airline.Profile.Name;
             Date = game.GameTime.ToString("d MMMM yyyy");
+            if (_financeDate != Date)
+            {
+                _financeDate = Date;
+                Finance.Refresh();
+            }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));
             IsRunning = !GameObjectWorker.GetInstance().IsPaused;
 
@@ -272,18 +323,47 @@ namespace TheAirline.Presentation
                     "{0} aircraft, {1} routes, {2} weekly flights, {3} airports",
                     fleet.Count, routes.Count, entries.Count, airline.Airports.Count);
                 OnPropertyChanged(nameof(Summary));
+            }
 
+            RefreshRoutes(routes);
+            _routeDetail?.RefreshNumbers();
+        }
+
+        // the route list is only rebuilt when routes are added or removed, so the selection and typing in the fare boxes stay
+        private void RefreshRoutes(List<Route> routes)
+        {
+            var money = new ValueCurrencyFormatter();
+            bool same = routes.Count == Routes.Count && routes.Select((r, i) => Routes[i].Route == r).All(x => x);
+
+            if (!same)
+            {
+                var keep = _selectedRoute?.Route;
                 Routes.Clear();
                 foreach (var r in routes)
                 {
                     Routes.Add(
                         new RouteItem
                         {
+                            Route = r,
                             Name = r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode,
-                            Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2)),
-                            Balance = "profit " + Convert.ToString(new ValueCurrencyFormatter().Convert(r.Balance))
+                            Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2))
                         });
                 }
+
+                var again = Routes.FirstOrDefault(x => x.Route == keep);
+                if (again != null)
+                {
+                    SelectedRoute = again;
+                }
+                else if (keep != null)
+                {
+                    SelectedRoute = null;
+                }
+            }
+
+            foreach (var item in Routes)
+            {
+                item.Balance = "profit " + Convert.ToString(money.Convert(item.Route.Balance));
             }
         }
 
