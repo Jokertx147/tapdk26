@@ -85,10 +85,8 @@ namespace TheAirline.Helpers
             GameObject.GetInstance().SetHumanAirline(airline);
             GameObject.GetInstance().MainAirline = GameObject.GetInstance().HumanAirline;
 
-            if (startData.LocalCurrency)
-            {
-                GameObject.GetInstance().CurrencyCountry = airline.Profile.Country;
-            }
+            // set it every time, so a currency from a game played earlier in the same session does not carry over
+            GameObject.GetInstance().CurrencyCountry = startData.LocalCurrency ? airline.Profile.Country : null;
             // AppSettings.GetInstance().resetCurrencyFormat();
 
             Infrastructure.StartupLog.Write("CreateGame: human airline set");
