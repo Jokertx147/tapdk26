@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Cross-platform (Linux, macOS, Windows) user interface built with Avalonia.
+       Run from the repository folder with: dotnet run --project TheAirline.Desktop -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>TheAirline.Desktop</RootNamespace>
+    <AssemblyName>TheAirline.Desktop</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheAirline.Presentation\TheAirline.Presentation.csproj" />
+  </ItemGroup>
+
+  <!-- The game reads its XML data from a "data" folder next to the program. -->
+  <ItemGroup>
+    <GameData Include="..\Data\Data\**\*" Exclude="..\Data\Data\saves\**" />
+  </ItemGroup>
+  <Target Name="CopyGameData" AfterTargets="Build" Inputs="@(GameData)" Outputs="@(GameData->'$(OutDir)data/%(RecursiveDir)%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(GameData)" DestinationFiles="@(GameData->'$(OutDir)data/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

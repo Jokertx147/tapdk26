@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TheAirline.Presentation"
+        xmlns:v="using:TheAirline.Desktop.Views"
+        x:Class="TheAirline.Desktop.ShellWindow"
+        Title="The Airline Project" Width="1100" Height="720" MinWidth="800" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:MainMenuViewModel"><v:MainMenuView /></DataTemplate>
+    <DataTemplate DataType="vm:NewGameViewModel"><v:NewGameView /></DataTemplate>
+    <DataTemplate DataType="vm:LoadGameViewModel"><v:LoadGameView /></DataTemplate>
+    <DataTemplate DataType="vm:AirlineViewModel"><v:AirlineView /></DataTemplate>
+  </Window.DataTemplates>
+
+  <Grid>
+    <ContentControl Content="{Binding Current}" />
+
+    <!-- messages from the game logic (errors, warnings) -->
+    <Border IsVisible="{Binding HasMessage}" Background="#B0000000">
+      <Border Background="#2B2B2B" BorderBrush="#808080" BorderThickness="1" CornerRadius="6" Padding="20"
+              HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{Binding MessageTitle}" FontSize="18" FontWeight="Bold" />
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+          <Button Content="OK" Command="{Binding DismissMessageCommand}" HorizontalAlignment="Right" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</Window>

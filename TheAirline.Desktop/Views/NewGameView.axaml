@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.NewGameView">
+  <Grid Margin="30" ColumnDefinitions="300,20,*" RowDefinitions="Auto,*,Auto">
+    <TextBlock Grid.ColumnSpan="3" Text="New game" FontSize="26" FontWeight="Bold" Margin="0,0,0,16" />
+
+    <StackPanel Grid.Row="1" Spacing="10">
+      <TextBlock Text="Start year" />
+      <ComboBox ItemsSource="{Binding StartYears}" SelectedItem="{Binding StartYear}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="CEO name" />
+      <TextBox Text="{Binding Ceo}" />
+      <TextBlock Text="Difficulty" />
+      <ComboBox ItemsSource="{Binding Difficulties}" SelectedItem="{Binding SelectedDifficulty}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="Opponents" />
+      <ComboBox ItemsSource="{Binding OpponentChoices}" SelectedItem="{Binding Opponents}" HorizontalAlignment="Stretch" />
+      <CheckBox Content="One turn per day" IsChecked="{Binding UseDayTurns}" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="Auto,*,Auto">
+      <TextBlock Text="Airline" Margin="0,0,0,6" />
+      <ListBox Grid.Row="1" ItemsSource="{Binding Airlines}" SelectedItem="{Binding SelectedAirline}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Profile.Name}" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Grid.Row="2" Text="{Binding Narrative}" TextWrapping="Wrap" MaxHeight="110" Margin="0,10,0,0" Opacity="0.8" />
+    </Grid>
+
+    <Grid Grid.Row="2" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto" Margin="0,16,0,0">
+      <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <Button Content="Back" Command="{Binding BackCommand}" />
+        <Button Content="Start game" Command="{Binding CreateCommand}" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

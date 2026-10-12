@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TheAirline.Core\TheAirline.Core.csproj" />
+    <ProjectReference Include="..\TheAirline.Presentation\TheAirline.Presentation.csproj" />
   </ItemGroup>
 
   <!-- The game reads its XML data from a "data" folder next to the program. -->

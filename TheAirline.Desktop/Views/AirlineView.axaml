@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.AirlineView">
+  <Grid RowDefinitions="Auto,*" Margin="16">
+    <!-- top bar: airline, date, money, controls -->
+    <Border Background="#262626" CornerRadius="6" Padding="14" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{Binding AirlineName}" FontSize="22" FontWeight="Bold" />
+          <StackPanel Orientation="Horizontal" Spacing="24">
+            <TextBlock Text="{Binding Date}" FontSize="16" />
+            <TextBlock Text="{Binding Money}" FontSize="16" />
+            <TextBlock Text="{Binding Status}" Opacity="0.7" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" MinWidth="70" HorizontalContentAlignment="Center" />
+          <ComboBox ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed}" MinWidth="110" />
+          <Button Content="Save" Command="{Binding SaveCommand}" />
+          <Button Content="Main menu" Command="{Binding MainMenuCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,12,*">
+      <Grid RowDefinitions="Auto,*">
+        <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+        <ListBox Grid.Row="1" ItemsSource="{Binding Fleet}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                <TextBlock Opacity="0.7">
+                  <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" />
+                </TextBlock>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+      <Grid Grid.Column="2" RowDefinitions="Auto,*">
+        <TextBlock Text="Routes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+        <ListBox Grid.Row="1" ItemsSource="{Binding Routes}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Distance}" Opacity="0.7" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

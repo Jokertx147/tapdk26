@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.LoadGameView">
+  <Grid Margin="30" RowDefinitions="Auto,*,Auto,Auto" MaxWidth="700">
+    <TextBlock Text="Load game" FontSize="26" FontWeight="Bold" Margin="0,0,0,16" />
+    <ListBox Grid.Row="1" ItemsSource="{Binding Saves}" SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Margin="4">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding SavedText}" Opacity="0.7" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <TextBlock Grid.Row="2" Text="{Binding Status}" Margin="0,10" TextWrapping="Wrap" />
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+      <Button Content="Back" Command="{Binding BackCommand}" />
+      <Button Content="Delete" Command="{Binding DeleteCommand}" />
+      <Button Content="Load" Command="{Binding LoadCommand}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

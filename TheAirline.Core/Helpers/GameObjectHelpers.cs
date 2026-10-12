@@ -38,6 +38,9 @@ namespace TheAirline.Helpers
 
         #region Public Methods and Operators
 
+        /// <summary>The route demand of the game that was just created; the clock starts when it has finished.</summary>
+        public static Task DemandCreation { get; private set; } = Task.CompletedTask;
+
         public static void CreateGame(StartDataObject startData)
         {
             Infrastructure.StartupLog.Write("CreateGame: start");
@@ -304,7 +307,7 @@ namespace TheAirline.Helpers
                 };
 
             Infrastructure.StartupLog.Write("CreateGame: finished, demand creation continues in background");
-            Task.Factory.StartNew(action);
+            DemandCreation = Task.Factory.StartNew(action);
             //Task.Run(action);
             //Task t2 = Task.Factory.StartNew(action, "passengers");
         }

@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.MainMenuView">
+  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" Width="280">
+    <TextBlock Text="{Binding Title}" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,24" />
+    <Button Content="New game" Command="{Binding NewGameCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12" />
+    <Button Content="Load game" Command="{Binding LoadGameCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12" />
+    <Button Content="Exit" Command="{Binding ExitCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12" />
+  </StackPanel>
+</UserControl>

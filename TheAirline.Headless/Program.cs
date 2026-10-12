@@ -11,7 +11,8 @@ using TheAirline.Models.General.Countries;
 using TheAirline.Models.General.Environment;
 
 class P {
-  static void Main() {
+  static void Main(string[] args) {
+    if (args.Length > 0 && args[0] == "vm") { VmTest.Run().GetAwaiter().GetResult(); return; }
     try {
       GameDataLoader.EnsureLoaded();
       Console.WriteLine("LOADED airports=" + TheAirline.Models.Airports.Airports.GetAllAirports().Count);
@@ -35,6 +36,17 @@ class P {
       for (int i = 0; i < 40; i++) GameObjectHelpers.SimulateTurn();
       Console.WriteLine("after 40 days: " + g.GameTime.ToShortDateString() + " money=" + g.HumanAirline.Money);
       Console.WriteLine("SIMULATED OK");
+      var before = g.GameTime; var money = g.HumanAirline.Money;
+      SerializedLoadSaveHelpers.SaveGame("headless-test");
+      Console.WriteLine("SAVED: " + string.Join(", ", LoadSaveHelpers.GetSavedGameInfos().Select(x => x.Name)));
+      SerializedLoadSaveHelpers.LoadGame("headless-test");
+      var g2 = GameObject.GetInstance();
+      Console.WriteLine("LOADED SAVE: " + g2.GameTime.ToShortDateString() + " money=" + g2.HumanAirline.Money + " (expected " + before.ToShortDateString() + " / " + money + ")");
+      GameObjectWorker.GetInstance().Pause();
+      for (int i = 0; i < 10; i++) GameObjectHelpers.SimulateTurn();
+      Console.WriteLine("10 more days after load: " + g2.GameTime.ToShortDateString());
+      SerializedLoadSaveHelpers.DeleteSavedGame("headless-test");
+      Console.WriteLine("ROUNDTRIP OK");
     } catch (Exception e) { Console.WriteLine("FAILED: " + e); }
   }
 }
