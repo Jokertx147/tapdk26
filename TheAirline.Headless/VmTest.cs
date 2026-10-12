@@ -101,6 +101,8 @@ static class VmTest
             Console.WriteLine("  fleet row: " + av.Fleet.Last().Name + " " + av.Fleet.Last().Status + " canStart=" + av.Fleet.Last().CanStart);
             // airport manager
             var am = av.AirportManager;
+            Console.WriteLine("ALL AIRPORTS rows=" + am.Airports.Count + " first=" + am.Airports.First().Text);
+            am.OnlyMine = true;
             Console.WriteLine("MY AIRPORTS: " + string.Join(", ", am.Airports.Select(a => a.Text.Split(' ')[0])));
             Console.WriteLine("DETAIL: " + am.Title + " | " + am.GateSummary + " | contracts=" + am.Contracts.Count + " | " + string.Join(" ; ", am.Contracts.Select(c => c.Text)));
             foreach (var f in am.Facilities) Console.WriteLine("  facility " + f.Name + ": " + f.Current + " -> " + f.Next + " canBuy=" + f.CanBuy);
@@ -109,8 +111,13 @@ static class VmTest
             Console.WriteLine("lease more: " + am.Status + " | " + am.GateSummary);
             var up = am.Facilities.FirstOrDefault(f => f.CanBuy);
             if (up != null) { up.BuyCommand.Execute(null); Console.WriteLine("facility: " + am.Status); }
-            am.Search = "JFK";
+            am.OnlyMine = false; am.Search = "JFK";
             Console.WriteLine("search JFK: " + am.Airports.Count + " " + am.Airports.FirstOrDefault()?.Text);
+            foreach (var sc in am.SortChoices) { am.SortBy = sc; Console.WriteLine("  sort " + sc + ": " + am.Airports.Count); }
+            am.SortBy = "Name";
+            var jr = (AirportRow)am.Airports.First();
+            Console.WriteLine("  row: " + jr.Name + " | " + jr.Codes + " | " + jr.Country + " | " + jr.Type + " | " + jr.Size + " | gates " + jr.Gates + " | rwy " + jr.Runway + " | airlines " + jr.Airlines + " routes " + jr.Routes + " canLease=" + jr.CanLease);
+            if (jr.CanLease) { jr.LeaseCommand.Execute(null); Console.WriteLine("  quick lease: " + am.Status + " | " + am.GateSummary); am.Search = "JFK"; }
             am.Selected = am.Airports.First();
             Console.WriteLine("JFK: " + am.GateSummary + " | " + am.PriceText + " canBuyFacility=" + am.Facilities.Any(f => f.CanBuy));
             am.LeaseCommand.Execute(null);
@@ -120,9 +127,9 @@ static class VmTest
             Console.WriteLine("end: " + am.EndText);
             am.ConfirmEndCommand.Execute(null);
             Console.WriteLine("end result: " + am.Status + " contracts=" + am.Contracts.Count);
-            am.Search = "";
+            am.Search = ""; am.OnlyMine = true;
             // terminals
-            am.Search = "";
+            am.Search = ""; am.OnlyMine = true;
             am.Selected = am.Airports.First();
             foreach (var t in am.Terminals.Take(4)) Console.WriteLine("  terminal " + t.Text + " buy=" + t.CanBuy + " sell=" + t.CanSell);
             Console.WriteLine("terminal price: " + am.TerminalPriceText);

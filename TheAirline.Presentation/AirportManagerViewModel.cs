@@ -12,6 +12,42 @@ using TheAirline.Models.General.Finances;
 
 namespace TheAirline.Presentation
 {
+    /// <summary>One row of the airport list, with the columns of the Windows airport list and a quick lease button.</summary>
+    public class AirportRow : AirportItem
+    {
+        public AirportRow(Airport airport, bool own) : base(airport, own)
+        {
+            var p = airport.Profile;
+            Name = p.Name;
+            Codes = p.IATACode + "/" + p.ICAOCode;
+            Town = p.Town?.Name;
+            Country = p.Country?.Name;
+            Type = System.Text.RegularExpressions.Regex.Replace(p.Type.ToString().Replace('_', ' '), "(?<=[a-z])(?=[A-Z])", " ");
+            Size = p.Size.ToString().Replace('_', ' ');
+            int total = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Passenger);
+            FreeGates = airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
+            Gates = FreeGates + "/" + total;
+            Runway = airport.GetMaxRunwayLength();
+            Airlines = airport.AirlineContracts.Select(c => c.Airline).Distinct().Count();
+            Routes = AirportHelpers.GetAirportRoutes(airport).Count;
+            CanLease = !own && FreeGates > 0;
+        }
+
+        public string Name { get; }
+        public string Codes { get; }
+        public string Town { get; }
+        public string Country { get; }
+        public string Type { get; }
+        public string Size { get; }
+        public int FreeGates { get; }
+        public string Gates { get; }
+        public long Runway { get; }
+        public int Airlines { get; }
+        public int Routes { get; }
+        public bool CanLease { get; }
+        public ICommand LeaseCommand { get; set; }
+    }
+
     public class ContractItem
     {
         public AirportContract Contract { get; set; }
@@ -45,6 +81,8 @@ namespace TheAirline.Presentation
     {
         private readonly Action _changed;
         private string _search = "";
+        private bool _onlyMine;
+        private string _sortBy = "Name";
         private AirportItem _selected;
         private List<Airport> _all;
         private string _status;
@@ -88,7 +126,7 @@ namespace TheAirline.Presentation
             CancelEndCommand = new RelayCommand(() => ConfirmEnd = false);
 
             ApplySearch();
-            Selected = Airports.FirstOrDefault();
+            Selected = Airports.FirstOrDefault(a => a.IsOwn) ?? Airports.FirstOrDefault();
         }
 
         public ObservableCollection<AirportItem> Airports { get; }
@@ -164,6 +202,34 @@ namespace TheAirline.Presentation
         public ICommand EndContractCommand { get; }
         public ICommand ConfirmEndCommand { get; }
         public ICommand CancelEndCommand { get; }
+
+        /// <summary>Show only the airports where you have a contract.</summary>
+        public bool OnlyMine
+        {
+            get { return _onlyMine; }
+            set
+            {
+                if (SetProperty(ref _onlyMine, value))
+                {
+                    ApplySearch();
+                }
+            }
+        }
+
+        public List<string> SortChoices { get; } =
+            new List<string> { "Name", "Country", "Size", "Runway", "Free gates", "Airlines", "Routes" };
+
+        public string SortBy
+        {
+            get { return _sortBy; }
+            set
+            {
+                if (SetProperty(ref _sortBy, value ?? "Name"))
+                {
+                    ApplySearch();
+                }
+            }
+        }
 
         public string Search
         {
@@ -297,26 +363,74 @@ namespace TheAirline.Presentation
             var own = new HashSet<Airport>(Human.Airports);
             _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
 
-            IEnumerable<Airport> list;
+            IEnumerable<Airport> list = _onlyMine ? Human.Airports.OrderBy(a => a.Profile.Name) : _all;
             string s = _search.Trim();
-            if (s.Length == 0)
+            if (s.Length > 0)
             {
-                list = Human.Airports.OrderBy(a => a.Profile.Name);
-            }
-            else
-            {
-                list = _all.Where(
+                list = list.Where(
                     a => a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)
                          || a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
+                         || (a.Profile.Town != null && a.Profile.Town.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)
                          || (a.Profile.Country != null
                              && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0));
             }
 
-            Airports.Clear();
-            foreach (var a in list.Take(150))
+            switch (_sortBy)
             {
-                Airports.Add(new AirportItem(a, own.Contains(a)));
+                case "Country":
+                    list = list.OrderBy(a => a.Profile.Country?.Name).ThenBy(a => a.Profile.Name);
+                    break;
+                case "Size":
+                    list = list.OrderByDescending(a => (int) a.Profile.Size).ThenBy(a => a.Profile.Name);
+                    break;
+                case "Runway":
+                    list = list.OrderByDescending(a => a.GetMaxRunwayLength()).ThenBy(a => a.Profile.Name);
+                    break;
+                case "Free gates":
+                    list = list.OrderByDescending(a => a.Terminals.GetFreeGates(Terminal.TerminalType.Passenger))
+                               .ThenBy(a => a.Profile.Name);
+                    break;
+                case "Airlines":
+                    list = list.OrderByDescending(a => a.AirlineContracts.Select(c => c.Airline).Distinct().Count())
+                               .ThenBy(a => a.Profile.Name);
+                    break;
+                case "Routes":
+                    list = list.OrderByDescending(a => AirportHelpers.GetAirportRoutes(a).Count).ThenBy(a => a.Profile.Name);
+                    break;
             }
+
+            Airports.Clear();
+            foreach (var a in list.Take(300))
+            {
+                var row = new AirportRow(a, own.Contains(a));
+                row.LeaseCommand = new RelayCommand(() => QuickLease(row));
+                Airports.Add(row);
+            }
+        }
+
+        //the plus button of the Windows airport list: two gates with the chosen contract type
+        private void QuickLease(AirportRow row)
+        {
+            var airport = row.Airport;
+            if (!row.CanLease || airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger) < 1)
+            {
+                Status = "There are no free gates to lease at " + airport.Profile.IATACode + ".";
+                return;
+            }
+
+            int gates = Math.Min(2, airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger));
+            double yearly = AirportHelpers.GetYearlyContractPayment(airport, _contractType.Type, gates, 2);
+            RouteCreator.SignContract(airport, _contractType.Type);
+            Status = string.Format(
+                "Leased {0} gate(s) at {1} ({2} contract, {3}/year).",
+                gates, airport.Profile.Name, _contractType.Text, Money(yearly));
+
+            string status = Status;
+            ApplySearch();
+            Selected = Airports.FirstOrDefault(a => a.Airport == airport);
+            LoadDetail();
+            _changed();
+            Status = status;
         }
 
         private void LoadDetail()
