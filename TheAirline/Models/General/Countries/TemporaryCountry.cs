@@ -15,7 +15,7 @@ namespace TheAirline.Models.General.Countries
         #region Constructors and Destructors
 
         public TemporaryCountry(TemporaryType type, Country country, DateTime startDate, DateTime endDate)
-            //: base(Section, country.Uid, country.ShortName, country.Region, country.TailNumberFormat)
+            : base(Section, country.Uid, country.ShortName, country.Region, country.TailNumberFormat)
         {
             Type = type;
             StartDate = startDate;
