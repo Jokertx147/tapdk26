@@ -191,6 +191,16 @@
                         ToolTip="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='MainMenu 3005'}">
                     <Image Source="/Resources\images/calendar.png" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
+                <Button Background="#3772A1" Width="32" Margin="5 0 0 0" Click="btnQuickSave_Click"
+                        ToolTip="Save game">
+                    <Viewbox Width="20" Height="20">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="White" Data="M3,3 H17 L21,7 V21 H3 Z" />
+                            <Rectangle Canvas.Left="7" Canvas.Top="3" Width="9" Height="6" Fill="#3772A1" />
+                            <Rectangle Canvas.Left="6" Canvas.Top="13" Width="12" Height="8" Fill="#3772A1" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
                 <Button Background="#3772A1" Width="32" Margin="5 0 0 0" Click="btnExitGame_Click"
                         ToolTip="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='MainMenu 3001'}">
 

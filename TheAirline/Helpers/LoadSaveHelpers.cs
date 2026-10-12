@@ -67,6 +67,22 @@ namespace TheAirline.Helpers
             return dir.GetFiles("*.sav").Select(file => file.Name.Split('.')[0]).ToList();
         }
 
+        //returns the saved games with the time each file was written, newest first
+        public static List<SaveFileInfo> GetSavedGameInfos()
+        {
+            var dir = new DirectoryInfo(AppSettings.GetCommonApplicationDataPath() + "\\saves\\");
+
+            if (!dir.Exists)
+            {
+                return new List<SaveFileInfo>();
+            }
+
+            return dir.GetFiles("*.sav")
+                      .Select(file => new SaveFileInfo(file.Name.Split('.')[0], file.LastWriteTime))
+                      .OrderByDescending(s => s.SavedAt)
+                      .ToList();
+        }
+
         public static void LoadGame(string name)
         {
             if (string.IsNullOrEmpty(name))

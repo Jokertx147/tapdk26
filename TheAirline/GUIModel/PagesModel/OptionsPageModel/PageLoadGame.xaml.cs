@@ -24,11 +24,11 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         public PageLoadGame()
         {
-            Saves = new ObservableCollection<string>();
+            Saves = new ObservableCollection<SaveFileInfo>();
 
             InitializeComponent();
 
-            foreach (string savedFile in LoadSaveHelpers.GetSavedGames())
+            foreach (SaveFileInfo savedFile in LoadSaveHelpers.GetSavedGameInfos())
             {
                 Saves.Add(savedFile);
             }
@@ -38,7 +38,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         #region Public Properties
 
-        public ObservableCollection<string> Saves { get; set; }
+        public ObservableCollection<SaveFileInfo> Saves { get; set; }
 
         #endregion
 
@@ -51,7 +51,13 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         private void btnDeleteGame_Click(object sender, RoutedEventArgs e)
         {
-            var file = (string)lbSaves.SelectedItem;
+            var selected = lbSaves.SelectedItem as SaveFileInfo;
+            if (selected == null)
+            {
+                return;
+            }
+
+            string file = selected.Name;
             WPFMessageBoxResult result = WPFMessageBox.Show(
                 Translator.GetInstance().GetString("MessageBox", "1009"),
                 Translator.GetInstance().GetString("MessageBox", "1009", "message"),
@@ -61,7 +67,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
             {
                 SerializedLoadSaveHelpers.DeleteSavedGame(file);
 
-                Saves.Remove(file);
+                Saves.Remove(selected);
             }
         }
 
@@ -71,7 +77,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
             // block the UI thread, and the game worker may need the UI thread to finish
             GameObjectWorker.GetInstance().Cancel();
 
-            var file = (string)lbSaves.SelectedItem;
+            string file = (lbSaves.SelectedItem as SaveFileInfo)?.Name;
 
             WPFMessageBoxResult result = WPFMessageBox.Show(
                 Translator.GetInstance().GetString("MessageBox", "1002"),

@@ -21,7 +21,7 @@
             <TextBlock
                 Text="{Binding Source={x:Null}, Converter={StaticResource TranslatorConverter},ConverterParameter='PageLoadSaveGame 1001'}"
                 FontWeight="Bold" VerticalAlignment="Bottom" />
-            <TextBlock Text="{Binding ElementName=lbSaves, Path=SelectedItem}" VerticalAlignment="Bottom"
+            <TextBlock Text="{Binding ElementName=lbSaves, Path=SelectedItem.Name}" VerticalAlignment="Bottom"
                        Name="txtName" />
         </WrapPanel>
         <WrapPanel Margin="0 10 0 0">

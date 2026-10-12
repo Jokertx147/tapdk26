@@ -82,6 +82,75 @@ namespace TheAirline.GUIModel.MasterPageModel
             PageNavigator.NavigateTo(new PageCalendar());
         }
 
+        //saves the running game under its current name without asking, and says so in the window title
+        private void btnQuickSave_Click(object sender, RoutedEventArgs e)
+        {
+            GameObject game = GameObject.GetInstance();
+
+            string name = game.Name;
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = game.HumanAirline?.Profile.Name ?? "Saved game";
+            }
+
+            foreach (char invalid in System.IO.Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(invalid, '_');
+            }
+
+            name = name.Trim();
+
+            var button = (System.Windows.Controls.Button) sender;
+            button.IsEnabled = false;
+
+            bool wasPaused = GameObjectWorker.GetInstance().IsPaused;
+            GameObjectWorker.GetInstance().RequestCancel();
+
+            var bgWorker = new System.ComponentModel.BackgroundWorker();
+            bgWorker.DoWork += (s, x) =>
+            {
+                var waited = System.Diagnostics.Stopwatch.StartNew();
+                while (GameObjectWorker.GetInstance().IsBusy() && waited.Elapsed < System.TimeSpan.FromSeconds(30))
+                {
+                    System.Threading.Thread.Sleep(50);
+                }
+
+                game.Name = name;
+                TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame(name);
+            };
+            bgWorker.RunWorkerCompleted += (s, x) =>
+            {
+                button.IsEnabled = true;
+
+                if (!wasPaused)
+                {
+                    GameObjectWorker.GetInstance().Start();
+                }
+
+                Window window = PageNavigator.MainWindow;
+
+                if (x.Error != null)
+                {
+                    StartupLog.Write("Quick save failed: " + x.Error);
+                    MessageBox.Show("Saving the game failed:\n" + x.Error.Message, "TheAirline");
+                    return;
+                }
+
+                string title = window.Title;
+                window.Title = "The Airline Project  -  saved \"" + name + "\" at " + System.DateTime.Now.ToString("t");
+
+                var timer = new System.Windows.Threading.DispatcherTimer { Interval = System.TimeSpan.FromSeconds(5) };
+                timer.Tick += (ts, te) =>
+                {
+                    timer.Stop();
+                    window.Title = title;
+                };
+                timer.Start();
+            };
+            bgWorker.RunWorkerAsync();
+        }
+
         private void btnExitGame_Click(object sender, RoutedEventArgs e)
         {
             WPFMessageBoxResult result = WPFMessageBox.Show(

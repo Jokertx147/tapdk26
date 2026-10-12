@@ -21,10 +21,10 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         public PageSaveGame()
         {
-            Saves = new ObservableCollection<string>();
+            Saves = new ObservableCollection<SaveFileInfo>();
             InitializeComponent();
 
-            foreach (string savedFile in LoadSaveHelpers.GetSavedGames())
+            foreach (SaveFileInfo savedFile in LoadSaveHelpers.GetSavedGameInfos())
             {
                 Saves.Add(savedFile);
             }
@@ -40,7 +40,7 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         #region Public Properties
 
-        public ObservableCollection<string> Saves { get; set; }
+        public ObservableCollection<SaveFileInfo> Saves { get; set; }
 
         #endregion
 
@@ -108,7 +108,11 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
         private void lbSaves_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            txtName.Text = lbSaves.SelectedItem.ToString();
+            var selected = lbSaves.SelectedItem as SaveFileInfo;
+            if (selected != null)
+            {
+                txtName.Text = selected.Name;
+            }
         }
 
         #endregion
