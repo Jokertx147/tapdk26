@@ -31,6 +31,7 @@ namespace TheAirline.Infrastructure.Services
             // dark mode keeps the game's original look (white text on translucent black panels)
             app.Resources["AppBackgroundBrush"] = Frozen(light ? LightGrey : DarkGrey);
             app.Resources["AppTextBrush"] = Frozen(light ? Color.FromRgb(0x1A, 0x1A, 0x1A) : Colors.White);
+            app.Resources["BorderBrush"] = Frozen(light ? Color.FromArgb(0x1A, 0, 0, 0) : Color.FromArgb(0x40, 0, 0, 0));
             app.Resources["PanelRowBrush"] = Frozen(light ? Color.FromArgb(0xA6, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x73, 0, 0, 0));
         }
 

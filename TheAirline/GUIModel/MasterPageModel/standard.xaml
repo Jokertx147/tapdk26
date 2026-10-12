@@ -195,9 +195,12 @@
                         ToolTip="Save game">
                     <Viewbox Width="20" Height="20">
                         <Canvas Width="24" Height="24">
-                            <Path Fill="White" Data="M3,3 H17 L21,7 V21 H3 Z" />
-                            <Rectangle Canvas.Left="7" Canvas.Top="3" Width="9" Height="6" Fill="#3772A1" />
-                            <Rectangle Canvas.Left="6" Canvas.Top="13" Width="12" Height="8" Fill="#3772A1" />
+                            <Path Fill="White" Data="M2,2 H18 L22,6 V22 H2 Z" />
+                            <Rectangle Canvas.Left="6" Canvas.Top="2" Width="10" Height="7" Fill="#3772A1" />
+                            <Rectangle Canvas.Left="12" Canvas.Top="3.5" Width="2.5" Height="4" Fill="White" />
+                            <Rectangle Canvas.Left="5" Canvas.Top="12" Width="14" Height="10" Fill="#3772A1" />
+                            <Rectangle Canvas.Left="7" Canvas.Top="14" Width="10" Height="1.5" Fill="White" />
+                            <Rectangle Canvas.Left="7" Canvas.Top="17" Width="10" Height="1.5" Fill="White" />
                         </Canvas>
                     </Viewbox>
                 </Button>

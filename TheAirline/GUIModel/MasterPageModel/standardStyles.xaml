@@ -142,7 +142,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                         Background="{TemplateBinding BorderBrush}" />
                                 <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
                                                   Grid.RowSpan="2" HorizontalAlignment="Center"
-                                                  x:Name="contentPresenter" />
+                                                  x:Name="contentPresenter">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                             </Grid>
                         </Border>
                     </Border>
@@ -237,7 +243,13 @@ and change the color of the selected bullet into a darker gray for better highli
                 </Path>
                 <ContentPresenter x:Name="HeaderContent" Margin="4 0 0 0" Grid.Column="1"
                                   VerticalAlignment="Bottom"
-                                  ContentSource="Content" TextBlock.FontWeight="Bold" TextBlock.FontFamily="Calibri" />
+                                  ContentSource="Content" TextBlock.FontWeight="Bold" TextBlock.FontFamily="Calibri">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
 
             </Grid>
         </Border>
@@ -325,7 +337,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                               HorizontalAlignment="Center"
                                               ContentSource="Header"
                                               Margin="12,2,12,2"
-                                              RecognizesAccessKey="True" />
+                                              RecognizesAccessKey="True">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -436,7 +454,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                         Background="{TemplateBinding BorderBrush}" />
                                 <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
                                                   Grid.RowSpan="2" HorizontalAlignment="Center"
-                                                  x:Name="contentPresenter" />
+                                                  x:Name="contentPresenter">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                             </Grid>
                         </Border>
                     </Border>
@@ -532,7 +556,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                         Background="{TemplateBinding BorderBrush}" />
                                 <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
                                                   Grid.RowSpan="2" HorizontalAlignment="Center"
-                                                  x:Name="contentPresenter" />
+                                                  x:Name="contentPresenter">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                             </Grid>
                         </Border>
                     </Border>
@@ -684,7 +714,13 @@ and change the color of the selected bullet into a darker gray for better highli
                             ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                             Margin="3,3,23,3"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Left" />
+                            HorizontalAlignment="Left">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                         <TextBox x:Name="PART_EditableTextBox"
                                  Style="{x:Null}"
                                  Template="{StaticResource ComboBoxTextBox}"
@@ -776,7 +812,13 @@ and change the color of the selected bullet into a darker gray for better highli
                         </Border.Background>
                         <ContentPresenter Margin="4"
                                           HorizontalAlignment="Left"
-                                          VerticalAlignment="Top" />
+                                          VerticalAlignment="Top">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
 
                     </Border>
                 </ControlTemplate>
@@ -1000,7 +1042,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               RecognizesAccessKey="True"
-                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                         </Border>
                         <Thumb x:Name="PART_HeaderGripper"
                                HorizontalAlignment="Right"
@@ -1433,7 +1481,13 @@ and change the color of the selected bullet into a darker gray for better highli
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               RecognizesAccessKey="True"
-                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
                         </Border>
                         <Thumb x:Name="PART_HeaderGripper"
                                HorizontalAlignment="Right"

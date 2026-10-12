@@ -313,6 +313,12 @@ namespace TheAirline.GUIModel.HelpersModel
     {
         #region Public Methods and Operators
 
+        //white in dark mode, near black in light mode
+        private static Brush TextBrush()
+        {
+            return System.Windows.Application.Current?.TryFindResource("AppTextBrush") as Brush ?? Brushes.White;
+        }
+
         public object Convert(object value)
         {
             return Convert(value, null, null, null);
@@ -326,13 +332,13 @@ namespace TheAirline.GUIModel.HelpersModel
 
                 if (amount >= 0)
                 {
-                    return Brushes.White;
+                    return TextBrush();
                 }
                 return Brushes.Red;
             }
             catch
             {
-                return Brushes.White;
+                return TextBrush();
             }
         }
 
