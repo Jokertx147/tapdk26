@@ -29,6 +29,8 @@ namespace TheAirline
 
             InitializeComponent();
 
+            TheAirline.Infrastructure.Services.UiScale.Attach(this, RootGrid);
+
             // the older Page based screens navigate through PageNavigator
             GUIModel.HelpersModel.PageNavigator.MainWindow = this;
 

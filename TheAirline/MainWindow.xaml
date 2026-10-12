@@ -29,7 +29,7 @@
         </LinearGradientBrush>
     </Window.Resources>
     
-    <Grid Background="{DynamicResource AppBackgroundBrush}">
+    <Grid x:Name="RootGrid" Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="50" />
             <RowDefinition Height="*"/>
