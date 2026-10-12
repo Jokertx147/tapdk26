@@ -145,7 +145,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
+                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="{DynamicResource AppTextBrush}" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -154,7 +154,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
+                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="{DynamicResource AppTextBrush}" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -235,7 +235,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
+                                                <TextBox Margin="5 0 0 0" Width="60" Text="{Binding Passengers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="{DynamicResource AppTextBrush}" BorderThickness="0 0 0 1" ToolTip="Edit the passenger demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -244,7 +244,7 @@
                                 Width="75">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
+                                                <TextBox Width="60" Text="{Binding Cargo, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Bottom" Background="Transparent" Foreground="{DynamicResource AppTextBrush}" BorderThickness="0 0 0 1" ToolTip="Edit the cargo demand" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -297,10 +297,10 @@
 
             </WrapPanel>
             <WrapPanel>
-            <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="White" x:Name="pcGates" />
-                <chart:ColumnChart Width="300" Height="300" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" x:Name="cccDemand" />
-                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Margin="10 0 0 0" Foreground="White" x:Name="pcSeats" />
-                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="White" x:Name="pcDemand" />
+            <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1006'}" Foreground="{DynamicResource AppTextBrush}" x:Name="pcGates" />
+                <chart:ColumnChart Width="300" Height="300" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="{DynamicResource AppTextBrush}" x:Name="cccDemand" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1008'}" Margin="10 0 0 0" Foreground="{DynamicResource AppTextBrush}" x:Name="pcSeats" />
+                <chart:PieChart Width="300" Height="300" HorizontalAlignment="Left" ItemsSource="{Binding}" ChartTitle="{Binding Converter={StaticResource TranslatorConverter},ConverterParameter='PageAirportDemand 1007'}" Margin="10 0 0 0" Foreground="{DynamicResource AppTextBrush}" x:Name="pcDemand" />
             </WrapPanel>
         </StackPanel>
         </Grid>

@@ -16,7 +16,7 @@
                 <Setter Property="Foreground" Value="Orange" />
             </Trigger>
         </Style.Triggers>
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="TextBlock.TextDecorations" Value="{x:Null}" />
 
     </Style>
@@ -72,7 +72,7 @@ and change the color of the selected bullet into a darker gray for better highli
     <!--textboxes-->
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Black" />
     </Style>
@@ -97,6 +97,9 @@ and change the color of the selected bullet into a darker gray for better highli
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
                     <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
                         <Storyboard x:Key="ShowShine">
                             <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" Storyboard.TargetName="Shine"
                                                            Storyboard.TargetProperty="(UIElement.Opacity)">
@@ -178,14 +181,14 @@ and change the color of the selected bullet into a darker gray for better highli
     </Style>
     <!--textblocks-->
     <Style TargetType="{x:Type TextBlock}">
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="FontFamily" Value="Calibri" />
 
     </Style>
     <Style x:Key="HeaderStyle" TargetType="{x:Type TextBlock}">
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontSize" Value="32" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="FontFamily" Value="Calibri" />
     </Style>
     <Style TargetType="{x:Type TextBlock}" x:Key="SmallHeaderStyle">
@@ -304,6 +307,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabItem}">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid>
                         <Border
                             Name="Border"
@@ -383,6 +391,9 @@ and change the color of the selected bullet into a darker gray for better highli
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
                     <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
                         <Storyboard x:Key="ShowShine">
                             <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" Storyboard.TargetName="Shine"
                                                            Storyboard.TargetProperty="(UIElement.Opacity)">
@@ -476,6 +487,9 @@ and change the color of the selected bullet into a darker gray for better highli
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
                     <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
                         <Storyboard x:Key="ShowShine">
                             <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" Storyboard.TargetName="Shine"
                                                            Storyboard.TargetProperty="(UIElement.Opacity)">
@@ -648,6 +662,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid>
                         <ToggleButton
                             Name="ToggleButton"
@@ -743,6 +762,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Border Name="Border"
                             BorderThickness="1"
                             Width="{TemplateBinding Width}"
@@ -959,6 +983,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="GridViewColumnHeader">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid>
                         <Border Name="HeaderBorder"
                                 BorderThickness="0"
@@ -992,12 +1021,8 @@ and change the color of the selected bullet into a darker gray for better highli
 
     </Style>
     <Style TargetType="{x:Type ListViewItem}">
-        <Setter Property="Background">
-            <Setter.Value>
-                <SolidColorBrush Color="Black" Opacity="0.45" />
-            </Setter.Value>
-        </Setter>
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource PanelRowBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="Padding" Value="1,0,0,0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -1233,7 +1258,7 @@ and change the color of the selected bullet into a darker gray for better highli
     </Style>
     <Style TargetType="{x:Type DatePickerTextBox}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="IsReadOnly" Value="True" />
         <Setter Property="Focusable" Value="False" />
     </Style>
@@ -1268,6 +1293,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid Width="18" Height="18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -1322,6 +1352,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid Width="18" Height="18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -1381,6 +1416,11 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="GridViewColumnHeader">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White" />
+                        </Style>
+                    </ControlTemplate.Resources>
                     <Grid>
                         <Border Name="HeaderBorder"
                                 BorderThickness="0"
@@ -1415,12 +1455,8 @@ and change the color of the selected bullet into a darker gray for better highli
 
     <!-- style the conatiner which renders each individual cell within the sortable grid -->
     <Style TargetType="{x:Type ListViewItem}" x:Key="ListViewItemStyle">
-        <Setter Property="Background">
-            <Setter.Value>
-                <SolidColorBrush Color="Black" Opacity="0.45" />
-            </Setter.Value>
-        </Setter>
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource PanelRowBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
         <Setter Property="Padding" Value="1,0,0,0" />
         <Setter Property="Template">
             <Setter.Value>

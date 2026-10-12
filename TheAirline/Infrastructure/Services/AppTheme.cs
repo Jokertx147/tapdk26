@@ -26,9 +26,19 @@ namespace TheAirline.Infrastructure.Services
 
         private static void Apply(Application app)
         {
-            var brush = new SolidColorBrush(IsLightTheme() ? LightGrey : DarkGrey);
+            bool light = IsLightTheme();
+
+            // dark mode keeps the game's original look (white text on translucent black panels)
+            app.Resources["AppBackgroundBrush"] = Frozen(light ? LightGrey : DarkGrey);
+            app.Resources["AppTextBrush"] = Frozen(light ? Color.FromRgb(0x1A, 0x1A, 0x1A) : Colors.White);
+            app.Resources["PanelRowBrush"] = Frozen(light ? Color.FromArgb(0xA6, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x73, 0, 0, 0));
+        }
+
+        private static SolidColorBrush Frozen(Color color)
+        {
+            var brush = new SolidColorBrush(color);
             brush.Freeze();
-            app.Resources["AppBackgroundBrush"] = brush;
+            return brush;
         }
 
         private static bool IsLightTheme()

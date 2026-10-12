@@ -302,7 +302,7 @@
                     <h:QuickInfoValue.Value>
                         <WrapPanel>
                             <CheckBox Name="cbStartDate" VerticalAlignment="Center" />
-                            <DatePicker IsEnabled="{Binding ElementName=cbStartDate,Path=IsChecked}" Foreground="White"
+                            <DatePicker IsEnabled="{Binding ElementName=cbStartDate,Path=IsChecked}" Foreground="{DynamicResource AppTextBrush}"
                                         CalendarStyle="{StaticResource CalendarPickerStyle}" x:Name="dpStartDate"
                                         Margin="10 0 0 0" />
                         </WrapPanel>

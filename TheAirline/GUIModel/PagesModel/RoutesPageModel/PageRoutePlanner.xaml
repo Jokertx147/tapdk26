@@ -310,7 +310,7 @@
                                             <Border BorderBrush="Black" BorderThickness="1" Width="100">
                                             <t:DateTimeUpDown Name="tpTime" Format="ShortTime" Value="12:00"
                                                               Background="Transparent" BorderBrush="Black"
-                                                              BorderThickness="0" Foreground="White" 
+                                                              BorderThickness="0" Foreground="{DynamicResource AppTextBrush}" 
                                                               VerticalAlignment="Bottom" />
                                         </Border>
                                     </StackPanel>
