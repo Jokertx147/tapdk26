@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Cross-platform (Linux, macOS, Windows) user interface built with Avalonia.
-       Run from the repository folder with: dotnet run --project TheAirline.Desktop -->
+       Run from the repository folder with: dotnet run (see README) -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
