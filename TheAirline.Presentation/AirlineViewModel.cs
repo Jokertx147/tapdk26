@@ -99,6 +99,7 @@ namespace TheAirline.Presentation
             Finance = new FinanceViewModel();
             AirportManager = new AirportManagerViewModel(OnGameChanged);
             Loans = new LoansViewModel(OnGameChanged);
+            Timetable = new TimetableViewModel(OnGameChanged);
             Refresh();
         }
 
@@ -109,6 +110,7 @@ namespace TheAirline.Presentation
         public FinanceViewModel Finance { get; }
         public AirportManagerViewModel AirportManager { get; }
         public LoansViewModel Loans { get; }
+        public TimetableViewModel Timetable { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;
@@ -150,6 +152,7 @@ namespace TheAirline.Presentation
             Pilots.Reload();
             AirportManager?.Reload();
             Loans?.Reload();
+            Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();
         }
@@ -305,6 +308,7 @@ namespace TheAirline.Presentation
             if (signature != _signature)
             {
                 _signature = signature;
+                Timetable?.ReloadAircraft();
 
                 Fleet.Clear();
                 foreach (var f in fleet)

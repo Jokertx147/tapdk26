@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.TimetableView">
+  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,12,400" Margin="0,10,0,0">
+
+    <StackPanel Grid.ColumnSpan="3" Spacing="6" Margin="0,0,0,8">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Aircraft" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding Aircraft}" SelectedItem="{Binding SelectedAircraft}" MinWidth="420">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <TextBlock Text="{Binding Summary}" Opacity="0.8" />
+    </StackPanel>
+
+    <!-- the week of this aircraft -->
+    <Grid Grid.Row="1" RowDefinitions="Auto,*">
+      <Grid ColumnDefinitions="50,60,70,90,110,*" Margin="4,0,0,2" Opacity="0.7">
+        <TextBlock Text="Day" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="Leaves" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="2" Text="Arrives" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="3" Text="Flight" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="4" Text="Route" FontWeight="SemiBold" />
+      </Grid>
+      <ListBox Grid.Row="1" ItemsSource="{Binding Rows}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="50,60,70,90,110,*">
+              <TextBlock Text="{Binding Day}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding Time}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding Arrives}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="{Binding Flight}" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="4" Text="{Binding Route}" VerticalAlignment="Center" />
+              <Button Grid.Column="5" Content="Remove" Command="{Binding RemoveCommand}" HorizontalAlignment="Left" Padding="8,2" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <!-- add flights -->
+    <ScrollViewer Grid.Row="1" Grid.Column="2">
+      <StackPanel Spacing="8" Margin="0,0,10,0">
+        <TextBlock Text="Add flights" FontSize="16" FontWeight="SemiBold" />
+
+        <TextBlock Text="Route" Opacity="0.7" />
+        <ComboBox ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <TextBlock Text="Leaves from" Opacity="0.7" />
+        <ComboBox ItemsSource="{Binding Directions}" SelectedItem="{Binding SelectedFrom}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Departure time" Opacity="0.7" />
+            <ComboBox ItemsSource="{Binding Times}" SelectedItem="{Binding SelectedTime}" MinWidth="100">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Text}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <TextBlock Text="Turnaround (min)" Opacity="0.7" />
+            <ComboBox ItemsSource="{Binding TurnaroundOptions}" SelectedItem="{Binding Turnaround}" MinWidth="100" />
+          </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="Days" Opacity="0.7" />
+        <ItemsControl ItemsSource="{Binding Days}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="0,0,8,0" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <WrapPanel>
+          <Button Content="Daily" Command="{Binding DailyCommand}" Margin="0,0,6,4" Padding="8,2" />
+          <Button Content="Weekdays" Command="{Binding WeekdaysCommand}" Margin="0,0,6,4" Padding="8,2" />
+          <Button Content="Weekend" Command="{Binding WeekendCommand}" Margin="0,0,6,4" Padding="8,2" />
+          <Button Content="Mon Wed Fri" Command="{Binding MwfCommand}" Margin="0,0,6,4" Padding="8,2" />
+          <Button Content="Tue Thu Sat" Command="{Binding TtsCommand}" Margin="0,0,6,4" Padding="8,2" />
+        </WrapPanel>
+
+        <TextBlock Text="Flight number (empty = next free)" Opacity="0.7" />
+        <TextBox Text="{Binding FlightCode}" Watermark="e.g. AA0123" />
+
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+          <Button Content="Add round trips" Command="{Binding AddRoundTripCommand}" />
+          <Button Content="Add one way" Command="{Binding AddOneWayCommand}" />
+        </StackPanel>
+        <Button Content="Remove all flights on this route" Command="{Binding RemoveRouteFlightsCommand}" HorizontalAlignment="Left" />
+        <TextBlock Text="A round trip flies out at the departure time and back after the flight time plus the turnaround. Changing the timetable stops the aircraft." Opacity="0.6" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" />
+  </Grid>
+</UserControl>

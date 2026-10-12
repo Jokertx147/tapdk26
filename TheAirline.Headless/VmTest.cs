@@ -176,6 +176,29 @@ static class VmTest
             Console.WriteLine("fare save: " + rd.Status);
             rd.Fares[0].Price = "abc"; rd.SaveFaresCommand.Execute(null);
             Console.WriteLine("bad fare: " + rd.Status);
+            // timetable editing
+            var tt = av.Timetable;
+            Console.WriteLine("TT aircraft=" + tt.Aircraft.Count + " sel=" + tt.SelectedAircraft?.Text + " routes=" + tt.Routes.Count + " rows=" + tt.Rows.Count + " | " + tt.Summary);
+            if (tt.SelectedAircraft != null && tt.SelectedRoute != null)
+            {
+                int r0 = tt.Rows.Count;
+                tt.RemoveRouteFlightsCommand.Execute(null);
+                Console.WriteLine("  cleared: " + tt.Status + " rows=" + tt.Rows.Count + " | " + tt.Summary + " routes on aircraft=" + tt.SelectedAircraft.Airliner.Routes.Count);
+                tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(7, 0, 0));
+                tt.WeekdaysCommand.Execute(null);
+                tt.AddRoundTripCommand.Execute(null);
+                Console.WriteLine("  weekdays round trips: " + tt.Status + " rows=" + tt.Rows.Count);
+                foreach (var r in tt.Rows.Take(4)) Console.WriteLine("    " + r.Day + " " + r.Time + " -> " + r.Arrives + " " + r.Flight + " " + r.Route);
+                tt.AddRoundTripCommand.Execute(null);
+                Console.WriteLine("  duplicate add: " + tt.Status + " rows=" + tt.Rows.Count);
+                tt.DailyCommand.Execute(null); tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(15, 0, 0));
+                tt.AddOneWayCommand.Execute(null);
+                Console.WriteLine("  one way daily 15:00: " + tt.Status + " rows=" + tt.Rows.Count);
+                tt.Rows.First().RemoveCommand.Execute(null);
+                Console.WriteLine("  remove one: " + tt.Status + " rows=" + tt.Rows.Count);
+                av.Refresh();
+                Console.WriteLine("  all flights list=" + av.Flights.Count + " fleet row routes=" + av.Fleet.First().Routes);
+            }
             rd.DeleteCommand.Execute(null); rd.ConfirmDeleteCommand.Execute(null);
             av.Refresh();
             Console.WriteLine("after delete routes=" + av.Routes.Count + " detail=" + (av.RouteDetail == null ? "none" : "still") + " fleet status=" + av.Fleet.First().Status);
