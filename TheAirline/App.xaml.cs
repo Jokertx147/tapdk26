@@ -57,6 +57,7 @@ namespace TheAirline
                 return;
             }
 
+            AppTheme.Initialize(this);
             base.OnStartup(e);
         }
 

@@ -252,7 +252,7 @@
                 <ControlTemplate TargetType="{x:Type local:StandardMasterPage}">
                     <Grid>
                         <Grid.Background>
-                            <ImageBrush ImageSource="/Resources\images/bg.jpg" />
+                            <DynamicResource ResourceKey="AppBackgroundBrush" />
                         </Grid.Background>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="50" />
