@@ -3024,13 +3024,15 @@ namespace TheAirline.Infrastructure
                                     currencyToDate = DataParsing.ParseDate(currencyElement.Attributes["to"].Value);
                                 }
 
-                                //country.AddCurrency(
-                                //    new CountryCurrency(
-                                //        currencyFromDate,
-                                //        currencyToDate,
-                                //        currencySymbol,
-                                //        currencyPosition,
-                                //        currencyRate));
+                                country.AddCurrency(
+                                    new Currency
+                                    {
+                                        Symbol = currencySymbol,
+                                        Exchange = currencyRate,
+                                        From = currencyFromDate,
+                                        To = currencyToDate,
+                                        SymbolOnRight = currencyPosition == CountryCurrency.CurrencyPosition.Right
+                                    });
                             }
 
                         if (element.SelectSingleNode("translations") != null)

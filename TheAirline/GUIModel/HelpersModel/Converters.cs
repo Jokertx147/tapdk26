@@ -138,6 +138,9 @@ namespace TheAirline.GUIModel.HelpersModel
     //the converter for a value to the current currency
     public class ValueCurrencyConverter : IValueConverter
     {
+        // game values are in US dollars, so without a local currency they are shown as dollars whatever the language
+        private static readonly CultureInfo BaseCurrencyCulture = CultureInfo.GetCultureInfo("en-US");
+
         #region Public Methods and Operators
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -148,7 +151,7 @@ namespace TheAirline.GUIModel.HelpersModel
 
                 if (GameObject.GetInstance().CurrencyCountry == null || double.IsInfinity(v))
                 {
-                    return string.Format("{0:C}", value);
+                    return string.Format(BaseCurrencyCulture, "{0:C}", value);
                 }
                 var currency =
                     GameObject.GetInstance().CurrencyCountry.GetCurrency(GameObject.GetInstance().GameTime);
@@ -160,6 +163,7 @@ namespace TheAirline.GUIModel.HelpersModel
                         if (v >= 1000000000 || v <= -1000000000)
                         {
                             return string.Format(
+                                BaseCurrencyCulture,
                                 "{0:C} {1}",
                                 v/1000000000,
                                 Translator.GetInstance().GetString("General", "2001"));
@@ -167,13 +171,14 @@ namespace TheAirline.GUIModel.HelpersModel
                         if (v >= 1000000 || v <= -1000000)
                         {
                             return string.Format(
+                                BaseCurrencyCulture,
                                 "{0:C} {1}",
                                 v/1000000,
                                 Translator.GetInstance().GetString("General", "2000"));
                         }
-                        return string.Format("{0:C}", value);
+                        return string.Format(BaseCurrencyCulture, "{0:C}", value);
                     }
-                    return string.Format("{0:C}", value);
+                    return string.Format(BaseCurrencyCulture, "{0:C}", value);
                 }
                 var currencyValue = v*currency.Exchange;
 
@@ -210,7 +215,7 @@ namespace TheAirline.GUIModel.HelpersModel
             }
             catch (Exception)
             {
-                return string.Format("{0:C}", value);
+                return string.Format(BaseCurrencyCulture, "{0:C}", value);
             }
         }
 
