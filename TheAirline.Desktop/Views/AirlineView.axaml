@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
              x:Class="TheAirline.Desktop.Views.AirlineView">
   <Grid RowDefinitions="Auto,*" Margin="16">
     <!-- top bar: airline, date, money, controls -->
@@ -22,6 +23,8 @@
       </Grid>
     </Border>
 
+    <TabControl Grid.Row="1">
+      <TabItem Header="Overview">
     <Grid Grid.Row="1" ColumnDefinitions="*,12,*">
       <Grid RowDefinitions="Auto,*">
         <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
@@ -46,11 +49,20 @@
               <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Distance}" Opacity="0.7" />
+                <TextBlock Text="{Binding Balance}" Opacity="0.7" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
       </Grid>
     </Grid>
+      </TabItem>
+      <TabItem Header="Airports and routes">
+        <v:AirportsView DataContext="{Binding Airports}" />
+      </TabItem>
+      <TabItem Header="Aircraft market">
+        <v:MarketView DataContext="{Binding Market}" />
+      </TabItem>
+    </TabControl>
   </Grid>
 </UserControl>

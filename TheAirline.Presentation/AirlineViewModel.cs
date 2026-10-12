@@ -22,6 +22,7 @@ namespace TheAirline.Presentation
     {
         public string Name { get; set; }
         public string Distance { get; set; }
+        public string Balance { get; set; }
     }
 
     public class SpeedChoice
@@ -64,6 +65,17 @@ namespace TheAirline.Presentation
                         GameSession.StopClock();
                         _shell.ShowMainMenu();
                     });
+            Market = new MarketViewModel(OnGameChanged);
+            Airports = new AirportsViewModel(OnGameChanged);
+            Refresh();
+        }
+
+        public MarketViewModel Market { get; }
+        public AirportsViewModel Airports { get; }
+
+        private void OnGameChanged()
+        {
+            Airports.ReloadAdvice();
             Refresh();
         }
 
@@ -192,7 +204,8 @@ namespace TheAirline.Presentation
                         new RouteItem
                         {
                             Name = r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode,
-                            Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2))
+                            Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2)),
+                            Balance = "profit " + Convert.ToString(new ValueCurrencyFormatter().Convert(r.Balance))
                         });
                 }
             }

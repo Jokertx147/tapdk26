@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.MarketView">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+      <TextBlock Text="Used aircraft for sale" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <TextBox Text="{Binding Filter}" Watermark="filter by type" Width="220" />
+    </StackPanel>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Aircraft}" SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Margin="2">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Details}" Opacity="0.7" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,10,0,0">
+      <TextBlock Text="Home airport" VerticalAlignment="Center" Margin="0,0,10,0" />
+      <ComboBox Grid.Column="1" ItemsSource="{Binding Homebases}" SelectedItem="{Binding Homebase}" MinWidth="260">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Profile.Name}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Grid.Column="2" Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0" />
+      <Button Grid.Column="3" Content="Lease (2 months deposit)" Command="{Binding LeaseCommand}" Margin="0,0,10,0" />
+      <Button Grid.Column="4" Content="Buy" Command="{Binding BuyCommand}" MinWidth="80" HorizontalContentAlignment="Center" />
+    </Grid>
+  </Grid>
+</UserControl>

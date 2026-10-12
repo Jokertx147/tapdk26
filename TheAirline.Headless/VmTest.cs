@@ -30,6 +30,35 @@ static class VmTest
             await Wait(() => shell.Current is AirlineViewModel, "game created");
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
+            // aircraft market: pick the cheapest-looking aircraft we can afford and buy it
+            var mk = av.Market;
+            Console.WriteLine("market: " + mk.Aircraft.Count + " aircraft");
+            foreach (var item in mk.Aircraft.OrderBy(a => a.Airliner.GetPrice()).Take(200))
+            {
+                mk.Selected = item;
+                if (mk.Homebase != null) break;
+            }
+            Console.WriteLine("selected " + mk.Selected?.Name + " homebase " + mk.Homebase?.Profile.IATACode + " price " + mk.Selected?.PriceText);
+            mk.BuyCommand.Execute(null);
+            Console.WriteLine("buy: " + mk.Status);
+            av.Refresh();
+            Console.WriteLine("fleet=" + av.Fleet.Count);
+
+            // airports tab: advice from the home airport, then create a route
+            var ap = av.Airports;
+            await Wait(() => !ap.IsBusy, "advice");
+            Console.WriteLine("airports shown " + ap.Airports.Count + ", advice " + ap.Advice.Count);
+            ap.SelectedAdvice = ap.Advice.First(a => a.Advice.FleetCanFly);
+            var cr = ap.Create;
+            Console.WriteLine(cr.Title + " aircraft options=" + cr.Aircraft.Count + " offers=" + cr.Offers.Count + " trips=" + cr.Trips.Count + " start=" + cr.StartTime);
+            foreach (var o in cr.Offers.ToList()) { Console.WriteLine("  gate offer: " + o.Text + " options=" + o.Options.Count); o.LeaseCommand.Execute(null); }
+            Console.WriteLine("offers after lease=" + cr.Offers.Count + " info=" + cr.Info);
+            cr.CreateCommand.Execute(null);
+            Console.WriteLine("create: " + ap.Status + " | info=" + cr.Info);
+            foreach (var o in cr.Offers.ToList()) { Console.WriteLine("  gate offer: " + o.Text); o.LeaseCommand.Execute(null); }
+            if (ap.Create != null) { ap.Create.CreateCommand.Execute(null); Console.WriteLine("create2: " + ap.Status + " | info=" + ap.Create?.Info); }
+            av.Refresh();
+            Console.WriteLine("routes=" + av.Routes.Count + " " + string.Join(",", av.Routes.Select(r => r.Name + " " + r.Balance)));
             if (!av.IsRunning) av.TogglePauseCommand.Execute(null);
             Thread.Sleep(5000);
             av.Refresh();
