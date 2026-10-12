@@ -1,4 +1,4 @@
-﻿namespace TheAirline.GUIModel.HelpersModel
+namespace TheAirline.GUIModel.HelpersModel
 {
     using System;
     using System.Collections.Generic;
@@ -760,7 +760,8 @@
 
             var focusVisualSetter = new Setter();
             focusVisualSetter.Property = FrameworkElement.FocusVisualStyleProperty;
-            focusVisualSetter.Value = null;
+            // a null setter value becomes UnsetValue once the style is sealed, which crashes on focus; an empty style draws nothing
+            focusVisualSetter.Value = new Style();
 
             var listBox = ItemsControl.ItemsControlFromItemContainer(container) as ListBox;
             int index = listBox.ItemContainerGenerator.IndexFromContainer(container);
@@ -818,7 +819,8 @@
 
             var focusVisualSetter = new Setter();
             focusVisualSetter.Property = FrameworkElement.FocusVisualStyleProperty;
-            focusVisualSetter.Value = null;
+            // a null setter value becomes UnsetValue once the style is sealed, which crashes on focus; an empty style draws nothing
+            focusVisualSetter.Value = new Style();
 
             var listBox = ItemsControl.ItemsControlFromItemContainer(container) as ListBox;
             int index = listBox.ItemContainerGenerator.IndexFromContainer(container);
@@ -885,7 +887,8 @@
 
             var focusVisualSetter = new Setter();
             focusVisualSetter.Property = FrameworkElement.FocusVisualStyleProperty;
-            focusVisualSetter.Value = null;
+            // a null setter value becomes UnsetValue once the style is sealed, which crashes on focus; an empty style draws nothing
+            focusVisualSetter.Value = new Style();
 
             var listBox = ItemsControl.ItemsControlFromItemContainer(container) as ListBox;
             int index = listBox.ItemContainerGenerator.IndexFromContainer(container);
