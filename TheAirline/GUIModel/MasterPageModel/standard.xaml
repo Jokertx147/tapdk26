@@ -250,10 +250,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:StandardMasterPage}">
-                    <Grid>
-                        <Grid.Background>
-                            <DynamicResource ResourceKey="AppBackgroundBrush" />
-                        </Grid.Background>
+                    <Grid Background="{DynamicResource AppBackgroundBrush}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="50" />
                             <RowDefinition Height="*" />
