@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.Airlines;
@@ -68,6 +68,10 @@ namespace TheAirline.Helpers
             TimeSpan flightTime = MathHelpers.GetFlightTime(route.Destination1, route.Destination2, route.GetAirliners()[0].Airliner.Type);
 
             RouteFacility food = ((PassengerRoute) route).GetRouteAirlinerClass(AirlinerClass.ClassType.EconomyClass).GetFacility(RouteFacility.FacilityType.Food);
+
+            //routes made before a facility existed (or without one) have none
+            if (food == null)
+                return 3;
 
             double foodlevel;
 
@@ -219,6 +223,9 @@ namespace TheAirline.Helpers
         public static double GetRouteWifiScore(Route route)
         {
             RouteFacility wifi = ((PassengerRoute) route).GetRouteAirlinerClass(AirlinerClass.ClassType.EconomyClass).GetFacility(RouteFacility.FacilityType.WiFi);
+
+            if (wifi == null)
+                return 3;
 
             if (wifi.Name == "None")
                 return 3;
