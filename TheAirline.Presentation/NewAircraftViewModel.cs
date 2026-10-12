@@ -33,6 +33,12 @@ namespace TheAirline.Presentation
         public string Details { get; }
     }
 
+    public class ManufacturerItem
+    {
+        public string Name { get; set; }
+        public string Text { get; set; }
+    }
+
     public class EngineChoice
     {
         public EngineType Engine { get; set; }
@@ -60,11 +66,27 @@ namespace TheAirline.Presentation
         {
             _changed = changed;
             Types = new ObservableCollection<NewTypeItem>();
+            Manufacturers = new ObservableCollection<ManufacturerItem>();
             OrderCommand = new RelayCommand(Order, () => _selected != null);
             Reload();
         }
 
         public ObservableCollection<NewTypeItem> Types { get; }
+        public ObservableCollection<ManufacturerItem> Manufacturers { get; }
+        private ManufacturerItem _manufacturer;
+
+        /// <summary>Only the types of this manufacturer are listed (null or the first entry means all).</summary>
+        public ManufacturerItem Manufacturer
+        {
+            get { return _manufacturer; }
+            set
+            {
+                if (SetProperty(ref _manufacturer, value))
+                {
+                    ApplyFilter();
+                }
+            }
+        }
         public ICommand OrderCommand { get; }
 
         public NewTypeItem Selected
@@ -196,6 +218,17 @@ namespace TheAirline.Presentation
                                 .ThenBy(t => t.Name)
                                 .Select(t => new NewTypeItem(t))
                                 .ToList();
+
+            string keepName = _manufacturer?.Name;
+            Manufacturers.Clear();
+            Manufacturers.Add(new ManufacturerItem { Name = null, Text = "All manufacturers (" + _all.Count + ")" });
+            foreach (var g in _all.GroupBy(t => t.Type.Manufacturer?.Name ?? "Other").OrderBy(g => g.Key))
+            {
+                Manufacturers.Add(new ManufacturerItem { Name = g.Key, Text = g.Key + " (" + g.Count() + ")" });
+            }
+
+            _manufacturer = Manufacturers.FirstOrDefault(m => m.Name == keepName) ?? Manufacturers[0];
+            OnPropertyChanged(nameof(Manufacturer));
             ApplyFilter();
         }
 
@@ -204,8 +237,9 @@ namespace TheAirline.Presentation
             var keep = _selected?.Type;
             Types.Clear();
             foreach (var t in _all.Where(
-                t => t.Name.IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0
-                     || (t.Details ?? "").IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0))
+                t => (_manufacturer?.Name == null || (t.Type.Manufacturer?.Name ?? "Other") == _manufacturer.Name)
+                     && (t.Name.IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0
+                         || (t.Details ?? "").IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0)))
             {
                 Types.Add(t);
             }

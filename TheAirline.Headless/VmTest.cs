@@ -87,7 +87,7 @@ static class VmTest
             // new aircraft order
             var na = av.NewAircraft;
             Console.WriteLine("ORDER types=" + na.Types.Count);
-            na.Filter = "737"; Console.WriteLine("  filtered=" + na.Types.Count);
+            Console.WriteLine("  manufacturers: " + string.Join("; ", na.Manufacturers.Select(m => m.Text))); na.Manufacturer = na.Manufacturers[1]; Console.WriteLine("  first maker types=" + na.Types.Count + " " + na.Types.First().Details); na.Manufacturer = na.Manufacturers[0]; na.Filter = "737"; Console.WriteLine("  filtered=" + na.Types.Count);
             na.Selected = na.Types.FirstOrDefault() ?? (na.Filter == "" ? null : null);
             if (na.Selected == null) { na.Filter = ""; na.Selected = na.Types.First(); }
             na.Amount = 2; na.DownPayment = true;
