@@ -46,7 +46,10 @@
           <TabItem Header="Airports">
             <v:AirportManagerView DataContext="{Binding AirportManager}" />
           </TabItem>
-          <TabItem Header="Aircraft market">
+          <TabItem Header="New aircraft">
+            <v:NewAircraftView DataContext="{Binding NewAircraft}" />
+          </TabItem>
+          <TabItem Header="Used aircraft">
             <v:MarketView DataContext="{Binding Market}" />
           </TabItem>
           <TabItem Header="Finances">

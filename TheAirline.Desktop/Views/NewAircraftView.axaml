@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.NewAircraftView">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="0,10,0,0">
+    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+      <TextBlock Text="Order new aircraft" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <TextBox Text="{Binding Filter}" Watermark="filter by type or manufacturer" Width="260" />
+    </StackPanel>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Types}" SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Margin="2">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Details}" Opacity="0.7" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <StackPanel Grid.Row="2" Margin="0,10,0,0" Spacing="8">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Amount" VerticalAlignment="Center" />
+        <NumericUpDown Value="{Binding Amount}" Minimum="1" Maximum="100" Increment="1" FormatString="0" Width="110" />
+        <TextBlock Text="Home airport" VerticalAlignment="Center" Margin="10,0,0,0" />
+        <ComboBox ItemsSource="{Binding Homebases}" SelectedItem="{Binding Homebase}" MinWidth="240">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Profile.Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="Engine" VerticalAlignment="Center" Margin="10,0,0,0" />
+        <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" MinWidth="220">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <CheckBox IsChecked="{Binding DownPayment}" Content="Down payment (pay the rest on delivery)" />
+        <CheckBox IsChecked="{Binding TerminateContract}" IsVisible="{Binding HasContractWarning}" Content="End my manufacturer contract" />
+      </StackPanel>
+      <TextBlock Text="{Binding ContractWarning}" IsVisible="{Binding HasContractWarning}" TextWrapping="Wrap" Foreground="OrangeRed" />
+    </StackPanel>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+      <StackPanel>
+        <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Opacity="0.8" />
+      </StackPanel>
+      <Button Grid.Column="1" Content="Order" Command="{Binding OrderCommand}" MinWidth="100" HorizontalContentAlignment="Center" />
+    </Grid>
+  </Grid>
+</UserControl>

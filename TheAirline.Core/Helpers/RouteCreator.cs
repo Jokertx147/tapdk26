@@ -69,7 +69,7 @@ namespace TheAirline.Helpers
             long runway = Math.Min(origin.GetMaxRunwayLength(), destination.GetMaxRunwayLength());
 
             return GameObject.GetInstance()
-                             .HumanAirline.Fleet.Where(
+                             .HumanAirline.DeliveredFleet.Where(
                                  f =>
                                  f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
                                  || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)

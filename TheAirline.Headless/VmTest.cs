@@ -84,6 +84,21 @@ static class VmTest
             Console.WriteLine("after a month: " + ln.Loans[0].Detail);
             ln.Loans[0].PayOffCommand.Execute(null);
             Console.WriteLine("payoff: " + ln.Status + " loans=" + ln.Loans.Count);
+            // new aircraft order
+            var na = av.NewAircraft;
+            Console.WriteLine("ORDER types=" + na.Types.Count);
+            na.Filter = "737"; Console.WriteLine("  filtered=" + na.Types.Count);
+            na.Selected = na.Types.FirstOrDefault() ?? (na.Filter == "" ? null : null);
+            if (na.Selected == null) { na.Filter = ""; na.Selected = na.Types.First(); }
+            na.Amount = 2; na.DownPayment = true;
+            Console.WriteLine("  " + na.Selected.Name + " | homebases=" + na.Homebases.Count + " engines=" + na.Engines.Count + " | " + na.Summary);
+            var gt = TheAirline.Models.General.GameObject.GetInstance();
+            double m0 = gt.HumanAirline.Money; int f0 = gt.HumanAirline.Fleet.Count;
+            na.TerminateContract = true;
+            na.OrderCommand.Execute(null);
+            Console.WriteLine("  order: " + na.Status + " | money change=" + (gt.HumanAirline.Money - m0) + " fleet " + f0 + "->" + gt.HumanAirline.Fleet.Count + " delivered=" + gt.HumanAirline.DeliveredFleet.Count);
+            av.Refresh();
+            Console.WriteLine("  fleet row: " + av.Fleet.Last().Name + " " + av.Fleet.Last().Status + " canStart=" + av.Fleet.Last().CanStart);
             // airport manager
             var am = av.AirportManager;
             Console.WriteLine("MY AIRPORTS: " + string.Join(", ", am.Airports.Select(a => a.Text.Split(' ')[0])));

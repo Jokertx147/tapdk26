@@ -93,6 +93,7 @@ namespace TheAirline.Presentation
                         _shell.ShowMainMenu();
                     });
             Market = new MarketViewModel(OnGameChanged);
+            NewAircraft = new NewAircraftViewModel(OnGameChanged);
             Airports = new AirportsViewModel(OnGameChanged);
             Pilots = new PilotsViewModel(OnGameChanged);
             Finance = new FinanceViewModel();
@@ -102,6 +103,7 @@ namespace TheAirline.Presentation
         }
 
         public MarketViewModel Market { get; }
+        public NewAircraftViewModel NewAircraft { get; }
         public AirportsViewModel Airports { get; }
         public PilotsViewModel Pilots { get; }
         public FinanceViewModel Finance { get; }
@@ -214,7 +216,11 @@ namespace TheAirline.Presentation
 
         private void StartAirliner(FleetAirliner f)
         {
-            if (f.Routes.Count == 0)
+            if (f.Airliner.BuiltDate > GameObject.GetInstance().GameTime)
+            {
+                Status = f.Name + " has not been delivered yet (" + f.Airliner.BuiltDate.ToString("d MMM yyyy") + ").";
+            }
+            else if (f.Routes.Count == 0)
             {
                 Status = f.Name + " has no route. Create a route for it first.";
             }
@@ -294,7 +300,7 @@ namespace TheAirline.Presentation
             var fleet = airline.Fleet.ToList();
             var routes = airline.Routes.ToList();
             var entries = routes.SelectMany(r => r.TimeTable.Entries).ToList();
-            string signature = string.Join(",", fleet.Select(f => f.Name + f.Status + f.Routes.Count + f.Pilots.Count))
+            string signature = string.Join(",", fleet.Select(f => f.Name + f.Status + f.Routes.Count + f.Pilots.Count + (f.Airliner.BuiltDate > game.GameTime ? "u" : "")))
                                + "|" + routes.Count + "|" + entries.Count;
             if (signature != _signature)
             {
@@ -308,12 +314,14 @@ namespace TheAirline.Presentation
                         {
                             Name = f.Name,
                             Type = f.Airliner?.Type?.Name,
-                            Status = f.Status.ToString(),
+                            Status = f.Airliner.BuiltDate > game.GameTime
+                                ? "Delivery " + f.Airliner.BuiltDate.ToString("d MMM yyyy")
+                                : f.Status.ToString(),
                             Homebase = f.Homebase?.Profile.IATACode,
                             Routes = f.Routes.Count,
                             Crew = f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + " pilots",
-                            CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped,
-                            CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped,
+                            CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
+                            CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
                             Note = f.Routes.Count == 0 ? "no route yet" : null,
                             StartCommand = new RelayCommand(() => StartAirliner(f)),
                             StopCommand = new RelayCommand(() => StopAirliner(f))
