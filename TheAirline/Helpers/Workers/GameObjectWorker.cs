@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -164,6 +164,8 @@ namespace TheAirline.Helpers.Workers
 
         private void bw_DoWork(object sender, DoWorkEventArgs e)
         {
+            int failures = 0;
+
             while (!IsPaused && !_worker.CancellationPending)
             {
                 try
@@ -176,6 +178,8 @@ namespace TheAirline.Helpers.Workers
                     GameObjectHelpers.SimulateTurn();
                     sw.Stop();
 
+                    failures = 0;
+
                     long waittime = GetTurnDuration() - sw.ElapsedMilliseconds;
 
                     if (waittime > 0)
@@ -185,14 +189,37 @@ namespace TheAirline.Helpers.Workers
                 }
                 catch (Exception ex)
                 {
-                    var file = new StreamWriter(AppSettings.GetCommonApplicationDataPath() + "\\theairline.log");
-                    file.WriteLine("{0}: {1} {2}", DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(), ex.StackTrace);
-                    file.WriteLine(ex.ToString());
-                    file.WriteLine("---------GAME INFORMATION----------");
-                    file.Write("Gametime: {0}, human airline: {1}", GameObject.GetInstance().GameTime.ToShortDateString(), GameObject.GetInstance().HumanAirline.Profile.Name);
-                    file.Close();
+                    failures++;
+
+                    // a failing turn used to loop without any wait, so the clock raced ahead while nothing was simulated
+                    StartupLog.Write(string.Format(
+                        "Game turn failed ({0} in a row) at game time {1}: {2}",
+                        failures,
+                        GameObject.GetInstance().GameTime,
+                        ex));
 
                     IsError = true;
+
+                    if (failures >= 3)
+                    {
+                        IsPaused = true;
+
+                        StartupLog.Write("Game paused because the turn failed repeatedly");
+
+                        var app = System.Windows.Application.Current;
+                        app?.Dispatcher.BeginInvoke(
+                            new Action(
+                                () =>
+                                System.Windows.MessageBox.Show(
+                                    "The game was paused because a turn failed several times in a row.\n\n"
+                                    + ex.GetType().Name + ": " + ex.Message
+                                    + "\n\nDetails are in startup.log in your Documents\\theairlineproject folder.",
+                                    "TheAirline")));
+                    }
+                    else
+                    {
+                        Thread.Sleep(500);
+                    }
                 }
             }
 
