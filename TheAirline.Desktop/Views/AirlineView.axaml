@@ -43,6 +43,9 @@
               <TextBlock Text="Buy or lease aircraft in the Aircraft market tab, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
             </StackPanel>
           </TabItem>
+          <TabItem Header="Airports">
+            <v:AirportManagerView DataContext="{Binding AirportManager}" />
+          </TabItem>
           <TabItem Header="Aircraft market">
             <v:MarketView DataContext="{Binding Market}" />
           </TabItem>

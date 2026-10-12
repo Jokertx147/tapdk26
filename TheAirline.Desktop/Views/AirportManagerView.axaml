@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.AirportManagerView">
+  <Grid ColumnDefinitions="300,12,*" RowDefinitions="*,Auto" Margin="0,10,0,0">
+
+    <!-- airport picker -->
+    <Grid RowDefinitions="Auto,*">
+      <TextBox Text="{Binding Search}" Watermark="search airport, code or country (empty = your airports)" Margin="0,0,0,6" />
+      <ListBox Grid.Row="1" ItemsSource="{Binding Airports}" SelectedItem="{Binding Selected}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <ScrollViewer Grid.Column="2">
+      <StackPanel Spacing="10" Margin="0,0,12,0">
+        <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="Bold" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Info}" Opacity="0.8" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding GateSummary}" />
+
+        <TextBlock Text="Your contracts" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ListBox ItemsSource="{Binding Contracts}" SelectedItem="{Binding SelectedContract}" MaxHeight="130">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Button Content="End selected contract" Command="{Binding EndContractCommand}" IsVisible="{Binding NotConfirmEnd}" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding ConfirmEnd}">
+          <TextBlock Text="{Binding EndText}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+          <Button Content="Yes, end it" Command="{Binding ConfirmEndCommand}" />
+          <Button Content="Cancel" Command="{Binding CancelEndCommand}" />
+        </StackPanel>
+
+        <TextBlock Text="Lease gates" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <ComboBox ItemsSource="{Binding ContractTypes}" SelectedItem="{Binding ContractType}" MinWidth="170" />
+          <ComboBox ItemsSource="{Binding GateChoices}" SelectedItem="{Binding Gates}" MinWidth="70" />
+          <TextBlock Text="gate(s)" VerticalAlignment="Center" />
+          <Button Content="Lease" Command="{Binding LeaseCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding PriceText}" Opacity="0.8" TextWrapping="Wrap" />
+
+        <TextBlock Text="Facilities (needs a contract here)" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ItemsControl ItemsSource="{Binding Facilities}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                  <TextBlock Opacity="0.7" TextWrapping="Wrap">
+                    <Run Text="now: " /><Run Text="{Binding Current}" /><Run Text="   next: " /><Run Text="{Binding Next}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding Building}" Opacity="0.7" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Build" Command="{Binding BuyCommand}" IsVisible="{Binding CanBuy}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" />
+  </Grid>
+</UserControl>

@@ -64,6 +64,28 @@ static class VmTest
             Console.WriteLine("create: " + ap.Status + " | info=" + cr.Info);
             foreach (var o in cr.Offers.ToList()) { Console.WriteLine("  gate offer: " + o.Text); o.LeaseCommand.Execute(null); }
             if (ap.Create != null) { ap.Create.CreateCommand.Execute(null); Console.WriteLine("create2: " + ap.Status + " | info=" + ap.Create?.Info); }
+            // airport manager
+            var am = av.AirportManager;
+            Console.WriteLine("MY AIRPORTS: " + string.Join(", ", am.Airports.Select(a => a.Text.Split(' ')[0])));
+            Console.WriteLine("DETAIL: " + am.Title + " | " + am.GateSummary + " | contracts=" + am.Contracts.Count + " | " + string.Join(" ; ", am.Contracts.Select(c => c.Text)));
+            foreach (var f in am.Facilities) Console.WriteLine("  facility " + f.Name + ": " + f.Current + " -> " + f.Next + " canBuy=" + f.CanBuy);
+            Console.WriteLine("gate choices=" + am.GateChoices.Count + " price: " + am.PriceText);
+            am.Gates = 1; am.LeaseCommand.Execute(null);
+            Console.WriteLine("lease more: " + am.Status + " | " + am.GateSummary);
+            var up = am.Facilities.FirstOrDefault(f => f.CanBuy);
+            if (up != null) { up.BuyCommand.Execute(null); Console.WriteLine("facility: " + am.Status); }
+            am.Search = "JFK";
+            Console.WriteLine("search JFK: " + am.Airports.Count + " " + am.Airports.FirstOrDefault()?.Text);
+            am.Selected = am.Airports.First();
+            Console.WriteLine("JFK: " + am.GateSummary + " | " + am.PriceText + " canBuyFacility=" + am.Facilities.Any(f => f.CanBuy));
+            am.LeaseCommand.Execute(null);
+            Console.WriteLine("lease JFK: " + am.Status + " | " + am.GateSummary + " contracts=" + am.Contracts.Count);
+            am.SelectedContract = am.Contracts.FirstOrDefault();
+            am.EndContractCommand.Execute(null);
+            Console.WriteLine("end: " + am.EndText);
+            am.ConfirmEndCommand.Execute(null);
+            Console.WriteLine("end result: " + am.Status + " contracts=" + am.Contracts.Count);
+            am.Search = "";
             // crew the aircraft, then start it
             var pv = av.Pilots;
             Console.WriteLine("targets: " + string.Join(" | ", pv.Targets.Select(t => t.Name)) + " ; available(any)=" + pv.Available.Count);

@@ -96,6 +96,7 @@ namespace TheAirline.Presentation
             Airports = new AirportsViewModel(OnGameChanged);
             Pilots = new PilotsViewModel(OnGameChanged);
             Finance = new FinanceViewModel();
+            AirportManager = new AirportManagerViewModel(OnGameChanged);
             Refresh();
         }
 
@@ -103,6 +104,7 @@ namespace TheAirline.Presentation
         public AirportsViewModel Airports { get; }
         public PilotsViewModel Pilots { get; }
         public FinanceViewModel Finance { get; }
+        public AirportManagerViewModel AirportManager { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;
@@ -141,6 +143,7 @@ namespace TheAirline.Presentation
         {
             Airports.ReloadAdvice();
             Pilots.Reload();
+            AirportManager?.Reload();
             _financeDate = null;
             Refresh();
         }
