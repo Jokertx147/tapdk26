@@ -443,6 +443,79 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
         public Boolean ForConfig { get; set; }
 
+        //saved and standard layouts can only be used on passenger airliners
+        public Boolean CanUseConfigurations
+        {
+            get { return this.Type is AirlinerPassengerType; }
+        }
+
+        //the saved layouts that fit this airliner type
+        public List<AirlinerConfiguration> GetFittingConfigurations()
+        {
+            var passengerType = this.Type as AirlinerPassengerType;
+
+            if (passengerType == null)
+            {
+                return new List<AirlinerConfiguration>();
+            }
+
+            return TheAirline.Infrastructure.Configurations
+                             .GetConfigurations(TheAirline.Infrastructure.Configuration.ConfigurationType.Airliner)
+                             .OfType<AirlinerConfiguration>()
+                             .Where(
+                                 c =>
+                                 c.MinimumSeats <= passengerType.MaxSeatingCapacity
+                                 && c.Classes.Count <= passengerType.MaxAirlinerClasses
+                                 && c.Classes.Any(k => k.Type == AirlinerClass.ClassType.EconomyClass))
+                             .OrderBy(c => c.Name)
+                             .ToList();
+        }
+
+        //uses a saved layout for this order; the economy class gets the seats the type has beyond the layout's minimum
+        public void ApplyConfiguration(AirlinerConfiguration configuration)
+        {
+            var passengerType = (AirlinerPassengerType) this.Type;
+
+            var classes = new List<AirlinerClass>();
+
+            foreach (AirlinerClassConfiguration classConf in configuration.Classes)
+            {
+                var aClass = new AirlinerClass(classConf.Type, classConf.SeatingCapacity);
+                aClass.RegularSeatingCapacity = classConf.RegularSeatingCapacity;
+
+                foreach (AirlinerFacility facility in classConf.GetFacilities())
+                {
+                    aClass.ForceSetFacility(facility);
+                }
+
+                foreach (AirlinerFacility.FacilityType facilityType in Enum.GetValues(typeof (AirlinerFacility.FacilityType)))
+                {
+                    if (!classConf.Facilities.Exists(f => f.Type == facilityType))
+                    {
+                        aClass.ForceSetFacility(AirlinerFacilities.GetBasicFacility(facilityType));
+                    }
+                }
+
+                classes.Add(aClass);
+            }
+
+            AirlinerClass economy = classes.First(c => c.Type == AirlinerClass.ClassType.EconomyClass);
+
+            int seatingDiff = passengerType.MaxSeatingCapacity - configuration.MinimumSeats;
+
+            if (seatingDiff > 0)
+            {
+                economy.RegularSeatingCapacity += seatingDiff;
+
+                AirlinerFacility seatFacility = economy.GetFacility(AirlinerFacility.FacilityType.Seat);
+                double seatUses = seatFacility != null && seatFacility.SeatUses > 0 ? seatFacility.SeatUses : 1;
+
+                economy.SeatingCapacity += (int) (seatingDiff / seatUses);
+            }
+
+            this.Classes = classes;
+        }
+
         public List<Airport> Homebases { get; set; }
 
         public AirlinerOrdersMVVM Order { get; set; }

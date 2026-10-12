@@ -26,6 +26,18 @@
                         Tag="{Binding}">
                     <Image Source="/Resources/images/delete.png" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
+                <Button Content="Layout" Margin="5 0 0 0" Padding="6 0 6 0" Click="btnLoadConfiguration_Click" Tag="{Binding}"
+                        ToolTip="Use a saved or standard seating layout">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanUseConfigurations}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button Width="20" Background="Transparent" Click="btnEquipped_Click" Margin="5 0 0 0" Tag="{Binding}">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">

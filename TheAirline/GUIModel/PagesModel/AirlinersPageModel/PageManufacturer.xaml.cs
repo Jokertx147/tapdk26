@@ -84,6 +84,39 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             this.Orders.addOrder(new AirlinerOrderMVVM(type, this.Orders));
         }
 
+        //lets the player pick a saved or standard layout instead of configuring the seats by hand
+        private void btnLoadConfiguration_Click(object sender, RoutedEventArgs e)
+        {
+            var order = (AirlinerOrderMVVM)((Button)sender).Tag;
+
+            List<AirlinerConfiguration> configurations = order.GetFittingConfigurations();
+
+            if (configurations.Count == 0)
+            {
+                MessageBox.Show("There are no saved layouts that fit this airliner. Layouts can be saved from the airliner edit page.", "Layout");
+                return;
+            }
+
+            var cbConfigurations = new ComboBox();
+            cbConfigurations.SetResourceReference(StyleProperty, "ComboBoxTransparentStyle");
+            cbConfigurations.DisplayMemberPath = "Name";
+            cbConfigurations.HorizontalAlignment = HorizontalAlignment.Left;
+            cbConfigurations.Width = 250;
+
+            foreach (AirlinerConfiguration configuration in configurations)
+            {
+                cbConfigurations.Items.Add(configuration);
+            }
+
+            cbConfigurations.SelectedIndex = 0;
+
+            if (PopUpSingleElement.ShowPopUp("Use layout", cbConfigurations) == PopUpSingleElement.ButtonSelected.OK
+                && cbConfigurations.SelectedItem != null)
+            {
+                order.ApplyConfiguration((AirlinerConfiguration)cbConfigurations.SelectedItem);
+            }
+        }
+
         private void btnEquipped_Click(object sender, RoutedEventArgs e)
         {
             var order = (AirlinerOrderMVVM)((Button)sender).Tag;
