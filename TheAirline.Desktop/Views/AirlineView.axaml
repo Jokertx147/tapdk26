@@ -23,45 +23,95 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="1">
-      <TabItem Header="Overview">
-    <Grid Grid.Row="1" ColumnDefinitions="*,12,*">
-      <Grid RowDefinitions="Auto,*">
-        <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
-        <ListBox Grid.Row="1" ItemsSource="{Binding Fleet}">
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel Margin="2">
-                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                <TextBlock Opacity="0.7">
-                  <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" />
-                </TextBlock>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Grid>
-      <Grid Grid.Column="2" RowDefinitions="Auto,*">
-        <TextBlock Text="Routes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
-        <ListBox Grid.Row="1" ItemsSource="{Binding Routes}">
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
-                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Distance}" Opacity="0.7" />
-                <TextBlock Text="{Binding Balance}" Opacity="0.7" />
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Grid>
-    </Grid>
+    <TabControl Grid.Row="1" Classes="main">
+      <TabControl.Styles>
+        <!-- the sub tabs under each main tab are smaller -->
+        <Style Selector="TabControl.sub TabItem">
+          <Setter Property="FontSize" Value="13" />
+          <Setter Property="MinHeight" Value="28" />
+          <Setter Property="Padding" Value="10,2" />
+        </Style>
+      </TabControl.Styles>
+
+      <!-- AIRLINE -->
+      <TabItem Header="Airline">
+        <TabControl Classes="sub">
+          <TabItem Header="Overview">
+            <StackPanel Margin="0,14,0,0" Spacing="8">
+              <TextBlock Text="{Binding AirlineName}" FontSize="20" FontWeight="Bold" />
+              <TextBlock Text="{Binding Summary}" FontSize="15" />
+              <TextBlock Text="Buy or lease aircraft in the Aircraft market tab, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Aircraft market">
+            <v:MarketView DataContext="{Binding Market}" />
+          </TabItem>
+        </TabControl>
       </TabItem>
-      <TabItem Header="Airports and routes">
-        <v:AirportsView DataContext="{Binding Airports}" />
+
+      <!-- ROUTES -->
+      <TabItem Header="Routes">
+        <TabControl Classes="sub">
+          <TabItem Header="My routes">
+            <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
+              <TextBlock Text="Routes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Routes}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" MinWidth="120" />
+                      <TextBlock Text="{Binding Distance}" Opacity="0.7" MinWidth="90" />
+                      <TextBlock Text="{Binding Balance}" Opacity="0.7" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Create route">
+            <v:AirportsView DataContext="{Binding Airports}" />
+          </TabItem>
+        </TabControl>
       </TabItem>
-      <TabItem Header="Aircraft market">
-        <v:MarketView DataContext="{Binding Market}" />
+
+      <!-- FLIGHTS -->
+      <TabItem Header="Flights">
+        <TabControl Classes="sub">
+          <TabItem Header="Fleet">
+            <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
+              <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Fleet}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Opacity="0.7">
+                        <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" />
+                      </TextBlock>
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Timetable">
+            <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
+              <TextBlock Text="Weekly flights" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Flights}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="2">
+                      <TextBlock Text="{Binding When}" MinWidth="130" />
+                      <TextBlock Text="{Binding Flight}" FontWeight="SemiBold" MinWidth="80" />
+                      <TextBlock Text="{Binding Route}" MinWidth="100" />
+                      <TextBlock Text="{Binding Aircraft}" Opacity="0.7" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+        </TabControl>
       </TabItem>
     </TabControl>
   </Grid>

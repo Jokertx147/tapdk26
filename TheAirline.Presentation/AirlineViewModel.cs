@@ -25,6 +25,14 @@ namespace TheAirline.Presentation
         public string Balance { get; set; }
     }
 
+    public class FlightItem
+    {
+        public string Flight { get; set; }
+        public string Route { get; set; }
+        public string When { get; set; }
+        public string Aircraft { get; set; }
+    }
+
     public class SpeedChoice
     {
         public string Name { get; set; }
@@ -84,6 +92,9 @@ namespace TheAirline.Presentation
         public SpeedChoice[] Speeds { get; }
         public ObservableCollection<FleetItem> Fleet { get; }
         public ObservableCollection<RouteItem> Routes { get; }
+        public ObservableCollection<FlightItem> Flights { get; } = new ObservableCollection<FlightItem>();
+
+        public string Summary { get; private set; }
 
         public ICommand TogglePauseCommand { get; }
         public ICommand SaveCommand { get; }
@@ -179,8 +190,9 @@ namespace TheAirline.Presentation
 
             var fleet = airline.Fleet.ToList();
             var routes = airline.Routes.ToList();
+            var entries = routes.SelectMany(r => r.TimeTable.Entries).ToList();
             string signature = string.Join(",", fleet.Select(f => f.Name + f.Status + f.Routes.Count))
-                               + "|" + routes.Count;
+                               + "|" + routes.Count + "|" + entries.Count;
             if (signature != _signature)
             {
                 _signature = signature;
@@ -198,6 +210,24 @@ namespace TheAirline.Presentation
                             Routes = f.Routes.Count
                         });
                 }
+
+                Flights.Clear();
+                foreach (var e in entries.OrderBy(e => e.Day == DayOfWeek.Sunday ? 7 : (int) e.Day).ThenBy(e => e.Time).Take(600))
+                {
+                    Flights.Add(
+                        new FlightItem
+                        {
+                            Flight = e.Destination?.FlightCode,
+                            Route = e.DepartureAirport?.Profile.IATACode + " - " + e.Destination?.Airport?.Profile.IATACode,
+                            When = e.Day + " " + e.Time.ToString(@"hh\:mm"),
+                            Aircraft = e.Airliner?.Name
+                        });
+                }
+
+                Summary = string.Format(
+                    "{0} aircraft, {1} routes, {2} weekly flights, {3} airports",
+                    fleet.Count, routes.Count, entries.Count, airline.Airports.Count);
+                OnPropertyChanged(nameof(Summary));
 
                 Routes.Clear();
                 foreach (var r in routes)
