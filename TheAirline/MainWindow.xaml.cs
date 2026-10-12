@@ -143,6 +143,9 @@ namespace TheAirline
                 try
                 {
                     Title = "Saving...";
+                    SavingOverlay.Visibility = Visibility.Visible;
+                    // let the overlay and its animation draw before the save starts
+                    await System.Threading.Tasks.Task.Delay(100);
                     GameObjectWorker.GetInstance().RequestCancel();
                     for (int i = 0; i < 300 && GameObjectWorker.GetInstance().IsBusy(); i++)
                     {
