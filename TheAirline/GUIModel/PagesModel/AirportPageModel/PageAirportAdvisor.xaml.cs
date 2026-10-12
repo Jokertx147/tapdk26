@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using TheAirline.GUIModel.CustomControlsModel.PopUpWindowsModel;
 using TheAirline.Helpers;
 
 namespace TheAirline.GUIModel.PagesModel.AirportPageModel
@@ -23,6 +26,16 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
             NoResults = Advice.Count == 0;
 
             InitializeComponent();
+        }
+
+        private void lnkCreateRoute_Click(object sender, RoutedEventArgs e)
+        {
+            var advice = (RouteAdvice) ((Hyperlink) sender).Tag;
+
+            if (PopUpAdvisedRoute.ShowPopUp(Airport.Airport, advice.Destination) && NavigationService != null)
+            {
+                NavigationService.Navigate(new PageAirportAdvisor(Airport) { Tag = Tag });
+            }
         }
 
         public AirportMVVM Airport { get; set; }
