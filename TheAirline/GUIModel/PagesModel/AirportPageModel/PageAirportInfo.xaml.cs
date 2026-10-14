@@ -206,6 +206,99 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
             }
         }
 
+        //buys gates from a computer airline
+        private void btnBuyGates_Click(object sender, RoutedEventArgs e)
+        {
+            var seller = (ContractMVVM)((Button)sender).Tag;
+            Airport airport = Airport.Airport;
+
+            int spare = GateTrading.GetSpareGates(airport, seller.Contract);
+
+            if (spare == 0)
+            {
+                WPFMessageBox.Show(
+                    "No gates for sale",
+                    seller.Airline.Profile.Name + " needs all of its gates at " + airport.Profile.Name
+                    + " for the flights it has there.",
+                    WPFMessageBoxButtons.Ok);
+                return;
+            }
+
+            double pricePerGate = GateTrading.GetPricePerGate(airport);
+
+            var panel = new StackPanel();
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = string.Format(
+                        "{0} can spare {1} gate(s) at {2}. You pay {0} {3} per gate, and then the gate rent of your contract.",
+                        seller.Airline.Profile.Name,
+                        spare,
+                        airport.Profile.Name,
+                        new ValueCurrencyConverter().Convert(pricePerGate)),
+                    TextWrapping = TextWrapping.Wrap
+                });
+
+            var gatesRow = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+            gatesRow.Children.Add(new TextBlock { Text = "Gates", Width = 100, VerticalAlignment = VerticalAlignment.Bottom, FontWeight = FontWeights.Bold });
+
+            var cbGates = new ComboBox { Width = 80 };
+            cbGates.SetResourceReference(StyleProperty, "ComboBoxTransparentStyle");
+            for (int i = 1; i <= spare; i++)
+            {
+                cbGates.Items.Add(i);
+            }
+
+            cbGates.SelectedIndex = 0;
+            gatesRow.Children.Add(cbGates);
+            panel.Children.Add(gatesRow);
+
+            var typeRow = new WrapPanel { Margin = new Thickness(0, 5, 0, 0) };
+            typeRow.Children.Add(new TextBlock { Text = "Contract", Width = 100, VerticalAlignment = VerticalAlignment.Bottom, FontWeight = FontWeights.Bold });
+
+            var cbType = new ComboBox { Width = 150 };
+            cbType.SetResourceReference(StyleProperty, "ComboBoxTransparentStyle");
+            foreach (AirportContract.ContractType type in Enum.GetValues(typeof(AirportContract.ContractType)))
+            {
+                cbType.Items.Add(type);
+            }
+
+            cbType.SelectedIndex = 0;
+            typeRow.Children.Add(cbType);
+            panel.Children.Add(typeRow);
+
+            var total = new TextBlock { Margin = new Thickness(0, 8, 0, 0), FontWeight = FontWeights.Bold };
+            Action updateTotal = () =>
+            {
+                if (cbGates.SelectedItem != null)
+                {
+                    total.Text = "Pay now: " + new ValueCurrencyConverter().Convert(pricePerGate * (int)cbGates.SelectedItem);
+                }
+            };
+            cbGates.SelectionChanged += (s, args) => updateTotal();
+            updateTotal();
+            panel.Children.Add(total);
+
+            if (PopUpSingleElement.ShowPopUp("Buy gates from " + seller.Airline.Profile.Name, panel, 260)
+                != PopUpSingleElement.ButtonSelected.OK || cbGates.SelectedItem == null)
+            {
+                return;
+            }
+
+            string message;
+            bool ok = GateTrading.BuyGates(
+                airport,
+                seller.Contract,
+                (int)cbGates.SelectedItem,
+                (AirportContract.ContractType)cbType.SelectedItem,
+                out message);
+
+            Airport.refreshContracts();
+
+            WPFMessageBox.Show(ok ? "Gates bought" : "Gates not bought", message, WPFMessageBoxButtons.Ok);
+        }
+
         private void btnRemoveContract_Click(object sender, RoutedEventArgs e)
         {
             var tContract = (ContractMVVM)((Button)sender).Tag;

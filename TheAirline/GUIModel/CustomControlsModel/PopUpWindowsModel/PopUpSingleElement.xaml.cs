@@ -12,9 +12,10 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
     {
         private UIElement Element;
         public enum ButtonSelected { OK, Cancel }
-        public static ButtonSelected ShowPopUp(string title, UIElement element)
+        public static ButtonSelected ShowPopUp(string title, UIElement element, double height = 125)
         {
             PopUpSingleElement window = new PopUpSingleElement(title, element);
+            window.Height = height;
             window.ShowDialog();
 
             return window.Selected == null ? ButtonSelected.Cancel : (ButtonSelected)window.Selected;

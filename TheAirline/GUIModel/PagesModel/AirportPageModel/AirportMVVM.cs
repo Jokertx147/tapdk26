@@ -556,6 +556,34 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
                     terminal.Airline != null && terminal.Airline == GameObject.GetInstance().HumanAirline));
         }
 
+        //shows the contracts again after gates have been bought from another airline
+        public void refreshContracts()
+        {
+            var old = new List<ContractMVVM>(Contracts);
+
+            foreach (ContractMVVM contract in old)
+            {
+                if (!Airport.AirlineContracts.Contains(contract.Contract))
+                {
+                    Contracts.Remove(contract);
+                }
+                else
+                {
+                    contract.NumberOfGates = contract.Contract.NumberOfGates;
+                }
+            }
+
+            foreach (AirportContract contract in Airport.AirlineContracts)
+            {
+                if (Contracts.FirstOrDefault(c => c.Contract == contract) == null)
+                {
+                    Contracts.Add(new ContractMVVM(contract));
+                }
+            }
+
+            FreeGates = Airport.Terminals.NumberOfFreeGates;
+        }
+
         public void removeAirlineContract(ContractMVVM contract)
         {
             Airport.RemoveAirlineContract(contract.Contract);
@@ -870,6 +898,7 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
             NumberOfGates = Contract.NumberOfGates;
             MonthsLeft = Contract.MonthsLeft;
             IsHuman = Airline == GameObject.GetInstance().HumanAirline;
+            CanBuyGates = GateTrading.IsTradable(Contract.Airport, Contract);
         }
 
         #endregion
@@ -887,6 +916,9 @@ namespace TheAirline.GUIModel.PagesModel.AirportPageModel
         public AirportContract Contract { get; set; }
 
         public Boolean IsHuman { get; set; }
+
+        //a computer airline's passenger gates, that can be bought
+        public Boolean CanBuyGates { get; set; }
 
         public int MonthsLeft
         {
