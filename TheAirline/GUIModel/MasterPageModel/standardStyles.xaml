@@ -82,6 +82,19 @@ and change the color of the selected bullet into a darker gray for better highli
         <EventSetter Event="PreviewKeyDown" Handler="NumericTextBox_CheckSpace" />
     </Style>
     <!--buttons-->
+    <!-- must be defined before the first style that references it: a forward StaticResource resolves to UnsetValue and crashes on focus -->
+    <Style x:Key="ButtonFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border>
+                        <Rectangle SnapsToDevicePixels="true" Margin="4" Stroke="Black" StrokeDashArray="1 2"
+                                   StrokeThickness="1" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style x:Key="RoundedButton" TargetType="{x:Type Button}">
 
         <Setter Property="FocusVisualStyle" Value="{StaticResource ButtonFocusVisual}" />
@@ -379,18 +392,6 @@ and change the color of the selected bullet into a darker gray for better highli
         <Setter Property="Padding" Value="2 2 2 2" />
     </Style>
     <!--buttons-->
-    <Style x:Key="ButtonFocusVisual">
-        <Setter Property="Control.Template">
-            <Setter.Value>
-                <ControlTemplate>
-                    <Border>
-                        <Rectangle SnapsToDevicePixels="true" Margin="4" Stroke="Black" StrokeDashArray="1 2"
-                                   StrokeThickness="1" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
     <Style x:Key="MenuButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="FocusVisualStyle" Value="{StaticResource ButtonFocusVisual}" />
         <Setter Property="Background" Value="#3772A1" />
