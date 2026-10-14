@@ -50,50 +50,44 @@ namespace TheAirline.Helpers
 
             int ownedGates = airport.Terminals.GetGates().Count(g => g.Airline == seller);
 
-            int spare = 0;
-
             try
             {
                 bool hasRoutes = AirportHelpers.GetAirportRoutes(airport, seller).Count > 0;
 
-                for (int n = 1; n <= Math.Min(contract.NumberOfGates, ownedGates); n++)
+                if (!hasRoutes)
                 {
-                    int left = total - n;
-
-                    if (left == 0 && hasRoutes)
-                    {
-                        break;
-                    }
-
-                    var remaining = new List<AirportContract>
-                    {
-                        new AirportContract(
-                            seller,
-                            airport,
-                            AirportContract.ContractType.Full,
-                            Terminal.TerminalType.Passenger,
-                            GameObject.GetInstance().GameTime,
-                            left,
-                            1,
-                            0,
-                            false)
-                    };
-
-                    if (left > 0 && !AirportHelpers.CanFillRoutesEntries(airport, seller, remaining, Weather.Season.AllYear))
-                    {
-                        break;
-                    }
-
-                    spare = n;
+                    return Math.Min(contract.NumberOfGates, ownedGates);
                 }
+
+                // the busiest 15 minutes of the airline: how many of its routes use the airport at the same time
+                var everySlot = new AirportContract(
+                    seller,
+                    airport,
+                    AirportContract.ContractType.Full,
+                    Terminal.TerminalType.Passenger,
+                    GameObject.GetInstance().GameTime,
+                    1,
+                    1,
+                    0,
+                    false);
+
+                int busiest = AirportHelpers
+                    .GetOccupiedSlotTimes(airport, seller, new List<AirportContract> { everySlot }, Weather.Season.AllYear)
+                    .GroupBy(t => t.Ticks)
+                    .Select(g => g.Count())
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                // the rule of CanFillRoutesEntries: with one gate no two routes may meet, with more gates fewer routes than gates
+                int minimum = busiest <= 1 ? 1 : busiest + 1;
+
+                return Math.Max(0, Math.Min(Math.Min(contract.NumberOfGates, ownedGates), total - minimum));
             }
             catch (Exception)
             {
                 // an airline with an unusual timetable is simply not selling
                 return 0;
             }
-
-            return spare;
         }
 
         //buys gates from a computer airline; returns false with a message that says why not

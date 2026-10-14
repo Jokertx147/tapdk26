@@ -262,6 +262,41 @@ static class VmTest
             await Wait(() => shell.Current is AirlineViewModel, "load");
             var av2 = (AirlineViewModel)shell.Current;
             Console.WriteLine("LOADED: " + av2.Date + " " + av2.Money);
+            {
+                var sw = new System.Diagnostics.Stopwatch(); double worst = 0; string worstWhere = ""; int cnt = 0;
+                foreach (var a in TheAirline.Models.Airports.Airports.GetAllAirports())
+                    foreach (var c in a.AirlineContracts.ToList())
+                    {
+                        if (!TheAirline.Helpers.GateTrading.IsTradable(a, c)) continue;
+                        sw.Restart(); TheAirline.Helpers.GateTrading.GetSpareGates(a, c); sw.Stop(); cnt++;
+                        if (sw.Elapsed.TotalMilliseconds > worst) { worst = sw.Elapsed.TotalMilliseconds; worstWhere = a.Profile.IATACode + " " + c.Airline.Profile.IATACode + " gates=" + c.NumberOfGates + " routes=" + TheAirline.Helpers.AirportHelpers.GetAirportRoutes(a, c.Airline).Count; }
+                    }
+                int mismatches = 0;
+                foreach (var a in TheAirline.Models.Airports.Airports.GetAllAirports())
+                    foreach (var c in a.AirlineContracts.ToList().Take(3))
+                    {
+                        if (!TheAirline.Helpers.GateTrading.IsTradable(a, c)) continue;
+                        if (cnt > 140) break;
+                        var seller0 = c.Airline;
+                        int total0 = a.GetAirlineContracts(seller0).Where(x => x.TerminalType == TheAirline.Models.Airports.Terminal.TerminalType.Passenger).Sum(x => x.NumberOfGates);
+                        int owned0 = a.Terminals.GetGates().Count(g => g.Airline == seller0);
+                        bool hasRoutes0 = TheAirline.Helpers.AirportHelpers.GetAirportRoutes(a, seller0).Count > 0;
+                        int legacy = 0;
+                        for (int n = 1; n <= Math.Min(c.NumberOfGates, owned0); n++)
+                        {
+                            int left = total0 - n;
+                            if (left == 0 && hasRoutes0) break;
+                            var rem = new System.Collections.Generic.List<TheAirline.Models.Airports.AirportContract> { new TheAirline.Models.Airports.AirportContract(seller0, a, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, TheAirline.Models.General.GameObject.GetInstance().GameTime, left, 1, 0, false) };
+                            if (left > 0 && !TheAirline.Helpers.AirportHelpers.CanFillRoutesEntries(a, seller0, rem, TheAirline.Models.General.Environment.Weather.Season.AllYear)) break;
+                            legacy = n;
+                        }
+                        int fast = TheAirline.Helpers.GateTrading.GetSpareGates(a, c);
+                        if (legacy != fast) { mismatches++; Console.WriteLine("  MISMATCH " + a.Profile.IATACode + " " + seller0.Profile.IATACode + " legacy=" + legacy + " new=" + fast + " gates=" + c.NumberOfGates); }
+                        cnt++;
+                    }
+                Console.WriteLine("SPARE EQUIVALENCE: checked " + (cnt - 0) + " mismatches=" + mismatches);
+                Console.WriteLine("SPARE TIMING: contracts=" + cnt + " worst ms=" + worst.ToString("0") + " at " + worstWhere);
+            }
             GameSession.StopClock();
             Console.WriteLine("VM TEST OK");
             Environment.Exit(0);

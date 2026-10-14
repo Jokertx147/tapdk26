@@ -556,6 +556,7 @@ namespace TheAirline.Helpers
             Weather.Season season)
         {
             var occupiedSlots = new List<KeyValuePair<Route, TimeSpan>>();
+            var occupiedSet = new HashSet<KeyValuePair<Route, TimeSpan>>();
 
             var gateTimeBefore = new TimeSpan(0, 15, 0);
             var gateTimeAfter = new TimeSpan(0, 15, 0);
@@ -601,9 +602,10 @@ namespace TheAirline.Helpers
 
                     while (tTakeoffTime < entryEndTakeoffTime)
                     {
-                        if (!occupiedSlots.Exists(s => s.Key == entry.TimeTable.Route && s.Value == tTakeoffTime))
+                        var takeoffSlot = new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tTakeoffTime);
+                        if (occupiedSet.Add(takeoffSlot))
                         {
-                            occupiedSlots.Add(new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tTakeoffTime));
+                            occupiedSlots.Add(takeoffSlot);
                         }
                         tTakeoffTime = tTakeoffTime.Add(new TimeSpan(0, 15, 0));
                     }
@@ -622,9 +624,10 @@ namespace TheAirline.Helpers
 
                     while (tLandingTime < entryEndLandingTime)
                     {
-                        if (!occupiedSlots.Exists(s => s.Key == entry.TimeTable.Route && s.Value == tLandingTime))
+                        var landingSlot = new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tLandingTime);
+                        if (occupiedSet.Add(landingSlot))
                         {
-                            occupiedSlots.Add(new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tLandingTime));
+                            occupiedSlots.Add(landingSlot);
                         }
                         tLandingTime = tLandingTime.Add(new TimeSpan(0, 15, 0));
                     }
