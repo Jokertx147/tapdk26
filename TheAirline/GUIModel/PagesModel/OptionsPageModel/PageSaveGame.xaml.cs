@@ -82,27 +82,52 @@ namespace TheAirline.GUIModel.PagesModel.OptionsPageModel
 
             if (doSave)
             {
-                var scSaving = UIHelpers.FindChild<SplashControl>(this, "scSaving");
+                saveWithScreen(name, gameworkerPaused);
+            }
+            else if (!gameworkerPaused)
+            {
+                GameObjectWorker.GetInstance().Start();
+            }
+        }
 
-                scSaving.Visibility = Visibility.Visible;
+        //saves behind the "Saving your game..." screen
+        private async void saveWithScreen(string name, bool gameworkerPaused)
+        {
+            Exception error = null;
 
-                var bgWorker = new BackgroundWorker();
-                bgWorker.DoWork += (s, x) =>
+            await PageNavigator.MainWindow.RunWithSavingScreen(
+                () =>
                 {
-                    GameObject.GetInstance().Name = name;
-
-                    SerializedLoadSaveHelpers.SaveGame(name);
-                };
-                bgWorker.RunWorkerCompleted += (s, x) =>
-                {
-                    if (!gameworkerPaused)
+                    try
                     {
-                        GameObjectWorker.GetInstance().Start();
-                    }
+                        GameObject.GetInstance().Name = name;
 
-                    scSaving.Visibility = Visibility.Collapsed;
-                };
-                bgWorker.RunWorkerAsync();
+                        SerializedLoadSaveHelpers.SaveGame(name);
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                    }
+                },
+                "Saving your game...",
+                "\"" + name + "\"");
+
+            if (!gameworkerPaused)
+            {
+                GameObjectWorker.GetInstance().Start();
+            }
+
+            if (error != null)
+            {
+                MessageBox.Show("Saving the game failed:\n" + error.Message, "TheAirline");
+                return;
+            }
+
+            // show the new save in the list
+            Saves.Clear();
+            foreach (SaveFileInfo savedFile in LoadSaveHelpers.GetSavedGameInfos())
+            {
+                Saves.Add(savedFile);
             }
         }
 

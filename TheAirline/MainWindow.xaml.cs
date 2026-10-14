@@ -166,6 +166,48 @@ namespace TheAirline
             //Setup.SetupGame();
         }
 
+        private bool _showingSaving;
+
+        /// <summary>
+        ///     Runs a save on a background thread behind the "Saving your game..." screen. The screen stays up at least
+        ///     a moment, so it doesn't flash on a quick save.
+        /// </summary>
+        public async System.Threading.Tasks.Task RunWithSavingScreen(Action work, string title, string subtitle)
+        {
+            if (_showingSaving)
+            {
+                return;
+            }
+
+            _showingSaving = true;
+            try
+            {
+                SavingTitle.Text = title;
+                SavingSubtitle.Text = subtitle ?? string.Empty;
+                SavingSubtitle.Visibility = string.IsNullOrEmpty(subtitle) ? Visibility.Collapsed : Visibility.Visible;
+                SavingOverlay.Visibility = Visibility.Visible;
+
+                var shown = System.Diagnostics.Stopwatch.StartNew();
+
+                // let the overlay and its animation draw before the save starts
+                await System.Threading.Tasks.Task.Delay(100);
+                await System.Threading.Tasks.Task.Run(work);
+
+                if (shown.ElapsedMilliseconds < 800)
+                {
+                    await System.Threading.Tasks.Task.Delay(800 - (int) shown.ElapsedMilliseconds);
+                }
+            }
+            finally
+            {
+                SavingOverlay.Visibility = Visibility.Collapsed;
+                SavingTitle.Text = "Saving your game...";
+                SavingSubtitle.Text = "The game closes when the save is finished.";
+                SavingSubtitle.Visibility = Visibility.Visible;
+                _showingSaving = false;
+            }
+        }
+
         private bool _askingToExit;
 
         private bool _togglingPause;

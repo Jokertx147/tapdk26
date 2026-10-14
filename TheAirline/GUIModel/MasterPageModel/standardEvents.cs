@@ -83,7 +83,7 @@ namespace TheAirline.GUIModel.MasterPageModel
         }
 
         //saves the running game under its current name without asking, and says so in the window title
-        private void btnQuickSave_Click(object sender, RoutedEventArgs e)
+        private async void btnQuickSave_Click(object sender, RoutedEventArgs e)
         {
             GameObject game = GameObject.GetInstance();
 
@@ -107,48 +107,56 @@ namespace TheAirline.GUIModel.MasterPageModel
             bool wasPaused = GameObjectWorker.GetInstance().IsPaused;
             GameObjectWorker.GetInstance().RequestCancel();
 
-            var bgWorker = new System.ComponentModel.BackgroundWorker();
-            bgWorker.DoWork += (s, x) =>
+            System.Exception error = null;
+            MainWindow mainWindow = PageNavigator.MainWindow;
+
+            await mainWindow.RunWithSavingScreen(
+                () =>
+                {
+                    try
+                    {
+                        var waited = System.Diagnostics.Stopwatch.StartNew();
+                        while (GameObjectWorker.GetInstance().IsBusy() && waited.Elapsed < System.TimeSpan.FromSeconds(30))
+                        {
+                            System.Threading.Thread.Sleep(50);
+                        }
+
+                        game.Name = name;
+                        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame(name);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        error = ex;
+                    }
+                },
+                "Saving your game...",
+                "\"" + name + "\"");
+
+            button.IsEnabled = true;
+
+            if (!wasPaused)
             {
-                var waited = System.Diagnostics.Stopwatch.StartNew();
-                while (GameObjectWorker.GetInstance().IsBusy() && waited.Elapsed < System.TimeSpan.FromSeconds(30))
-                {
-                    System.Threading.Thread.Sleep(50);
-                }
+                GameObjectWorker.GetInstance().Start();
+            }
 
-                game.Name = name;
-                TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame(name);
-            };
-            bgWorker.RunWorkerCompleted += (s, x) =>
+            if (error != null)
             {
-                button.IsEnabled = true;
+                StartupLog.Write("Quick save failed: " + error);
+                MessageBox.Show("Saving the game failed:\n" + error.Message, "TheAirline");
+                return;
+            }
 
-                if (!wasPaused)
-                {
-                    GameObjectWorker.GetInstance().Start();
-                }
+            Window window = mainWindow;
+            string title = window.Title;
+            window.Title = "The Airline Project  -  saved \"" + name + "\" at " + System.DateTime.Now.ToString("t");
 
-                Window window = PageNavigator.MainWindow;
-
-                if (x.Error != null)
-                {
-                    StartupLog.Write("Quick save failed: " + x.Error);
-                    MessageBox.Show("Saving the game failed:\n" + x.Error.Message, "TheAirline");
-                    return;
-                }
-
-                string title = window.Title;
-                window.Title = "The Airline Project  -  saved \"" + name + "\" at " + System.DateTime.Now.ToString("t");
-
-                var timer = new System.Windows.Threading.DispatcherTimer { Interval = System.TimeSpan.FromSeconds(5) };
-                timer.Tick += (ts, te) =>
-                {
-                    timer.Stop();
-                    window.Title = title;
-                };
-                timer.Start();
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = System.TimeSpan.FromSeconds(5) };
+            timer.Tick += (ts, te) =>
+            {
+                timer.Stop();
+                window.Title = title;
             };
-            bgWorker.RunWorkerAsync();
+            timer.Start();
         }
 
         private void btnExitGame_Click(object sender, RoutedEventArgs e)

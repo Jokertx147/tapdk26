@@ -103,9 +103,9 @@
             </Grid.Resources>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <c:SplashControl HorizontalAlignment="Center" />
-                <TextBlock Text="Saving your game..." FontSize="22" FontWeight="Bold" Foreground="White"
+                <TextBlock x:Name="SavingTitle" Text="Saving your game..." FontSize="22" FontWeight="Bold" Foreground="White"
                            HorizontalAlignment="Center" Margin="0 12 0 0" />
-                <TextBlock Text="The game closes when the save is finished." FontSize="13" Foreground="White"
+                <TextBlock x:Name="SavingSubtitle" Text="The game closes when the save is finished." FontSize="13" Foreground="White"
                            HorizontalAlignment="Center" Margin="0 4 0 0" />
             </StackPanel>
         </Grid>
