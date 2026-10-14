@@ -1293,11 +1293,12 @@ namespace TheAirline.ViewModels.Airline
 
         #region Public Methods and Operators
 
-        public void payOnLoan(double amount)
+        public double payOnLoan(double amount)
         {
-            Loan.PaymentLeft -= amount;
+            double paid = Loan.PayPrincipal(amount);
             PaymentLeft = Loan.PaymentLeft;
             MonthsLeft = Loan.MonthsLeft;
+            return paid;
         }
 
         #endregion
@@ -1527,7 +1528,7 @@ namespace TheAirline.ViewModels.Airline
                     MathHelpers.GetMonthlyPayment(
                         amount,
                         GeneralHelpers.GetAirlineLoanRate(GameObject.GetInstance().HumanAirline),
-                        lenght) * GameObject.GetInstance().Difficulty.LoanLevel);
+                        lenght));
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

@@ -287,9 +287,19 @@ namespace TheAirline.Helpers
 
         public static double GetMonthlyPayment(double amount, double rate, int length)
         {
-            double pRate = 1 + rate/100;
+            // standard annuity: 'rate' is the yearly interest in percent, paid monthly
+            if (length <= 0)
+            {
+                return amount;
+            }
 
-            return amount*pRate/length;
+            double r = rate/1200;
+            if (r <= 0)
+            {
+                return amount/length;
+            }
+
+            return amount*r/(1 - Math.Pow(1 + r, -length));
         }
 
         public static int GetMonthsBetween(DateTime date1, DateTime date2)

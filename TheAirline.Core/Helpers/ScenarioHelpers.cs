@@ -214,11 +214,11 @@ namespace TheAirline.Helpers
                 }
                 if (failure.Type == ScenarioFailure.FailureType.Debt)
                 {
-                    double debt = GameObject.GetInstance().MainAirline.Loans.Sum(l => l.PaymentLeft)
+                    double debt = GameObject.GetInstance().MainAirline.Loans.Sum(l => l.Balance)
                                   + GameObject.GetInstance().MainAirline.Money;
                     debt +=
                         GameObject.GetInstance()
-                                  .MainAirline.Subsidiaries.Sum(s => s.Loans.Sum(l => l.PaymentLeft) + s.Money);
+                                  .MainAirline.Subsidiaries.Sum(s => s.Loans.Sum(l => l.Balance) + s.Money);
 
                     failureOk = debt <= Convert.ToDouble(failure.Value);
                 }

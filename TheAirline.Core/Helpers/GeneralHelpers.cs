@@ -254,7 +254,8 @@ namespace TheAirline.Helpers
         {
             var value = (double) airline.GetAirlineValue();
 
-            return (GameObject.GetInstance().Difficulty.LoanLevel + 0.5)
+            // yearly interest in percent: a base rate plus a risk premium that falls as the airline gets stronger
+            return 2 + (GameObject.GetInstance().Difficulty.LoanLevel + 0.5)
                    *((double) Airline.AirlineValue.VeryHigh + 1 - value);
         }
 

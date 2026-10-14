@@ -710,7 +710,7 @@ namespace TheAirline.Models.Airlines
             lock (Loans)
             {
                 var loans = new List<Loan>(Loans);
-                value = loans.Aggregate(value, (current, loan) => current - loan.PaymentLeft);
+                value = loans.Aggregate(value, (current, loan) => current - loan.Balance);
             }
             var subs = new List<SubsidiaryAirline>(Subsidiaries);
             value = subs.Aggregate(value, (current, subAirline) => current + subAirline.GetValue());

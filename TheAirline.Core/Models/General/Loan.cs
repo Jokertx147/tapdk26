@@ -17,7 +17,8 @@ namespace TheAirline.Models.General
             Rate = rate;
             Length = length;
             Date = date;
-            PaymentLeft = amount;
+            // everything still to be paid, interest included
+            PaymentLeft = GetMonthlyPayment()*length;
         }
 
         private Loan(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
@@ -64,9 +65,58 @@ namespace TheAirline.Models.General
 
         public double GetMonthlyPayment()
         {
-            double basePayment = MathHelpers.GetMonthlyPayment(Amount, Rate, Length);
+            // the difficulty already scales the rate (GeneralHelpers.GetAirlineLoanRate), so it is not applied again here
+            return MathHelpers.GetMonthlyPayment(Amount, Rate, Length);
+        }
 
-            return basePayment*GameObject.GetInstance().Difficulty.LoanLevel;
+        private double MonthlyRate => Rate/1200;
+
+        /// <summary>The principal still owed: what it costs to pay the loan off today, without the future interest.</summary>
+        public double Balance
+        {
+            get
+            {
+                if (PaymentLeft <= 0)
+                {
+                    return 0;
+                }
+
+                double monthly = GetMonthlyPayment();
+                double r = MonthlyRate;
+                if (r <= 0 || monthly <= 0)
+                {
+                    return PaymentLeft;
+                }
+
+                double months = PaymentLeft/monthly;
+                return Math.Min(PaymentLeft, monthly*(1 - Math.Pow(1 + r, -months))/r);
+            }
+        }
+
+        /// <summary>Pays an extra amount off the principal; the loan gets shorter. Returns the amount actually used.</summary>
+        public double PayPrincipal(double amount)
+        {
+            double balance = Balance;
+            double paying = Math.Max(0, Math.Min(amount, balance));
+            if (paying >= balance - 0.005)
+            {
+                PaymentLeft = 0;
+                return balance;
+            }
+
+            double monthly = GetMonthlyPayment();
+            double r = MonthlyRate;
+            if (r <= 0 || monthly <= 0)
+            {
+                PaymentLeft -= paying;
+            }
+            else
+            {
+                double remaining = balance - paying;
+                PaymentLeft = -monthly*Math.Log(1 - remaining*r/monthly)/Math.Log(1 + r);
+            }
+
+            return paying;
         }
 
         #endregion

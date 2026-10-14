@@ -82,8 +82,8 @@ namespace TheAirline.Presentation
                 var loan = NewLoan(amount);
                 double monthly = loan.GetMonthlyPayment();
                 return string.Format(
-                    "Monthly payment {0}, repaid in about {1} months.",
-                    Money(monthly), (int) Math.Ceiling(amount / monthly));
+                    "Monthly payment {0} for {1} months, {2} in total ({3} interest).",
+                    Money(monthly), _years * 12, Money(loan.PaymentLeft), Money(loan.PaymentLeft - amount));
             }
         }
 
@@ -118,7 +118,7 @@ namespace TheAirline.Presentation
 
             double rate = GeneralHelpers.GetAirlineLoanRate(airline);
             double max = AirlineHelpers.GetMaxLoanAmount(airline);
-            double debt = airline.Loans.Where(l => l.IsActive).Sum(l => l.PaymentLeft);
+            double debt = airline.Loans.Where(l => l.IsActive).Sum(l => l.Balance);
             double total = airline.Loans.Sum(l => l.Amount);
 
             Summary = string.Format(
@@ -138,10 +138,10 @@ namespace TheAirline.Presentation
                     Text = string.Format(
                         "{0} borrowed {1}  |  {2}/month  |  {3} months left",
                         loan.Date.ToString("MMM yyyy"), Money(loan.Amount), Money(loan.GetMonthlyPayment()), loan.MonthsLeft),
-                    Detail = "Still to pay: " + Money(loan.PaymentLeft)
+                    Detail = "Still to pay: " + Money(loan.PaymentLeft) + "  |  pay off today for " + Money(loan.Balance) + " (no further interest)"
                 };
                 item.PayCommand = new RelayCommand(() => Pay(item, captured));
-                item.PayOffCommand = new RelayCommand(() => PayAmount(captured, captured.PaymentLeft));
+                item.PayOffCommand = new RelayCommand(() => PayAmount(captured, captured.Balance));
                 string typed;
                 if (keep.TryGetValue(loan, out typed))
                 {
@@ -202,7 +202,7 @@ namespace TheAirline.Presentation
         private void PayAmount(Loan loan, double amount)
         {
             var airline = Human;
-            double paying = Math.Min(amount, loan.PaymentLeft);
+            double paying = Math.Min(amount, loan.Balance);
 
             if (paying > airline.Money)
             {
@@ -210,7 +210,7 @@ namespace TheAirline.Presentation
                 return;
             }
 
-            loan.PaymentLeft -= paying;
+            paying = loan.PayPrincipal(paying);
             AirlineHelpers.AddAirlineInvoice(
                 airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Loans, -paying);
 

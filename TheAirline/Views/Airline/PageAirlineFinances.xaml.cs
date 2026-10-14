@@ -111,9 +111,9 @@ namespace TheAirline.GUIModel.PagesModel.AirlinePageModel
 
                 if (result == WPFMessageBoxResult.Yes)
                 {
-                    double payingAmount = Math.Min(amount, loan.PaymentLeft);
+                    double payingAmount = Math.Min(amount, loan.Loan.Balance);
 
-                    loan.payOnLoan(payingAmount);
+                    payingAmount = loan.payOnLoan(payingAmount);
 
                     AirlineHelpers.AddAirlineInvoice(
                         Airline.Airline,

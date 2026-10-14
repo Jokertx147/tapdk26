@@ -616,7 +616,7 @@ namespace TheAirline.Helpers
             }
             if (airline.Mentality == Airline.AirlineMentality.Aggressive || airline.Fleet.Count == 0 || forStartdata)
             {
-                double airlineLoanTotal = airline.Loans.Sum(l => l.PaymentLeft);
+                double airlineLoanTotal = airline.Loans.Sum(l => l.Balance);
 
                 if (airlineLoanTotal < maxLoanTotal)
                 {
