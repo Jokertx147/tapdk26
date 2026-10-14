@@ -112,7 +112,7 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
                 GameObject.GetInstance()
                     .HumanAirline.Fleet.FindAll(
                         a =>
-                            a != airliner.Airliner && a.Status == FleetAirliner.AirlinerStatus.Stopped && a.Airliner.Status == Airliner.StatusTypes.Normal && a.Routes.Count == 0
+                            a != airliner.Airliner && a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && a.Status == FleetAirliner.AirlinerStatus.Stopped && a.Airliner.Status == Airliner.StatusTypes.Normal && a.Routes.Count == 0
                             && a.Airliner.MinRunwaylength <= requiredRunway && a.Airliner.Range >= maxDistance);
 
             foreach (FleetAirliner fAirliner in airliners)
@@ -128,7 +128,13 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
             {
                 
                 var transferAirliner = (FleetAirliner)cbAirliners.SelectedItem;
-                FleetAirlinerMVVM fAirlinerMVVM = Airliners.First(a => a.Airliner == transferAirliner);
+                FleetAirlinerMVVM fAirlinerMVVM = Airliners.FirstOrDefault(a => a.Airliner == transferAirliner);
+
+                if (fAirlinerMVVM == null)
+                {
+                    // not in this list (for example an aircraft that has not been delivered yet)
+                    return;
+                }
 
                 foreach (Route route in airliner.Airliner.Routes)
                 {
