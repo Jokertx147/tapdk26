@@ -169,11 +169,14 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                     hasHomebases = false;
                 }
             }
+            if (this.Orders.Orders.Sum(o => o.Amount) == 0)
+            {
+                return;
+            }
+
             Boolean contractedOrder = false;
             Boolean tryOrder = true;
-             DateTime deliveryDate = this.dpDeliveryDate.SelectedDate.HasValue
-                ? this.dpDeliveryDate.SelectedDate.Value
-                : this.Orders.DeliveryDate;
+            DateTime deliveryDate = this.getDeliveryDate();
 
             if (!hasHomebases)
             {
@@ -289,9 +292,18 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
                                         Models.Airliners.Airliners.AddAirliner(airliner);
 
-                                        var pType = FleetAirliner.PurchasedType.BoughtDownPayment;
-                                        GameObject.GetInstance()
-                                            .HumanAirline.AddAirliner(pType, airliner, order.Homebase);
+                                        var fleetAirliner = new FleetAirliner(
+                                            FleetAirliner.PurchasedType.BoughtDownPayment,
+                                            GameObject.GetInstance().GameTime,
+                                            GameObject.GetInstance().HumanAirline,
+                                            airliner,
+                                            order.Homebase);
+
+                                        // the rest of the price is paid on delivery day
+                                        fleetAirliner.RemainingPayment =
+                                            Math.Max(0, (totalPrice - downpaymentPrice) / totalAmount);
+
+                                        GameObject.GetInstance().HumanAirline.AddAirliner(fleetAirliner);
 
                                        
                                     }
@@ -455,20 +467,26 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             order.Amount = (int)cbAmount.SelectedItem;
         }
 
+        //the chosen delivery date, but never earlier than the manufacturer can deliver
+        private DateTime getDeliveryDate()
+        {
+            DateTime earliest = this.Orders.DeliveryDate;
+
+            return this.dpDeliveryDate.SelectedDate.HasValue && this.dpDeliveryDate.SelectedDate.Value > earliest
+                ? this.dpDeliveryDate.SelectedDate.Value
+                : earliest;
+        }
+
         private void orderAirliners(double discount = 0)
         {
-            DateTime deliveryDate = this.dpDeliveryDate.SelectedDate.HasValue
-                ? this.dpDeliveryDate.SelectedDate.Value
-                : this.Orders.DeliveryDate;
-
-            Guid id = Guid.NewGuid();
+            DateTime deliveryDate = this.getDeliveryDate();
 
             foreach (AirlinerOrderMVVM order in this.Orders.Orders)
             {
                 for (int i = 0; i < order.Amount; i++)
                 {
                     var airliner = new Airliner(
-                        id.ToString(),
+                        Guid.NewGuid().ToString(),
                         order.Type,
                         GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline),
                         deliveryDate);

@@ -1484,13 +1484,18 @@ namespace TheAirline.Helpers
                                == GameObject.GetInstance().GameTime.ToShortDateString()
                             && a.Purchased == FleetAirliner.PurchasedType.BoughtDownPayment))
                     {
-                        if (airline.Money >= airliner.Airliner.Type.Price)
+                        double deliveryPayment = airliner.RemainingPayment > 0
+                                                     ? airliner.RemainingPayment
+                                                     : airliner.Airliner.Type.Price;
+
+                        if (airline.Money >= deliveryPayment)
                         {
                             AirlineHelpers.AddAirlineInvoice(
                                 airline,
                                 GameObject.GetInstance().GameTime,
                                 Invoice.InvoiceType.Purchases,
-                                -airliner.Airliner.Type.Price);
+                                -deliveryPayment);
+                            airliner.RemainingPayment = 0;
                             airliner.Purchased = FleetAirliner.PurchasedType.Bought;
                         }
                         else

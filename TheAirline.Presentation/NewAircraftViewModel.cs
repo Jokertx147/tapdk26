@@ -421,9 +421,15 @@ namespace TheAirline.Presentation
                 airliner.EngineType = _engine?.Engine;
                 Airliners.AddAirliner(airliner);
                 airline.AddAirliner(
-                    _downPayment ? FleetAirliner.PurchasedType.BoughtDownPayment : FleetAirliner.PurchasedType.Bought,
-                    airliner,
-                    _homebase);
+                    new FleetAirliner(
+                        _downPayment ? FleetAirliner.PurchasedType.BoughtDownPayment : FleetAirliner.PurchasedType.Bought,
+                        now,
+                        airline,
+                        airliner,
+                        _homebase)
+                    {
+                        RemainingPayment = _downPayment ? Math.Max(0, (total - down) / _amount) : 0
+                    });
             }
 
             if (contracted)

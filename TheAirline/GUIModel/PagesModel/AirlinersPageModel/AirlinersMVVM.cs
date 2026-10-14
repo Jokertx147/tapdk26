@@ -242,7 +242,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             long price = this.Orders.Sum(o => o.getOrderPrice());
 
             this.Discount =
-                Convert.ToInt64(price * (GeneralHelpers.GetAirlinerOrderDiscount(this.Orders.Sum(o => o.Amount)) / 100));
+                Convert.ToInt64(price * GeneralHelpers.GetAirlinerOrderDiscount(this.Orders.Sum(o => o.Amount)));
 
             if (GameObject.GetInstance().HumanAirline.Contract != null && this.Orders.Count > 0
                 && GameObject.GetInstance().HumanAirline.Contract.Manufacturer == this.Orders.First().Type.Manufacturer)

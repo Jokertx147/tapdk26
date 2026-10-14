@@ -195,8 +195,7 @@
                         <DatePicker Foreground="{DynamicResource AppTextBrush}" CalendarStyle="{StaticResource CalendarPickerStyle}" Focusable="False"
                                     x:Name="dpDeliveryDate"
                                     DisplayDateStart="{Binding Orders.DeliveryDate,ElementName=pageManufacturer}"
-                                    DisplayDate="{Binding Orders.DeliveryDate,ElementName=pageManufacturer}"
-                                    SelectedDate="{Binding Orders.DelivertDate,ElementName=pageManufacturer}">
+                                    DisplayDate="{Binding Orders.DeliveryDate,ElementName=pageManufacturer}">
                             <DatePicker.Style>
                                 <Style TargetType="DatePicker">
                                     <Style.Triggers>

@@ -171,6 +171,10 @@ namespace TheAirline.Models.Airliners
         [Versioning("purchased")]
         public PurchasedType Purchased { get; set; }
 
+        //what is still to be paid on delivery day for an aircraft ordered with a down payment (0 in older saves: then the list price is charged)
+        [Versioning("remainingpayment")]
+        public double RemainingPayment { get; set; }
+
         [Versioning("date")]
         public DateTime PurchasedDate { get; set; }
 
