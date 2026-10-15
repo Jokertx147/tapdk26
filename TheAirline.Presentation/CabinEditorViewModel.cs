@@ -208,6 +208,65 @@ namespace TheAirline.Presentation
             Reset();
         }
 
+        /// <summary>The editor for an aircraft that exists already: starts from its classes and facilities.</summary>
+        public CabinEditorViewModel(AirlinerPassengerType type, IEnumerable<AirlinerClass> existing, Action changed = null)
+            : this(type, changed)
+        {
+            Load(existing);
+        }
+
+        /// <summary>What the seats and facilities of the classes are worth (what ordering them costs).</summary>
+        public static double PriceOf(IEnumerable<AirlinerClass> classes)
+        {
+            double price = 0;
+            foreach (AirlinerClass c in classes)
+            {
+                foreach (AirlinerFacility f in c.GetFacilities())
+                {
+                    price += f.PricePerSeat * (f.PercentOfSeats / 100) * c.SeatingCapacity;
+                }
+            }
+
+            return price;
+        }
+
+        private void Load(IEnumerable<AirlinerClass> classes)
+        {
+            var list = classes.Where(c => c != null).ToList();
+            if (list.Count == 0)
+            {
+                return;
+            }
+
+            _loading = true;
+            Classes.Clear();
+            foreach (AirlinerClass c in list.OrderBy(c => c.Type != AirlinerClass.ClassType.EconomyClass))
+            {
+                var vm = new CabinClassViewModel(this, c.Type, _year);
+                foreach (AirlinerFacility f in c.GetFacilities())
+                {
+                    FacilityPicker picker = f.Type == AirlinerFacility.FacilityType.Seat ? vm.Seat
+                                          : f.Type == AirlinerFacility.FacilityType.Audio ? vm.Audio : vm.Video;
+                    picker.Load(f);
+                }
+
+                if (!vm.IsEconomy)
+                {
+                    vm.Set(c.SeatingCapacity, (int) Math.Ceiling(c.SeatingCapacity * vm.SeatUses - 1e-9), c.SeatingCapacity);
+                }
+
+                Classes.Add(vm);
+            }
+
+            if (Classes.All(c => !c.IsEconomy))
+            {
+                Classes.Insert(0, new CabinClassViewModel(this, AirlinerClass.ClassType.EconomyClass, _year));
+            }
+
+            _loading = false;
+            Recalculate();
+        }
+
         public ObservableCollection<CabinClassViewModel> Classes { get; }
         public List<CabinPreset> Presets { get; }
         public ICommand AddCommand { get; }

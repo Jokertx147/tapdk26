@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
              x:Class="TheAirline.Desktop.Views.NewAircraftView">
   <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="0,10,0,0">
     <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
@@ -55,36 +56,7 @@
       <TextBlock Text="{Binding ContractWarning}" IsVisible="{Binding HasContractWarning}" TextWrapping="Wrap" Foreground="OrangeRed" />
 
       <Expander IsVisible="{Binding HasCabin}" HorizontalAlignment="Stretch" Header="Cabin layout">
-        <StackPanel Spacing="6" Margin="0,6,0,0" DataContext="{Binding Cabin}">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="Start from" VerticalAlignment="Center" />
-            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding Preset}" MinWidth="260" />
-            <Button Content="+ Add class" Command="{Binding AddCommand}" />
-            <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" Opacity="0.8" />
-          </StackPanel>
-          <ItemsControl ItemsSource="{Binding Classes}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border BorderThickness="0,0,0,1" BorderBrush="#33808080" Padding="0,6">
-                  <StackPanel Spacing="4">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Width="80" VerticalAlignment="Center" />
-                      <NumericUpDown Value="{Binding Seats}" Minimum="1" Maximum="{Binding MaxSeats}" Increment="1"
-                                     FormatString="0" Width="110" IsEnabled="{Binding CanEditSeats}" />
-                      <TextBlock Text="{Binding Info}" Opacity="0.7" VerticalAlignment="Center" />
-                      <Button Content="Remove" Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <ComboBox ItemsSource="{Binding Seat.Choices}" SelectedItem="{Binding Seat.Selected}" MinWidth="250" />
-                      <ComboBox ItemsSource="{Binding Audio.Choices}" SelectedItem="{Binding Audio.Selected}" MinWidth="250" />
-                      <ComboBox ItemsSource="{Binding Video.Choices}" SelectedItem="{Binding Video.Selected}" MinWidth="250" />
-                    </StackPanel>
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
+        <v:CabinEditorView DataContext="{Binding Cabin}" Margin="0,6,0,0" />
       </Expander>
     </StackPanel>
 

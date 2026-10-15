@@ -124,6 +124,29 @@ static class VmTest
                 op.Selected = op.Saves.FirstOrDefault(x => x.Name == "vmtest-options"); op.DeleteCommand.Execute(null); op.ConfirmCommand.Execute(null);
                 Console.WriteLine("  deleted: " + op.Status + " saves=" + op.Saves.Count);
             }
+            // refit the cabin of an owned aircraft
+            {
+                av.Refresh();
+                var row = av.Fleet.FirstOrDefault(f => f.CanEditCabin);
+                Console.WriteLine("  REFIT: fleet rows=" + av.Fleet.Count + " editable=" + av.Fleet.Count(f => f.CanEditCabin));
+                if (row != null)
+                {
+                    var human2 = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+                    row.EditCabinCommand.Execute(null);
+                    var rf = av.Refit;
+                    Console.WriteLine("  open: " + rf.Title + " | " + rf.Editor.Summary + " | " + rf.CostText);
+                    rf.Editor.AddCommand.Execute(null);
+                    var biz2 = rf.Editor.Classes.Last(); biz2.Seats = 14; biz2.Seat.Selected = biz2.Seat.Choices.Last();
+                    Console.WriteLine("  edited: " + rf.Editor.Summary + " | " + rf.CostText);
+                    double money0 = human2.Money;
+                    rf.ApplyCommand.Execute(null);
+                    var fa = human2.Fleet.First(x => x.Name == rf.Title.Split('(')[0].Replace("Cabin of ", "").Trim());
+                    Console.WriteLine("  applied: " + fa.Airliner.CabinConfiguration + " money change=" + (human2.Money - money0).ToString("0") + " refit closed=" + (av.Refit == null) + " status=" + rf.Status);
+                    av.Fleet.First(f => f.CanEditCabin).EditCabinCommand.Execute(null);
+                    Console.WriteLine("  reopened: " + av.Refit.Editor.Layout + " (no change cost: " + av.Refit.CostText.Substring(0, 20) + ")");
+                    av.Refit.CancelCommand.Execute(null);
+                }
+            }
             // new aircraft order
             var na = av.NewAircraft;
             Console.WriteLine("ORDER types=" + na.Types.Count);

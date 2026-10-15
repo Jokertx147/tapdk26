@@ -23,6 +23,8 @@ namespace TheAirline.Presentation
         public string Note { get; set; }
         public bool CanStart { get; set; }
         public bool CanStop { get; set; }
+        public bool CanEditCabin { get; set; }
+        public ICommand EditCabinCommand { get; set; }
         public ICommand StartCommand { get; set; }
         public ICommand StopCommand { get; set; }
     }
@@ -111,6 +113,28 @@ namespace TheAirline.Presentation
             { "My Airline", "Routes", "Airliners", "Airports", "Alliances", "Staff", "Airlines", "Flights", "Options" };
 
         private int _page;
+        private CabinRefitViewModel _refit;
+
+        /// <summary>The cabin editor of an owned aircraft, or null when none is open.</summary>
+        public CabinRefitViewModel Refit
+        {
+            get { return _refit; }
+            private set
+            {
+                if (SetProperty(ref _refit, value))
+                {
+                    OnPropertyChanged(nameof(HasRefit));
+                }
+            }
+        }
+
+        public bool HasRefit => _refit != null;
+
+        private void CloseRefit()
+        {
+            Refit = null;
+            OnGameChanged();
+        }
 
         public string[] Pages => PageNames;
 
@@ -365,6 +389,8 @@ namespace TheAirline.Presentation
                             CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
                             CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
                             Note = f.Routes.Count == 0 ? "no route yet" : null,
+                            CanEditCabin = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.Type is AirlinerPassengerType,
+                            EditCabinCommand = new RelayCommand(() => Refit = new CabinRefitViewModel(f, CloseRefit)),
                             StartCommand = new RelayCommand(() => StartAirliner(f)),
                             StopCommand = new RelayCommand(() => StopAirliner(f))
                         });
