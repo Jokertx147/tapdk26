@@ -106,6 +106,7 @@ namespace TheAirline.Presentation
             Alliances = new AlliancesViewModel(OnGameChanged);
             AirlineList = new AirlinesViewModel();
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
+            Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit));
             Refresh();
         }
 
@@ -174,6 +175,7 @@ namespace TheAirline.Presentation
         public AlliancesViewModel Alliances { get; }
         public AirlinesViewModel AirlineList { get; }
         public OptionsViewModel Options { get; }
+        public FleetOverviewViewModel Overview { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;
@@ -282,26 +284,7 @@ namespace TheAirline.Presentation
 
         private void StartAirliner(FleetAirliner f)
         {
-            if (f.Airliner.BuiltDate > GameObject.GetInstance().GameTime)
-            {
-                Status = f.Name + " has not been delivered yet (" + f.Airliner.BuiltDate.ToString("d MMM yyyy") + ").";
-            }
-            else if (f.Routes.Count == 0)
-            {
-                Status = f.Name + " has no route. Create a route for it first.";
-            }
-            else if (f.Pilots.Count < f.Airliner.Type.CockpitCrew)
-            {
-                Status = f.Name + " needs " + f.Airliner.Type.CockpitCrew + " pilots (it has " + f.Pilots.Count + "). Hire them under Airline > Pilots.";
-            }
-            else
-            {
-                f.Status = GameObject.GetInstance().DayRoundEnabled
-                    ? FleetAirliner.AirlinerStatus.OnRoute
-                    : FleetAirliner.AirlinerStatus.ToRouteStart;
-                Status = f.Name + " is flying.";
-            }
-
+            Status = FleetOverviewViewModel.TryStart(f);
             Refresh();
         }
 
@@ -418,6 +401,7 @@ namespace TheAirline.Presentation
 
             RefreshRoutes(routes);
             _routeDetail?.RefreshNumbers();
+            Overview?.Reload();
         }
 
         // the route list is only rebuilt when routes are added or removed, so the selection and typing in the fare boxes stay

@@ -60,6 +60,25 @@
                 <TextBlock Text="Order aircraft under Airliners, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
               </StackPanel>
             </TabItem>
+            <TabItem Header="Fleet">
+              <Grid RowDefinitions="*,Auto">
+                <v:FleetOverviewView DataContext="{Binding Overview}" />
+                <Border Grid.Row="1" IsVisible="{Binding HasRefit}" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
+                  <ScrollViewer MaxHeight="360">
+                    <StackPanel Spacing="8" DataContext="{Binding Refit}">
+                      <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
+                      <v:CabinEditorView DataContext="{Binding Editor}" />
+                      <TextBlock Text="{Binding CostText}" Opacity="0.8" TextWrapping="Wrap" />
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="Refit the aircraft" Command="{Binding ApplyCommand}" />
+                        <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                      </StackPanel>
+                      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="OrangeRed" />
+                    </StackPanel>
+                  </ScrollViewer>
+                </Border>
+              </Grid>
+            </TabItem>
             <TabItem Header="Finances">
               <v:FinanceView DataContext="{Binding Finance}" />
             </TabItem>

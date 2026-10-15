@@ -279,9 +279,9 @@ namespace TheAirline.Models.Airliners
                 let audioFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Audio)
                 let videoFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Video)
                 let seatFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Seat)
-                let audioPrice = audioFacility.PricePerSeat*audioFacility.PercentOfSeats*aClass.SeatingCapacity
-                let videoPrice = videoFacility.PricePerSeat*videoFacility.PercentOfSeats*aClass.SeatingCapacity
-                let seatPrice = seatFacility.PricePerSeat*seatFacility.PercentOfSeats*aClass.SeatingCapacity
+                let audioPrice = audioFacility.PricePerSeat*(audioFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
+                let videoPrice = videoFacility.PricePerSeat*(videoFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
+                let seatPrice = seatFacility.PricePerSeat*(seatFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
                 select audioPrice + videoPrice + seatPrice).Sum();
 
             basePrice += facilityPrice;
