@@ -36,7 +36,10 @@ namespace TheAirline.Helpers
 
             Fast = 1000,
 
-            Fastest = 500
+            Fastest = 500,
+
+            //runs as fast as the computer can simulate the turns
+            Turbo = 250
         }
 
         public enum Size

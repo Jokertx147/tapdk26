@@ -16,7 +16,7 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" MinWidth="70" HorizontalContentAlignment="Center" />
-          <ComboBox ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed}" MinWidth="110" />
+          <ComboBox ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed}" MinWidth="230" />
           <Button Content="Save" Command="{Binding SaveCommand}" />
           <Button Content="Main menu" Command="{Binding MainMenuCommand}" />
         </StackPanel>

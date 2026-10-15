@@ -143,11 +143,12 @@ namespace TheAirline.Helpers.Workers
 
         //returns if the worker is paused
 
-        //the target length of a turn in milliseconds: at the Normal speed one game month takes 90 seconds,
-        //the speed setting scales that (Slowest 0.6x ... Fastest 3x)
+        //the target length of a turn in milliseconds: at the Normal speed one game month takes 45 seconds,
+        //the speed setting scales that (Slowest 0.6x ... Fastest 3x, Turbo 6x); a computer that needs longer
+        //to simulate a turn than that simply runs as fast as it can
         private static long GetTurnDuration()
         {
-            const double secondsPerMonth = 90;
+            const double secondsPerMonth = 45;
             const double normalSpeed = 1500;
 
             GameObject game = GameObject.GetInstance();

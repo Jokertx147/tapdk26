@@ -75,11 +75,12 @@ namespace TheAirline.Presentation
             Routes = new ObservableCollection<RouteItem>();
             Speeds = new[]
             {
-                new SpeedChoice {Name = "Slowest", Value = GeneralHelpers.GameSpeedValue.Slowest},
-                new SpeedChoice {Name = "Slow", Value = GeneralHelpers.GameSpeedValue.Slow},
-                new SpeedChoice {Name = "Normal", Value = GeneralHelpers.GameSpeedValue.Normal},
-                new SpeedChoice {Name = "Fast", Value = GeneralHelpers.GameSpeedValue.Fast},
-                new SpeedChoice {Name = "Fastest", Value = GeneralHelpers.GameSpeedValue.Fastest}
+                new SpeedChoice {Name = "Slowest (75 s / month)", Value = GeneralHelpers.GameSpeedValue.Slowest},
+                new SpeedChoice {Name = "Slow (60 s / month)", Value = GeneralHelpers.GameSpeedValue.Slow},
+                new SpeedChoice {Name = "Normal (45 s / month)", Value = GeneralHelpers.GameSpeedValue.Normal},
+                new SpeedChoice {Name = "Fast (30 s / month)", Value = GeneralHelpers.GameSpeedValue.Fast},
+                new SpeedChoice {Name = "Fastest (15 s / month)", Value = GeneralHelpers.GameSpeedValue.Fastest},
+                new SpeedChoice {Name = "Turbo (as fast as possible)", Value = GeneralHelpers.GameSpeedValue.Turbo}
             };
             var current = TheAirline.Infrastructure.Settings.GetInstance().GameSpeed;
             _speed = Speeds.First(s => s.Value == current);

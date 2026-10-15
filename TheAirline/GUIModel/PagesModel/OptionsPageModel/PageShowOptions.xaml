@@ -43,7 +43,7 @@
                     VerticalAlignment="Bottom" FontWeight="Bold" Width="150" />
                 <Slider TickPlacement="BottomRight" Width="150" Name="slGameSpeed"
                         IsSnapToTickEnabled="True"
-                        Ticks="{Binding GameSpeeds}" Maximum="2500" Minimum="500" IsDirectionReversed="True"
+                        Ticks="{Binding GameSpeeds}" Maximum="2500" Minimum="250" IsDirectionReversed="True"
                         Value="{Binding CurrentGameSpeed}" />
                 <TextBlock Text="{Binding Value,ElementName=slGameSpeed,Converter={StaticResource GameSpeedConverter}}"
                            VerticalAlignment="Bottom" Margin="5 0 0 0" />
