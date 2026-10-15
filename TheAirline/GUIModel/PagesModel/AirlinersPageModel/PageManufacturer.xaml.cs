@@ -282,7 +282,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
                                             foreach (AirlinerFacility facility in aClass.GetFacilities())
                                             {
-                                                tClass.SetFacility(GameObject.GetInstance().HumanAirline, facility);
+                                                // the cabin extras are already part of the order price, so they are not charged a second time here
+                                                tClass.ForceSetFacility(facility);
                                             }
 
                                             airliner.AddAirlinerClass(tClass);
@@ -504,7 +505,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
                         foreach (AirlinerFacility facility in aClass.GetFacilities())
                         {
-                            tClass.SetFacility(GameObject.GetInstance().HumanAirline, facility);
+                            // the cabin extras are already part of the order price, so they are not charged a second time here
+                                                tClass.ForceSetFacility(facility);
                         }
 
                         airliner.AddAirlinerClass(tClass);

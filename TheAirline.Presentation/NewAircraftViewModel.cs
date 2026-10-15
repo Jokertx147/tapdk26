@@ -61,6 +61,7 @@ namespace TheAirline.Presentation
         private List<EngineChoice> _engines = new List<EngineChoice>();
         private string _status;
         private string _summary;
+        private CabinEditorViewModel _cabin;
 
         public NewAircraftViewModel(Action changed = null)
         {
@@ -180,6 +181,21 @@ namespace TheAirline.Presentation
             private set { SetProperty(ref _status, value); }
         }
 
+        /// <summary>The cabin layout of the selected type (null for types without passenger seats).</summary>
+        public CabinEditorViewModel Cabin
+        {
+            get { return _cabin; }
+            private set
+            {
+                if (SetProperty(ref _cabin, value))
+                {
+                    OnPropertyChanged(nameof(HasCabin));
+                }
+            }
+        }
+
+        public bool HasCabin => _cabin != null;
+
         /// <summary>Price, discount and delivery date of the order as it stands.</summary>
         public string Summary
         {
@@ -260,6 +276,7 @@ namespace TheAirline.Presentation
                 Homebase = null;
                 Engines = new List<EngineChoice>();
                 Engine = null;
+                Cabin = null;
                 Summary = null;
                 return;
             }
@@ -286,6 +303,8 @@ namespace TheAirline.Presentation
                                   .ToList();
             Engines = list;
             Engine = list.FirstOrDefault(e => e.Engine == standard) ?? list.FirstOrDefault();
+            var passengerType = type as AirlinerPassengerType;
+            Cabin = passengerType != null ? new CabinEditorViewModel(passengerType, UpdateSummary) : null;
             UpdateSummary();
         }
 
@@ -317,7 +336,7 @@ namespace TheAirline.Presentation
                 price += _engine.Engine.Price - (standard?.Price ?? _engine.Engine.Price);
             }
 
-            return price;
+            return price + (_cabin?.Price ?? 0);
         }
 
         private double TotalPrice(bool contracted)
@@ -352,7 +371,7 @@ namespace TheAirline.Presentation
             double discount = 1 - total / (UnitPrice() * _amount);
 
             Summary = string.Format(
-                "{0} x {1}: total {2}{3}.  Delivery {4:d MMM yyyy}.{5}",
+                "{0} x {1}: total {2}{3}.  Delivery {4:d MMM yyyy}.{5}" + (_cabin != null ? "  Cabin " + _cabin.Layout + "." : ""),
                 _amount,
                 _selected.Name,
                 Convert.ToString(f.Convert(total)),
@@ -419,6 +438,15 @@ namespace TheAirline.Presentation
                     airline.Profile.Country.TailNumbers.GetNextTailNumber(airline),
                     delivery);
                 airliner.EngineType = _engine?.Engine;
+                if (_cabin != null)
+                {
+                    airliner.ClearAirlinerClasses();
+                    foreach (AirlinerClass aClass in _cabin.BuildClasses())
+                    {
+                        airliner.AddAirlinerClass(aClass);
+                    }
+                }
+
                 Airliners.AddAirliner(airliner);
                 airline.AddAirliner(
                     new FleetAirliner(

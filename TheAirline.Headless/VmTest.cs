@@ -92,10 +92,31 @@ static class VmTest
             if (na.Selected == null) { na.Filter = ""; na.Selected = na.Types.First(); }
             na.Amount = 2; na.DownPayment = true;
             Console.WriteLine("  " + na.Selected.Name + " | homebases=" + na.Homebases.Count + " engines=" + na.Engines.Count + " | " + na.Summary);
+            var cab = na.Cabin;
+            Console.WriteLine("  CABIN: " + (cab == null ? "none" : cab.Summary + " | presets=" + string.Join("; ", cab.Presets.Select(x => x.Name))));
+            if (cab != null)
+            {
+                string before = na.Summary;
+                cab.AddCommand.Execute(null);
+                Console.WriteLine("  +class: " + cab.Summary + " classes=" + cab.Classes.Count + " canAdd=" + cab.CanAdd);
+                var biz = cab.Classes.Last();
+                biz.Seats = 9999; Console.WriteLine("  max business: " + biz.Seats + " (max " + biz.MaxSeats + ") economy=" + cab.Classes[0].Seats + " total=" + cab.TotalSeats);
+                biz.Seats = 12;
+                var fac = biz.Seat.Choices; Console.WriteLine("  seat choices: " + string.Join("; ", fac.Select(x => x.Text)));
+                biz.Seat.Selected = fac.Last();
+                Console.WriteLine("  luxury seats: " + cab.Summary + " eco=" + cab.Classes[0].Seats + " floor used=" + cab.Classes.Sum(c => c.Regular));
+                biz.Audio.Selected = biz.Audio.Choices.Last(); biz.Video.Selected = biz.Video.Choices.Last();
+                Console.WriteLine("  with audio/video: " + cab.Summary);
+                Console.WriteLine("  order summary: " + na.Summary);
+                foreach (var pr in cab.Presets.Skip(1).Take(2)) { cab.Preset = pr; Console.WriteLine("  preset " + pr.Name + ": " + cab.Summary + " floor=" + cab.Classes.Sum(c => c.Regular) + "/" + cab.TotalFloor); }
+                cab.Preset = cab.Presets[0]; cab.AddCommand.Execute(null); cab.Classes.Last().Seats = 8;
+                Console.WriteLine("  final: " + cab.Layout + " | " + na.Summary);
+            }
             var gt = TheAirline.Models.General.GameObject.GetInstance();
             double m0 = gt.HumanAirline.Money; int f0 = gt.HumanAirline.Fleet.Count;
             na.TerminateContract = true;
             na.OrderCommand.Execute(null);
+            { var last = gt.HumanAirline.Fleet.Last(); Console.WriteLine("  ordered cabin: " + last.Airliner.CabinConfiguration + " classes=" + last.Airliner.Classes.Count + " seats=" + last.Airliner.GetTotalSeatCapacity()); }
             Console.WriteLine("  order: " + na.Status + " | money change=" + (gt.HumanAirline.Money - m0) + " fleet " + f0 + "->" + gt.HumanAirline.Fleet.Count + " delivered=" + gt.HumanAirline.DeliveredFleet.Count);
             av.Refresh();
             Console.WriteLine("  fleet row: " + av.Fleet.Last().Name + " " + av.Fleet.Last().Status + " canStart=" + av.Fleet.Last().CanStart);
