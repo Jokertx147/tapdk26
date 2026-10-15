@@ -899,28 +899,33 @@ namespace TheAirline.Helpers
             int gates,
             int length = 20)
         {
-            int currentgates = airport.AirlineContracts.Where(a => a.Airline == airline && a.TerminalType == terminaltype).Sum(c => c.NumberOfGates);
-            var contract = new AirportContract(
-                airline,
-                airport,
-                type,
-                terminaltype,
-                GameObject.GetInstance().GameTime,
-                gates,
-                length,
-                GetYearlyContractPayment(airport, type, gates, length),
-                true);
+            // extra gates go on the airline's existing contract of the same kind, with the rent growing with them;
+            // when there is none (or only a different kind), the gates get a contract of their own
+            AirportContract existing = airport.AirlineContracts.FirstOrDefault(
+                c => c.Airline == airline
+                     && c.Type == type
+                     && c.TerminalType == terminaltype
+                     && c.Terminal == null
+                     && !c.IsExclusiveDeal);
 
-            if (currentgates == 0)
+            if (existing != null)
             {
-                AddAirlineContract(contract);
+                existing.NumberOfGates += gates;
+                existing.YearlyPayment += GetYearlyContractPayment(airport, type, gates, existing.Length);
             }
             else
             {
-                foreach (AirportContract c in airport.AirlineContracts.Where(a => a.Airline == airline))
-                {
-                    c.NumberOfGates += gates;
-                }
+                AddAirlineContract(
+                    new AirportContract(
+                        airline,
+                        airport,
+                        type,
+                        terminaltype,
+                        GameObject.GetInstance().GameTime,
+                        gates,
+                        length,
+                        GetYearlyContractPayment(airport, type, gates, length),
+                        true));
             }
 
             for (int i = 0; i < gates; i++)

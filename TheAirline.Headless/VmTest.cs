@@ -84,6 +84,17 @@ static class VmTest
             Console.WriteLine("after a month: " + ln.Loans[0].Detail);
             ln.Loans[0].PayOffCommand.Execute(null);
             Console.WriteLine("payoff: " + ln.Status + " loans=" + ln.Loans.Count);
+            // renting gates: more gates go on the matching contract, a different kind gets its own, and the rent follows
+            {
+                var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+                var ap2 = TheAirline.Models.Airports.Airports.GetAllActiveAirports().First(x => x.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) >= 6 && !x.AirlineContracts.Any(c => c.Airline == h));
+                var pax = TheAirline.Models.Airports.Terminal.TerminalType.Passenger;
+                TheAirline.Helpers.AirportHelpers.RentGates(ap2, h, TheAirline.Models.Airports.AirportContract.ContractType.Full, pax, 2);
+                TheAirline.Helpers.AirportHelpers.RentGates(ap2, h, TheAirline.Models.Airports.AirportContract.ContractType.LowService, pax, 1);
+                TheAirline.Helpers.AirportHelpers.RentGates(ap2, h, TheAirline.Models.Airports.AirportContract.ContractType.Full, pax, 2);
+                foreach (var c in ap2.AirlineContracts.Where(c => c.Airline == h)) Console.WriteLine("  RENT " + c.Type + " gates=" + c.NumberOfGates + " yearly=" + c.YearlyPayment.ToString("0"));
+                Console.WriteLine("  RENT owned gates=" + ap2.Terminals.GetGates().Count(g => g.Airline == h) + " (expected 5)");
+            }
             // new aircraft order
             var na = av.NewAircraft;
             Console.WriteLine("ORDER types=" + na.Types.Count);
