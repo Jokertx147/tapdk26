@@ -23,50 +23,55 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="1" Classes="main">
-      <TabControl.Styles>
-        <!-- the sub tabs under each main tab are smaller -->
-        <Style Selector="TabControl.sub TabItem">
-          <Setter Property="FontSize" Value="13" />
-          <Setter Property="MinHeight" Value="28" />
-          <Setter Property="Padding" Value="10,2" />
-        </Style>
-      </TabControl.Styles>
+    <Grid Grid.Row="1" ColumnDefinitions="150,12,*">
+      <!-- the menu on the left, like the Windows version -->
+      <ListBox Classes="menu" ItemsSource="{Binding Pages}" SelectedIndex="{Binding Page}" VerticalAlignment="Top">
+        <ListBox.Styles>
+          <Style Selector="ListBox.menu ListBoxItem">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="CornerRadius" Value="4" />
+          </Style>
+        </ListBox.Styles>
+      </ListBox>
 
-      <!-- AIRLINE -->
-      <TabItem Header="Airline">
-        <TabControl Classes="sub">
-          <TabItem Header="Overview">
-            <StackPanel Margin="0,14,0,0" Spacing="8">
-              <TextBlock Text="{Binding AirlineName}" FontSize="20" FontWeight="Bold" />
-              <TextBlock Text="{Binding Summary}" FontSize="15" />
-              <TextBlock Text="Buy or lease aircraft in the Aircraft market tab, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
-            </StackPanel>
-          </TabItem>
-          <TabItem Header="Airports">
-            <v:AirportManagerView DataContext="{Binding AirportManager}" />
-          </TabItem>
-          <TabItem Header="New aircraft">
-            <v:NewAircraftView DataContext="{Binding NewAircraft}" />
-          </TabItem>
-          <TabItem Header="Used aircraft">
-            <v:MarketView DataContext="{Binding Market}" />
-          </TabItem>
-          <TabItem Header="Finances">
-            <v:FinanceView DataContext="{Binding Finance}" />
-          </TabItem>
-          <TabItem Header="Loans">
-            <v:LoansView DataContext="{Binding Loans}" />
-          </TabItem>
-          <TabItem Header="Pilots">
-            <v:PilotsView DataContext="{Binding Pilots}" />
-          </TabItem>
-        </TabControl>
-      </TabItem>
+      <TabControl Grid.Column="2" Classes="pages" SelectedIndex="{Binding Page}">
+        <TabControl.Styles>
+          <!-- the tab strip is hidden: the menu on the left chooses the page -->
+          <Style Selector="TabControl.pages /template/ ItemsPresenter#PART_ItemsPresenter">
+            <Setter Property="IsVisible" Value="False" />
+          </Style>
+          <Style Selector="TabControl.sub TabItem">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Padding" Value="10,2" />
+          </Style>
+        </TabControl.Styles>
 
-      <!-- ROUTES -->
-      <TabItem Header="Routes">
-        <TabControl Classes="sub">
+        <!-- MY AIRLINE -->
+        <TabItem Header="My Airline">
+          <TabControl Classes="sub">
+            <TabItem Header="Overview">
+              <StackPanel Margin="0,14,0,0" Spacing="8">
+                <TextBlock Text="{Binding AirlineName}" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="{Binding Summary}" FontSize="15" />
+                <TextBlock Text="Order aircraft under Airliners, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
+              </StackPanel>
+            </TabItem>
+            <TabItem Header="Finances">
+              <v:FinanceView DataContext="{Binding Finance}" />
+            </TabItem>
+            <TabItem Header="Loans">
+              <v:LoansView DataContext="{Binding Loans}" />
+            </TabItem>
+          </TabControl>
+        </TabItem>
+
+        <!-- ROUTES -->
+        <TabItem Header="Routes">
+          <TabControl Classes="sub">
           <TabItem Header="My routes">
             <Grid ColumnDefinitions="300,12,*" Margin="0,10,0,0">
               <Grid RowDefinitions="Auto,*">
@@ -124,11 +129,47 @@
             <v:AirportsView DataContext="{Binding Airports}" />
           </TabItem>
         </TabControl>
-      </TabItem>
+        </TabItem>
 
-      <!-- FLIGHTS -->
-      <TabItem Header="Flights">
-        <TabControl Classes="sub">
+        <!-- AIRLINERS -->
+        <TabItem Header="Airliners">
+          <TabControl Classes="sub">
+            <TabItem Header="New aircraft">
+              <v:NewAircraftView DataContext="{Binding NewAircraft}" />
+            </TabItem>
+            <TabItem Header="Used aircraft">
+              <v:MarketView DataContext="{Binding Market}" />
+            </TabItem>
+          </TabControl>
+        </TabItem>
+
+        <!-- AIRPORTS -->
+        <TabItem Header="Airports">
+          <v:AirportManagerView DataContext="{Binding AirportManager}" />
+        </TabItem>
+
+        <!-- ALLIANCES -->
+        <TabItem Header="Alliances">
+          <v:AlliancesView DataContext="{Binding Alliances}" />
+        </TabItem>
+
+        <!-- STAFF -->
+        <TabItem Header="Staff">
+          <TabControl Classes="sub">
+            <TabItem Header="Pilots">
+              <v:PilotsView DataContext="{Binding Pilots}" />
+            </TabItem>
+          </TabControl>
+        </TabItem>
+
+        <!-- AIRLINES -->
+        <TabItem Header="Airlines">
+          <v:AirlinesView DataContext="{Binding AirlineList}" />
+        </TabItem>
+
+        <!-- FLIGHTS -->
+        <TabItem Header="Flights">
+          <TabControl Classes="sub">
           <TabItem Header="Fleet">
             <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
               <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
@@ -173,7 +214,13 @@
             </Grid>
           </TabItem>
         </TabControl>
-      </TabItem>
-    </TabControl>
+        </TabItem>
+
+        <!-- OPTIONS -->
+        <TabItem Header="Options">
+          <v:OptionsView DataContext="{Binding Options}" />
+        </TabItem>
+      </TabControl>
+    </Grid>
   </Grid>
 </UserControl>

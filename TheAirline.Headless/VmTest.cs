@@ -95,6 +95,35 @@ static class VmTest
                 foreach (var c in ap2.AirlineContracts.Where(c => c.Airline == h)) Console.WriteLine("  RENT " + c.Type + " gates=" + c.NumberOfGates + " yearly=" + c.YearlyPayment.ToString("0"));
                 Console.WriteLine("  RENT owned gates=" + ap2.Terminals.GetGates().Count(g => g.Airline == h) + " (expected 5)");
             }
+            // the menu pages, alliances, airlines and options
+            {
+                Console.WriteLine("  PAGES: " + string.Join(" | ", av.Pages));
+                for (int i = 0; i < av.Pages.Length; i++) av.Page = i;
+                av.Page = 4;
+                var al = av.Alliances;
+                Console.WriteLine("  ALLIANCES: " + al.Alliances.Count + " first=" + al.Selected?.Text + " | members=" + al.Members.Count + " member=" + al.IsMember + " canJoin=" + al.CanJoin);
+                var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+                al.NewName = "Test Alliance"; al.CreateCommand.Execute(null);
+                Console.WriteLine("  created: " + al.Status + " | selected=" + al.Title + " member=" + al.IsMember + " invite candidates=" + al.InviteCandidates.Count);
+                al.InviteCommand.Execute(null); Console.WriteLine("  invite: " + al.Status + " members=" + al.Members.Count);
+                al.LeaveCommand.Execute(null); al.ConfirmCommand.Execute(null); Console.WriteLine("  leave: " + al.Status + " alliances=" + al.Alliances.Count);
+                var other = al.Alliances.FirstOrDefault(x => !x.Alliance.Members.Any(m => m.Airline == human));
+                if (other != null) { al.Selected = other; al.JoinCommand.Execute(null); al.ConfirmCommand.Execute(null); Console.WriteLine("  join " + other.Alliance.Name + ": " + al.Status + " member=" + al.IsMember); }
+                av.Page = 6;
+                var sw2 = System.Diagnostics.Stopwatch.StartNew(); var lst = av.AirlineList; lst.Reload();
+                Console.WriteLine("  AIRLINES: " + lst.Count + " (" + sw2.ElapsedMilliseconds + " ms) first=" + lst.Airlines.First().Name + " " + lst.Airlines.First().Value + " | " + lst.Details);
+                lst.SortBy = "Fleet"; lst.Search = "air"; Console.WriteLine("  filtered: " + lst.Count);
+                av.Page = 8;
+                var op = av.Options;
+                Console.WriteLine("  OPTIONS: save name=" + op.SaveName + " saves=" + op.Saves.Count);
+                op.SaveName = "vmtest-options"; op.SaveCommand.Execute(null);
+                System.Threading.Thread.Sleep(4000);
+                Console.WriteLine("  saved: " + op.Status + " saves=" + op.Saves.Count + " has pending=" + op.HasPending);
+                op.SaveCommand.Execute(null); Console.WriteLine("  save again: pending=" + op.HasPending + " " + op.PendingText);
+                op.CancelCommand.Execute(null);
+                op.Selected = op.Saves.FirstOrDefault(x => x.Name == "vmtest-options"); op.DeleteCommand.Execute(null); op.ConfirmCommand.Execute(null);
+                Console.WriteLine("  deleted: " + op.Status + " saves=" + op.Saves.Count);
+            }
             // new aircraft order
             var na = av.NewAircraft;
             Console.WriteLine("ORDER types=" + na.Types.Count);

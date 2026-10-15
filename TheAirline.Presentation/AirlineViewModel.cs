@@ -100,7 +100,42 @@ namespace TheAirline.Presentation
             AirportManager = new AirportManagerViewModel(OnGameChanged);
             Loans = new LoansViewModel(OnGameChanged);
             Timetable = new TimetableViewModel(OnGameChanged);
+            Alliances = new AlliancesViewModel(OnGameChanged);
+            AirlineList = new AirlinesViewModel();
+            Options = new OptionsViewModel(shell, null, MainMenuCommand);
             Refresh();
+        }
+
+        /// <summary>The pages of the menu on the left, in the order of the buttons.</summary>
+        public static readonly string[] PageNames =
+            { "My Airline", "Routes", "Airliners", "Airports", "Alliances", "Staff", "Airlines", "Flights", "Options" };
+
+        private int _page;
+
+        public string[] Pages => PageNames;
+
+        /// <summary>The index of the page shown.</summary>
+        public int Page
+        {
+            get { return _page; }
+            set
+            {
+                if (value >= 0 && value < PageNames.Length && SetProperty(ref _page, value))
+                {
+                    OnPageShown(value);
+                }
+            }
+        }
+
+        // pages that show data the game changes on its own are read again when they are opened
+        private void OnPageShown(int page)
+        {
+            switch (PageNames[page])
+            {
+                case "Alliances": Alliances.Reload(); break;
+                case "Airlines": AirlineList.Reload(); break;
+                case "Options": Options.Reload(); break;
+            }
         }
 
         public MarketViewModel Market { get; }
@@ -111,6 +146,9 @@ namespace TheAirline.Presentation
         public AirportManagerViewModel AirportManager { get; }
         public LoansViewModel Loans { get; }
         public TimetableViewModel Timetable { get; }
+        public AlliancesViewModel Alliances { get; }
+        public AirlinesViewModel AirlineList { get; }
+        public OptionsViewModel Options { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;

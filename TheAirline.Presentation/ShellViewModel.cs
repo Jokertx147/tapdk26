@@ -73,6 +73,11 @@ namespace TheAirline.Presentation
             old?.Dispose();
         }
 
+        public void Exit()
+        {
+            _exit();
+        }
+
         public void ShowMainMenu()
         {
             Navigate(new MainMenuViewModel(this, _exit));
