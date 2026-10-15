@@ -88,6 +88,20 @@
         </StackPanel>
         <TextBlock Text="{Binding PriceText}" Opacity="0.8" TextWrapping="Wrap" />
 
+        <TextBlock Text="Gates for sale" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ItemsControl ItemsSource="{Binding GateOffers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,3">
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="{Binding BuyOneText}" Command="{Binding BuyOneCommand}" Margin="8,0,0,0" />
+                <Button Grid.Column="2" Content="{Binding BuyAllText}" Command="{Binding BuyAllCommand}" IsVisible="{Binding CanBuyAll}" Margin="8,0,0,0" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{Binding GateOffersText}" Opacity="0.8" TextWrapping="Wrap" />
+
         <TextBlock Text="Terminals" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
         <ItemsControl ItemsSource="{Binding Terminals}">
           <ItemsControl.ItemTemplate>

@@ -54,6 +54,18 @@ namespace TheAirline.Presentation
         public string Text { get; set; }
     }
 
+    /// <summary>A computer airline that has gates it doesn't need at the airport.</summary>
+    public class GateSaleOffer
+    {
+        public AirportContract Contract { get; set; }
+        public string Text { get; set; }
+        public string BuyOneText { get; set; }
+        public string BuyAllText { get; set; }
+        public bool CanBuyAll { get; set; }
+        public ICommand BuyOneCommand { get; set; }
+        public ICommand BuyAllCommand { get; set; }
+    }
+
     public class TerminalItem
     {
         public Terminal Terminal { get; set; }
@@ -131,6 +143,9 @@ namespace TheAirline.Presentation
 
         public ObservableCollection<AirportItem> Airports { get; }
         public ObservableCollection<ContractItem> Contracts { get; }
+        public ObservableCollection<GateSaleOffer> GateOffers { get; } = new ObservableCollection<GateSaleOffer>();
+        public bool HasGateOffers => GateOffers.Count > 0;
+        public string GateOffersText { get; private set; }
         public ObservableCollection<FacilityItem> Facilities { get; }
         public ObservableCollection<int> GateChoices { get; }
         public ObservableCollection<TerminalItem> Terminals { get; }
@@ -436,6 +451,7 @@ namespace TheAirline.Presentation
         private void LoadDetail()
         {
             Contracts.Clear();
+            GateOffers.Clear();
             Facilities.Clear();
             GateChoices.Clear();
             Terminals.Clear();
@@ -476,6 +492,8 @@ namespace TheAirline.Presentation
                             c.Type, c.NumberOfGates, c.TerminalType, c.MonthsLeft, Money(c.YearlyPayment))
                     });
             }
+
+            LoadGateOffers(airport);
 
             for (int i = 1; i <= Math.Min(free, 8); i++)
             {
@@ -561,6 +579,68 @@ namespace TheAirline.Presentation
                         SellCommand = new RelayCommand(() => AskSellTerminal(airport, terminal))
                     });
             }
+        }
+
+        // the computer airlines' spare gates at the airport
+        private void LoadGateOffers(Airport airport)
+        {
+            double perGate = GateTrading.GetPricePerGate(airport);
+
+            foreach (var contract in airport.AirlineContracts.Where(c => GateTrading.IsTradable(airport, c)).ToList())
+            {
+                int spare = GateTrading.GetSpareGates(airport, contract);
+                if (spare < 1)
+                {
+                    continue;
+                }
+
+                var captured = contract;
+                var offer = new GateSaleOffer
+                {
+                    Contract = contract,
+                    Text = string.Format(
+                        "{0} can spare {1} of its {2} gate(s)  |  {3} per gate",
+                        contract.Airline.Profile.Name, spare, contract.NumberOfGates, Money(perGate)),
+                    BuyOneText = "Buy 1",
+                    BuyAllText = "Buy " + spare,
+                    CanBuyAll = spare > 1
+                };
+                offer.BuyOneCommand = new RelayCommand(() => AskBuyGates(airport, captured, 1));
+                offer.BuyAllCommand = new RelayCommand(() => AskBuyGates(airport, captured, spare));
+                GateOffers.Add(offer);
+            }
+
+            GateOffersText = GateOffers.Count == 0
+                ? "No airline has gates to spare here."
+                : "You pay the airline a transfer fee per gate, then pay the normal rent for a " + _contractType.Text + " contract (the type chosen under Lease gates).";
+            OnPropertyChanged(nameof(HasGateOffers));
+            OnPropertyChanged(nameof(GateOffersText));
+        }
+
+        private void AskBuyGates(Airport airport, AirportContract contract, int gates)
+        {
+            double price = GateTrading.GetPricePerGate(airport) * gates;
+            if (price > Human.Money)
+            {
+                Status = "You can't afford " + gates + " gate(s) (" + Money(price) + ").";
+                return;
+            }
+
+            var type = _contractType.Type;
+            _pending = () =>
+                {
+                    string message;
+                    GateTrading.BuyGates(airport, contract, gates, type, out message);
+                    Status = message;
+                    ApplySearch();
+                    Selected = Airports.FirstOrDefault(a => a.Airport == airport);
+                    LoadDetail();
+                    _changed();
+                    Status = message;
+                };
+            PendingText = string.Format(
+                "Buy {0} gate(s) from {1} at {2} for {3}? You get a {4} contract for them.",
+                gates, contract.Airline.Profile.Name, airport.Profile.IATACode, Money(price), type);
         }
 
         private void AskBuildTerminal()

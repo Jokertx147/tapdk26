@@ -180,6 +180,23 @@ static class VmTest
             am.OnlyMine = false; am.Search = "JFK";
             Console.WriteLine("search JFK: " + am.Airports.Count + " " + am.Airports.FirstOrDefault()?.Text);
             foreach (var sc in am.SortChoices) { am.SortBy = sc; Console.WriteLine("  sort " + sc + ": " + am.Airports.Count); }
+            {
+                am.Search = ""; am.OnlyMine = false; am.SortBy = "Airlines";
+                var sw = System.Diagnostics.Stopwatch.StartNew(); int shown = 0, withOffers = 0;
+                AirportItem target = null;
+                foreach (var row in am.Airports.Take(25).ToList()) { am.Selected = row; shown++; if (am.GateOffers.Count > 0) { withOffers++; target = target ?? row; } }
+                Console.WriteLine("  GATE OFFERS: " + withOffers + "/" + shown + " busiest airports have offers, " + (sw.ElapsedMilliseconds / Math.Max(1, shown)) + " ms per airport");
+                if (target != null)
+                {
+                    am.Selected = target;
+                    var offer = am.GateOffers.First();
+                    Console.WriteLine("  at " + target.Text + ": " + offer.Text);
+                    double mon = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money; int offersBefore = am.GateOffers.Count;
+                    offer.BuyOneCommand.Execute(null); Console.WriteLine("  pending: " + am.PendingText);
+                    am.ConfirmPendingCommand.Execute(null);
+                    Console.WriteLine("  bought: " + am.Status + " | " + am.GateSummary + " | money change " + (TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money - mon).ToString("0") + " | offers " + offersBefore + "->" + am.GateOffers.Count + " | contracts " + am.Contracts.Count);
+                }
+            }
             am.SortBy = "Name";
             var jr = (AirportRow)am.Airports.First();
             Console.WriteLine("  row: " + jr.Name + " | " + jr.Codes + " | " + jr.Country + " | " + jr.Type + " | " + jr.Size + " | gates " + jr.Gates + " | rwy " + jr.Runway + " | airlines " + jr.Airlines + " routes " + jr.Routes + " canLease=" + jr.CanLease);
