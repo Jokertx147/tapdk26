@@ -5293,21 +5293,6 @@
       <runway name="13/31" length="2400" surface="Asphalt" />
     </runways>
   </airport>
-  <airport name="Muara Bungo Airport" icao="WIPI" iata="MAF" type="Domestic" season="AllYear">
-    <town town="Jambi" country="162" GMT="07:00:00" DST="07:00:00" />
-    <period from="11.25.2012 00:00:00" to="12.31.2199 00:00:00" />
-    <coordinates>
-      <latitude value="001°33'13''S" />
-      <longitude value="101°32'45''E" />
-    </coordinates>
-    <size value="Small" pax="121" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways>
-      <runway name="05/23" length="1350" surface="Asphalt" />
-    </runways>
-  </airport>
   <airport name="Minangkabau International Airport" icao="WIPT" iata="PDG" type="ShortHaulInternational"
            season="AllYear">
     <town town="Padang" country="162" GMT="07:00:00" DST="07:00:00" />
