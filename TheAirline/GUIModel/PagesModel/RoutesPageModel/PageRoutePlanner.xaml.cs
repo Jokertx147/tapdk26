@@ -122,6 +122,11 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
 
             Loaded += PageRoutePlanner_Loaded;
 
+            // the demand shown next to each route in the route list
+            RouteDemandConverter.Percents = routeType != Route.RouteType.Cargo
+                ? RouteDemandConverter.Calculate(Routes)
+                : null;
+
             InitializeComponent();
         }
 

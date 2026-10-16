@@ -13,6 +13,14 @@
       Title="PageRoutePlanner">
     <Page.Resources>
         <local:RouteHomeboundConverter x:Key="RouteHomeboundConverter" />
+        <local:RouteDemandConverter x:Key="RouteDemandConverter" />
+        <DataTemplate x:Key="RouteDemandItem">
+            <WrapPanel VerticalAlignment="Bottom">
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RouteFlagItem}" />
+                <TextBlock Text="{Binding Converter={StaticResource RouteDemandConverter}}" FontWeight="Bold"
+                           VerticalAlignment="Bottom" Margin="6 0 0 0" />
+            </WrapPanel>
+        </DataTemplate>
         <DataTemplate x:Key="DayBarItem">
             <Border Style="{StaticResource RoundedBorderStyle}" BorderBrush="Black" BorderThickness="2">
                 <WrapPanel>
@@ -153,7 +161,7 @@
                                 HorizontalAlignment="Center" FontWeight="Bold" />
                             <ComboBox Style="{DynamicResource ComboBoxTransparentStyle}"
                                       SelectionChanged="cbRoute_SelectionChanged" VerticalAlignment="Bottom"
-                                      ItemTemplate="{StaticResource RouteFlagItem}" Width="150" Name="cbRoute"
+                                      ItemTemplate="{StaticResource RouteDemandItem}" Width="230" Name="cbRoute"
                                       ItemsSource="{Binding Routes,ElementName=pageRoutePlanner}" />
                         </StackPanel>
                         <StackPanel Margin="10 0 0 0" VerticalAlignment="Bottom">

@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Globalization;
 using System.Windows.Data;
@@ -130,5 +131,69 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
         }
 
         #endregion
+    }
+}
+namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
+{
+    /// <summary>
+    ///     Shows the passenger demand of a route as a percentage of the route with the highest demand
+    ///     among the routes of the route planner (empty when the demand is not known, e.g. for cargo).
+    /// </summary>
+    public class RouteDemandConverter : System.Windows.Data.IValueConverter
+    {
+        // filled by the route planner when it is opened
+        public static System.Collections.Generic.Dictionary<Route, int> Percents { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var route = value as Route;
+            int percent;
+
+            if (route == null || Percents == null || !Percents.TryGetValue(route, out percent))
+            {
+                return "";
+            }
+
+            return percent + "%";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>Daily passengers in both directions, all classes.</summary>
+        public static int GetDemand(Route route)
+        {
+            int demand = 0;
+
+            foreach (AirlinerClass.ClassType type in Enum.GetValues(typeof (AirlinerClass.ClassType)))
+            {
+                demand += route.Destination1.GetDestinationPassengersRate(route.Destination2, type)
+                          + route.Destination2.GetDestinationPassengersRate(route.Destination1, type);
+            }
+
+            return demand;
+        }
+
+        public static System.Collections.Generic.Dictionary<Route, int> Calculate(System.Collections.Generic.IEnumerable<Route> routes)
+        {
+            var demands = new System.Collections.Generic.Dictionary<Route, int>();
+
+            foreach (Route route in routes)
+            {
+                demands[route] = GetDemand(route);
+            }
+
+            int max = demands.Count == 0 ? 0 : demands.Values.Max();
+            var percents = new System.Collections.Generic.Dictionary<Route, int>();
+
+            foreach (var pair in demands)
+            {
+                percents[pair.Key] = max <= 0 ? 0 : (int) Math.Round(100.0*pair.Value/max);
+            }
+
+            return percents;
+        }
     }
 }
