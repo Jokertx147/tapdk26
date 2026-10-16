@@ -106,13 +106,14 @@ namespace TheAirline.Presentation
             Alliances = new AlliancesViewModel(OnGameChanged);
             AirlineList = new AirlinesViewModel();
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
+            News = new NewsViewModel();
             Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit));
             Refresh();
         }
 
         /// <summary>The pages of the menu on the left, in the order of the buttons.</summary>
         public static readonly string[] PageNames =
-            { "My Airline", "Routes", "Airliners", "Airports", "Alliances", "Staff", "Airlines", "Flights", "Options" };
+            { "My Airline", "Routes", "Airliners", "Airports", "Alliances", "Staff", "Airlines", "Flights", "News", "Options" };
 
         private int _page;
         private CabinRefitViewModel _refit;
@@ -160,6 +161,7 @@ namespace TheAirline.Presentation
             {
                 case "Alliances": Alliances.Reload(); break;
                 case "Airlines": AirlineList.Reload(); break;
+                case "News": News.Reload(); break;
                 case "Options": Options.Reload(); break;
             }
         }
@@ -175,6 +177,7 @@ namespace TheAirline.Presentation
         public AlliancesViewModel Alliances { get; }
         public AirlinesViewModel AirlineList { get; }
         public OptionsViewModel Options { get; }
+        public NewsViewModel News { get; }
         public FleetOverviewViewModel Overview { get; }
 
         private RouteItem _selectedRoute;
@@ -402,6 +405,7 @@ namespace TheAirline.Presentation
             RefreshRoutes(routes);
             _routeDetail?.RefreshNumbers();
             Overview?.Reload();
+            News?.Poll();
         }
 
         // the route list is only rebuilt when routes are added or removed, so the selection and typing in the fare boxes stay

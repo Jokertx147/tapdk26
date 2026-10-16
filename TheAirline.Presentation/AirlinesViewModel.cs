@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
+using TheAirline.Helpers;
 using TheAirline.Models.Airlines;
 using TheAirline.Models.General;
 
@@ -96,11 +97,73 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _selected, value))
                 {
                     OnPropertyChanged(nameof(Details));
+                    LoadProfile();
                 }
             }
         }
 
         public string Details => _selected?.Details ?? "";
+
+        public ObservableCollection<string> Facts { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> FleetLines { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> RouteLines { get; } = new ObservableCollection<string>();
+        public bool HasProfile => _selected != null;
+        public string ProfileTitle => _selected == null ? "" : _selected.Name + (_selected.IsHuman ? " (you)" : "");
+
+        private static string Money(double v)
+        {
+            return Convert.ToString(new ValueCurrencyFormatter().Convert(v));
+        }
+
+        private void LoadProfile()
+        {
+            Facts.Clear();
+            FleetLines.Clear();
+            RouteLines.Clear();
+            var a = _selected?.Airline;
+            if (a != null)
+            {
+                int year = GameObject.GetInstance().GameTime.Year;
+                var fleet = a.Fleet.ToList().Where(f => f?.Airliner != null).ToList();
+                var routes = a.Routes.ToList();
+
+                Facts.Add("Founded " + a.Profile.Founded + (a.Profile.Country != null ? ", " + a.Profile.Country.Name : "") + ", CEO " + a.Profile.CEO);
+                Facts.Add("Cash " + Money(a.Money) + ", started with " + Money(a.StartMoney));
+                Facts.Add("Fleet " + fleet.Count + " aircraft, average age " + string.Format("{0:0.0}", a.GetAverageFleetAge()) + " years");
+                Facts.Add("Routes " + routes.Count + ", airports " + a.Airports.Count + ", employees " + a.GetNumberOfEmployees());
+                Facts.Add("Mentality " + a.Mentality + ", reputation " + a.GetReputation() + " (" + a.Reputation + ")");
+                var hubs = a.GetHubs();
+                Facts.Add(hubs.Count > 0 ? "Hubs " + string.Join(", ", hubs.Select(h => h.Profile.IATACode)) : "No hubs");
+                if (a.Alliances.Count > 0) Facts.Add("Alliance " + string.Join(", ", a.Alliances.Select(x => x.Name)));
+                var partners = a.GetCodesharingAirlines();
+                if (partners.Count > 0) Facts.Add("Codeshares with " + string.Join(", ", partners.Select(x => x.Profile.IATACode)));
+                if (a.Subsidiaries.Count > 0) Facts.Add("Subsidiaries " + string.Join(", ", a.Subsidiaries.Select(x => x.Profile.Name)));
+                try
+                {
+                    var stats = a.Statistics;
+                    double pax = stats.GetStatisticsValue(year, TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
+                    double cap = stats.GetStatisticsValue(year, TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Capacity"));
+                    Facts.Add(year + ": " + string.Format("{0:N0}", pax) + " passengers" + (cap > 0 ? ", " + string.Format("{0:0}%", 100 * pax / cap) + " of the seats filled" : ""));
+                }
+                catch (Exception)
+                {
+                }
+
+                foreach (var g in fleet.GroupBy(f => f.Airliner.Type.Name).OrderByDescending(g => g.Count()).ThenBy(g => g.Key))
+                {
+                    FleetLines.Add(g.Count() + " x " + g.Key);
+                }
+
+                foreach (var r in routes.OrderByDescending(r => r.Balance).Take(10))
+                {
+                    RouteLines.Add(r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode + "  |  profit " + Money(r.Balance));
+                }
+                if (routes.Count > 10) RouteLines.Add("... and " + (routes.Count - 10) + " more routes");
+            }
+
+            OnPropertyChanged(nameof(HasProfile));
+            OnPropertyChanged(nameof(ProfileTitle));
+        }
 
         private List<AirlineRow> _all = new List<AirlineRow>();
 
@@ -143,6 +206,7 @@ namespace TheAirline.Presentation
             _selected = Airlines.FirstOrDefault(a => a.Airline == keep) ?? Airlines.FirstOrDefault();
             OnPropertyChanged(nameof(Selected));
             OnPropertyChanged(nameof(Details));
+            LoadProfile();
         }
     }
 }

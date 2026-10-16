@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.NewsView">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+      <TextBlock Text="News" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Filter}" MinWidth="130" />
+      <CheckBox IsChecked="{Binding UnreadOnly}" Content="Unread only" />
+      <Button Content="Mark all as read" Command="{Binding MarkAllReadCommand}" />
+      <Button Content="Delete selected" Command="{Binding DeleteSelectedCommand}" />
+      <Button Content="Delete read" Command="{Binding DeleteReadCommand}" />
+      <TextBlock VerticalAlignment="Center" Opacity="0.7">
+        <Run Text="{Binding Count}" /><Run Text="  |  " /><Run Text="{Binding Unread}" /><Run Text=" unread" />
+      </TextBlock>
+    </StackPanel>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <Grid ColumnDefinitions="Auto,110,90,*" Opacity="{Binding Weight}">
+            <TextBlock Text="{Binding Marker}" />
+            <TextBlock Grid.Column="1" Text="{Binding Date}" />
+            <TextBlock Grid.Column="2" Text="{Binding Type}" />
+            <TextBlock Grid.Column="3" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Border Grid.Row="2" IsVisible="{Binding HasSelection}" Background="#262626" CornerRadius="6" Padding="12" Margin="0,8,0,0">
+      <ScrollViewer MaxHeight="170">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding BodyTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Body}" TextWrapping="Wrap" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

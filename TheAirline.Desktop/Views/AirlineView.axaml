@@ -250,6 +250,11 @@
         </TabControl>
         </TabItem>
 
+        <!-- NEWS -->
+        <TabItem Header="News">
+          <v:NewsView DataContext="{Binding News}" />
+        </TabItem>
+
         <!-- OPTIONS -->
         <TabItem Header="Options">
           <v:OptionsView DataContext="{Binding Options}" />

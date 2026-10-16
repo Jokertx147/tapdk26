@@ -113,7 +113,31 @@ static class VmTest
                 var sw2 = System.Diagnostics.Stopwatch.StartNew(); var lst = av.AirlineList; lst.Reload();
                 Console.WriteLine("  AIRLINES: " + lst.Count + " (" + sw2.ElapsedMilliseconds + " ms) first=" + lst.Airlines.First().Name + " " + lst.Airlines.First().Value + " | " + lst.Details);
                 lst.SortBy = "Fleet"; lst.Search = "air"; Console.WriteLine("  filtered: " + lst.Count);
-                av.Page = 8;
+                if (lst.Selected != null)
+                {
+                    Console.WriteLine("  PROFILE " + lst.ProfileTitle + ": facts=" + lst.Facts.Count + " fleetLines=" + lst.FleetLines.Count + " routeLines=" + lst.RouteLines.Count);
+                    foreach (var x in lst.Facts) Console.WriteLine("    " + x);
+                    foreach (var x in lst.FleetLines.Take(3)) Console.WriteLine("    fleet " + x);
+                    foreach (var x in lst.RouteLines.Take(3)) Console.WriteLine("    route " + x);
+                }
+                av.Page = 7;
+                {
+                    var nw = av.News;
+                    var box = TheAirline.Models.General.GameObject.GetInstance().NewsBox;
+                    box.AddNews(new TheAirline.Models.General.News(TheAirline.Models.General.News.NewsType.AirlineNews, TheAirline.Models.General.GameObject.GetInstance().GameTime, "Test subject", "Test body"));
+                    nw.Poll();
+                    Console.WriteLine("  NEWS: " + nw.Count + " unread=" + nw.Unread + " first=" + nw.Rows.FirstOrDefault()?.Subject);
+                    nw.Selected = nw.Rows.First(r => r.Subject == "Test subject");
+                    Console.WriteLine("  opened: body=" + nw.Body + " unread=" + nw.Unread + " marker='" + nw.Selected.Marker + "'");
+                    nw.Filter = "Fleet"; Console.WriteLine("  filter Fleet: " + nw.Count); nw.Filter = "All";
+                    nw.UnreadOnly = true; Console.WriteLine("  unread only: " + nw.Count); nw.UnreadOnly = false;
+                    int before = box.GetNews().Count;
+                    nw.Selected = nw.Rows.First();
+                    nw.DeleteSelectedCommand.Execute(null); Console.WriteLine("  delete selected: " + before + "->" + box.GetNews().Count);
+                    nw.MarkAllReadCommand.Execute(null); Console.WriteLine("  mark all: unread=" + nw.Unread);
+                    nw.DeleteReadCommand.Execute(null); Console.WriteLine("  delete read: " + box.GetNews().Count);
+                }
+                av.Page = 9;
                 var op = av.Options;
                 Console.WriteLine("  OPTIONS: save name=" + op.SaveName + " saves=" + op.Saves.Count);
                 op.SaveName = "vmtest-options"; op.SaveCommand.Execute(null);
