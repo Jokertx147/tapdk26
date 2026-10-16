@@ -127,6 +127,19 @@ namespace TheAirline.GUIModel.PagesModel.RoutesPageModel
                 ? RouteDemandConverter.Calculate(Routes)
                 : null;
 
+            // the routes with the highest demand come first
+            if (RouteDemandConverter.Percents != null)
+            {
+                var byDemand = Routes.OrderByDescending(r => RouteDemandConverter.Percents[r])
+                                     .ThenBy(r => r.Destination1.Profile.IATACode + r.Destination2.Profile.IATACode)
+                                     .ToList();
+                Routes.Clear();
+                foreach (Route r in byDemand)
+                {
+                    Routes.Add(r);
+                }
+            }
+
             InitializeComponent();
         }
 
