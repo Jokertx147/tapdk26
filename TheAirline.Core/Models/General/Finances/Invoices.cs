@@ -41,7 +41,11 @@ namespace TheAirline.Models.General.Finances
 
         public static List<double> GetInvoiceList()
         {
-            return GameObject.GetInstance().HumanAirline.GetInvoices().MonthlyInvoices.Select(invoice => invoice.Amount).ToList();
+            var invoices = GameObject.GetInstance().HumanAirline.GetInvoices().MonthlyInvoices;
+            lock (invoices)
+            {
+                return invoices.Select(invoice => invoice.Amount).ToList();
+            }
         }
 
         //adds an invoice to the invoices
@@ -95,42 +99,56 @@ namespace TheAirline.Models.General.Finances
         //returns the total amount for a given type
         public double GetAmount(Invoice.InvoiceType type)
         {
-            return MonthlyInvoices.FindAll(i => i.Type == type).Sum(i => i.Amount);
+            lock (MonthlyInvoices)
+            {
+                return MonthlyInvoices.FindAll(i => i.Type == type).Sum(i => i.Amount);
+            }
         }
 
         //returns the total amount for a given year, month and type
         public double GetAmount(Invoice.InvoiceType type, int year, int month)
         {
-            if (Contains(type, year, month))
+            lock (MonthlyInvoices)
             {
                 MonthlyInvoice mInvoice =
                     MonthlyInvoices.Find(m => m.Month == month && m.Year == year && m.Type == type);
-                return mInvoice.Amount;
+                return mInvoice?.Amount ?? 0;
             }
-            return 0;
         }
 
         //returns the total amount for a given year and month
         public double GetAmount(int year, int month)
         {
-            return MonthlyInvoices.FindAll(m => m.Month == month && m.Year == year).Sum(m => m.Amount);
+            lock (MonthlyInvoices)
+            {
+                return MonthlyInvoices.FindAll(m => m.Month == month && m.Year == year).Sum(m => m.Amount);
+            }
         }
 
         //returns the total amount of invoices
         public double GetAmount()
         {
-            return MonthlyInvoices.Sum(m => m.Amount);
+            lock (MonthlyInvoices)
+            {
+                return MonthlyInvoices.Sum(m => m.Amount);
+            }
         }
 
         public double GetYearlyAmount(Invoice.InvoiceType type, int year)
         {
-            return MonthlyInvoices.FindAll(i => i.Type == type && i.Year == year).Sum(i => i.Amount);
+            lock (MonthlyInvoices)
+            {
+                return MonthlyInvoices.FindAll(i => i.Type == type && i.Year == year).Sum(i => i.Amount);
+            }
         }
 
         //return the yearly amount for an year
         public double GetYearlyAmount(int year)
         {
-            return MonthlyInvoices.FindAll(i => i.Year == year).Sum(i => i.Amount);
+            lock (MonthlyInvoices)
+            {
+                return MonthlyInvoices.FindAll(i => i.Year == year).Sum(i => i.Amount);
+            }
         }
 
         #endregion
