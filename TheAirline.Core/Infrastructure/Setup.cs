@@ -321,7 +321,11 @@ namespace TheAirline.Infrastructure
             {
                 var dir = new DirectoryInfo(AppSettings.GetDataPath() + "/addons/airports");
 
-                foreach (FileInfo file in dir.GetFiles("*.xml"))
+                // "north america MX.xml" is an older copy of many of the airports in "north america.xml":
+                // it is loaded last so the newer definitions are the ones that are kept
+                foreach (FileInfo file in dir.GetFiles("*.xml")
+                                             .OrderBy(f => f.Name.EndsWith(" MX.xml", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                                             .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
                 {
                     LoadAirports(file.FullName);
                 }
@@ -2821,7 +2825,16 @@ namespace TheAirline.Infrastructure
 
                         airport.LandingFee = landingFee;
 
-                        if (Airports.GetAirport(a => a.Profile.ID == airport.Profile.ID) == null)
+                        // an airport that is defined twice (same code, same ICAO and the same period) is only added once;
+                        // an airport that replaced an older one with the same code (other period) is kept
+                        bool alreadyLoaded = Airports.GetAirport(
+                            a => a.Profile.ID == airport.Profile.ID
+                                 || (a.Profile.IATACode == airport.Profile.IATACode
+                                     && a.Profile.ICAOCode == airport.Profile.ICAOCode
+                                     && a.Profile.Period.From == airport.Profile.Period.From
+                                     && a.Profile.Period.To == airport.Profile.Period.To)) != null;
+
+                        if (!alreadyLoaded)
                         {
                             Airports.AddAirport(airport);
                         }
