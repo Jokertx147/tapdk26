@@ -22,6 +22,7 @@ namespace TheAirline.Presentation
         public string Age { get; set; }
         public string Condition { get; set; }
         public int Routes { get; set; }
+        public bool IsIdle { get; set; }
         public string Crew { get; set; }
         public string Value { get; set; }
         public double ValueNumber { get; set; }
@@ -261,7 +262,8 @@ namespace TheAirline.Presentation
             _selected = Rows.FirstOrDefault(r => r.Aircraft == keep);
             OnPropertyChanged(nameof(Selected));
             OnPropertyChanged(nameof(HasRows));
-            Title = fleet.Count + " aircraft, total value " + Money(rows.Sum(r => r.ValueNumber));
+            int idle = rows.Count(r => r.IsIdle);
+            Title = fleet.Count + " aircraft, total value " + Money(rows.Sum(r => r.ValueNumber)) + (idle > 0 ? "  |  " + idle + " idle (no route)" : "");
             OnPropertyChanged(nameof(Title));
             LoadDetails();
         }
@@ -294,6 +296,7 @@ namespace TheAirline.Presentation
                 Condition = string.Format("{0:0}%", a.Condition),
                 ConditionNumber = a.Condition,
                 Routes = f.Routes.Count,
+                IsIdle = f.Routes.Count == 0 && a.BuiltDate <= game.GameTime,
                 Crew = f.Pilots.Count + "/" + a.Type.CockpitCrew,
                 Value = Money(value),
                 ValueNumber = value

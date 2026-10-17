@@ -221,7 +221,10 @@
                   <DataTemplate>
                     <Grid ColumnDefinitions="*,Auto" Margin="2">
                       <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal">
+                          <Border IsVisible="{Binding IsIdle}" Background="#C26A00" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="IDLE" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        </StackPanel>
                         <TextBlock Opacity="0.7">
                           <Run Text="{Binding Type}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" /><Run Text="  |  " /><Run Text="{Binding Crew}" /><Run Text="  |  " /><Run Text="{Binding Routes}" /><Run Text=" route(s)" />
                         </TextBlock>

@@ -19,6 +19,7 @@ namespace TheAirline.Presentation
         public string Status { get; set; }
         public string Homebase { get; set; }
         public int Routes { get; set; }
+        public bool IsIdle { get; set; }
         public string Crew { get; set; }
         public string Note { get; set; }
         public bool CanStart { get; set; }
@@ -401,6 +402,7 @@ namespace TheAirline.Presentation
                                 : f.Status.ToString(),
                             Homebase = f.Homebase?.Profile.IATACode,
                             Routes = f.Routes.Count,
+                            IsIdle = f.Routes.Count == 0 && f.Airliner.BuiltDate <= game.GameTime,
                             Crew = f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + " pilots",
                             CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
                             CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,

@@ -15,9 +15,12 @@
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="2">
-              <TextBlock FontWeight="SemiBold">
-                <Run Text="{Binding Name}" /><Run Text="   " /><Run Text="{Binding Type}" />
-              </TextBlock>
+              <StackPanel Orientation="Horizontal">
+                <Border IsVisible="{Binding IsIdle}" Background="#C26A00" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="IDLE" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                <TextBlock FontWeight="SemiBold">
+                  <Run Text="{Binding Name}" /><Run Text="   " /><Run Text="{Binding Type}" />
+                </TextBlock>
+              </StackPanel>
               <TextBlock Opacity="0.75">
                 <Run Text="{Binding Cabin}" /><Run Text="  |  " /><Run Text="{Binding Status}" /><Run Text="  |  " /><Run Text="{Binding Homebase}" /><Run Text="  |  " /><Run Text="{Binding Routes}" /><Run Text=" route(s)" />
               </TextBlock>
