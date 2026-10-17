@@ -1786,7 +1786,8 @@ namespace TheAirline.Helpers
                 if (sct.LastDate == DateTime.MinValue)
                     sct.LastDate = GameObject.GetInstance().GameTime;
 
-                GameObject.GetInstance().Contracts.Add(sct);
+                if (!GameObject.GetInstance().Contracts.Contains(sct) && !Airlines.GetAllAirlines().Any(al => al.SpecialContracts.Any(c => c.Type == sct)))
+                    GameObject.GetInstance().Contracts.Add(sct);
             }
 
             foreach (SpecialContractType sct in randomSpecialContracts)
@@ -1802,7 +1803,9 @@ namespace TheAirline.Helpers
 
                 int value = 100 - (monthsSinceLast - monthsFrequency);
 
-                Boolean createContract = !GameObject.GetInstance().Contracts.Contains(sct) && Rnd.Next(value) == 0;
+                //a contract type that an airline already holds is not offered again until it is finished
+                Boolean held = Airlines.GetAllAirlines().Any(al => al.SpecialContracts.Any(c => c.Type == sct));
+                Boolean createContract = !held && !GameObject.GetInstance().Contracts.Contains(sct) && Rnd.Next(value) == 0;
 
                 if (createContract)
                 {
