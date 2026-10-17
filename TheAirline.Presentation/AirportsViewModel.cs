@@ -31,8 +31,8 @@ namespace TheAirline.Presentation
             var f = new ValueCurrencyFormatter();
             Name = a.Destination.Profile.IATACode + "  " + a.Destination.Profile.Name + ", " + a.Destination.Profile.Country?.Name;
             Numbers = string.Format(
-                "{0:0} km  |  cargo demand {1}  |  {2} competitor(s)  |  ~{3}/day{4}",
-                a.Distance, a.Demand, a.Competitors, f.Convert(a.RevenuePerDay),
+                "{0}  |  cargo demand {1}  |  {2} competitor(s)  |  ~{3}/day{4}",
+                DistanceFormatter.Km(a.Distance), a.Demand, a.Competitors, f.Convert(a.RevenuePerDay),
                 a.FleetCanFly ? "" : "  |  no cargo aircraft of yours can fly it");
             Notes = a.Advice;
         }
@@ -44,8 +44,8 @@ namespace TheAirline.Presentation
             var f = new ValueCurrencyFormatter();
             Name = a.Destination.Profile.IATACode + "  " + a.Destination.Profile.Name + ", " + a.Destination.Profile.Country?.Name;
             Numbers = string.Format(
-                "{0:0} km  |  {1} pax/day  |  {2} competitor(s)  |  ~{3}/day{4}",
-                a.Distance, a.DailyDemand, a.Competitors, f.Convert(a.RevenuePerDay),
+                "{0}  |  {1} pax/day  |  {2} competitor(s)  |  ~{3}/day{4}",
+                DistanceFormatter.Km(a.Distance), a.DailyDemand, a.Competitors, f.Convert(a.RevenuePerDay),
                 a.FleetCanFly ? "" : "  |  no aircraft of yours can fly it");
             Notes = a.Advice;
         }
@@ -67,7 +67,7 @@ namespace TheAirline.Presentation
             double km = MathHelpers.GetDistance(origin, airport);
             Distance = km;
             Name = airport.Profile.IATACode + "  " + airport.Profile.Name + ", " + airport.Profile.Country?.Name;
-            Details = string.Format("{0:N0} km", km);
+            Details = DistanceFormatter.Km(km);
         }
 
         public Airport Airport { get; }

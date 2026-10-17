@@ -94,6 +94,7 @@ namespace TheAirline.Presentation
             GameSession.InGame = true;
             DateDisplay.Formatter = DateFormatter.Date;
             DateFormatter.Changed += OnDateFormatChanged;
+            DistanceFormatter.Changed += OnDateFormatChanged;
             MainMenuCommand = new AsyncCommand(
                 async () =>
                     {
@@ -482,7 +483,7 @@ namespace TheAirline.Presentation
                         {
                             Route = r,
                             Name = r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode + (r.IsCargoRoute ? " (cargo)" : ""),
-                            Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2))
+                            Distance = DistanceFormatter.Km(MathHelpers.GetDistance(r.Destination1, r.Destination2))
                         });
                 }
 
@@ -506,6 +507,7 @@ namespace TheAirline.Presentation
         public void Dispose()
         {
             DateFormatter.Changed -= OnDateFormatChanged;
+            DistanceFormatter.Changed -= OnDateFormatChanged;
         }
     }
 }

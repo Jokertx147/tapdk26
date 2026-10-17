@@ -20,10 +20,10 @@ namespace TheAirline.Presentation
             Name = type.Name;
             Seats = (type as AirlinerPassengerType)?.MaxSeatingCapacity ?? 0;
             Details = string.Format(
-                "{0}  |  {1}  |  range {2} km  |  {3}",
+                "{0}  |  {1}  |  range {2}  |  {3}",
                 type.Manufacturer?.Name,
                 type is AirlinerCargoType ? "cargo " + ((AirlinerCargoType) type).CargoSize + " units" : Seats + " seats",
-                type.Range,
+                DistanceFormatter.Km(type.Range),
                 Convert.ToString(new ValueCurrencyFormatter().Convert((double) type.Price)));
         }
 

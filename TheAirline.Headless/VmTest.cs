@@ -865,6 +865,17 @@ static class VmTest
                 if (onOrder != expected) { Console.WriteLine("  FAILED on order"); Environment.Exit(1); }
             }
             {
+                Console.WriteLine("DISTANCE UNIT TEST");
+                bool oldMi = DistanceFormatter.UseMiles;
+                DistanceFormatter.UseMiles = false;
+                string k1 = DistanceFormatter.Km(1000), k2 = DistanceFormatter.Speed(800), k3 = DistanceFormatter.Metres(2500);
+                av2.Options.UseMiles = true;
+                string m1 = DistanceFormatter.Km(1000), m2 = DistanceFormatter.Speed(800), m3 = DistanceFormatter.Metres(2500);
+                Console.WriteLine("  km: " + k1 + " | " + k2 + " | " + k3 + "   miles: " + m1 + " | " + m2 + " | " + m3 + "   " + av2.Options.DistanceExample);
+                DistanceFormatter.UseMiles = oldMi;
+                if (k1 != "1,000 km" || k2 != "800 km/h" || k3 != "2,500 m" || m1 != "621 mi" || m2 != "497 mph" || m3 != "8,202 ft") { Console.WriteLine("  FAILED distance"); Environment.Exit(1); }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

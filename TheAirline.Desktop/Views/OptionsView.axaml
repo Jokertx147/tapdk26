@@ -40,6 +40,13 @@
       </StackPanel>
       <TextBlock Text="{Binding DateExample}" Opacity="0.6" />
 
+      <TextBlock Text="Distances and speeds" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <RadioButton GroupName="distfmt" Content="Kilometres (km, km/h, m)" IsChecked="{Binding UseKilometres}" />
+        <RadioButton GroupName="distfmt" Content="Miles (mi, mph, ft)" IsChecked="{Binding UseMiles}" />
+      </StackPanel>
+      <TextBlock Text="{Binding DistanceExample}" Opacity="0.6" />
+
       <TextBlock Text="Leave" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <Button Content="Main menu" Command="{Binding MainMenuCommand}" />

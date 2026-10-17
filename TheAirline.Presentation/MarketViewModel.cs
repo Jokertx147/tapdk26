@@ -24,7 +24,7 @@ namespace TheAirline.Presentation
             Seats = (airliner.Type as AirlinerPassengerType)?.MaxSeatingCapacity ?? 0;
             PriceText = Convert.ToString(f.Convert(airliner.GetPrice()));
             LeaseText = Convert.ToString(f.Convert(airliner.GetLeasingPrice())) + " / month";
-            Details = string.Format("built {0}  |  {1}  |  range {2} km  |  {3}", Year, airliner.Type is AirlinerCargoType ? "cargo " + ((AirlinerCargoType) airliner.Type).CargoSize + " units" : Seats + " seats", Range, PriceText);
+            Details = string.Format("built {0}  |  {1}  |  range {2}  |  {3}", Year, airliner.Type is AirlinerCargoType ? "cargo " + ((AirlinerCargoType) airliner.Type).CargoSize + " units" : Seats + " seats", DistanceFormatter.Km(Range), PriceText);
         }
 
         public Airliner Airliner { get; }

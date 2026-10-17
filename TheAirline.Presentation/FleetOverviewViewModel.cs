@@ -319,9 +319,9 @@ namespace TheAirline.Presentation
                 Details.Add("Built: " + DateFormatter.Date(a.BuiltDate) + ", age " + a.Age + " years");
                 Details.Add("Acquired: " + DateFormatter.Date(f.PurchasedDate) + " (" + r.Ownership + ")");
                 Details.Add("Homebase: " + f.Homebase?.Profile.Name);
-                Details.Add("Condition: " + r.Condition + ", flown " + string.Format("{0:N0} km", a.Flown) + ", " + string.Format("{0:N0} km", a.Flown - a.LastServiceCheck) + " since the last service");
-                Details.Add("Range: " + string.Format("{0:N0} km", a.Range) + ", cruising speed " + string.Format("{0:N0} km/h", a.CruisingSpeed)
-                            + ", runway " + string.Format("{0:N0} m", a.MinRunwaylength));
+                Details.Add("Condition: " + r.Condition + ", flown " + DistanceFormatter.Km(a.Flown) + ", " + DistanceFormatter.Km(a.Flown - a.LastServiceCheck) + " since the last service");
+                Details.Add("Range: " + DistanceFormatter.Km(a.Range) + ", cruising speed " + DistanceFormatter.Speed(a.CruisingSpeed)
+                            + ", runway " + DistanceFormatter.Metres(a.MinRunwaylength));
                 if (a.EngineType != null) Details.Add("Engine: " + a.EngineType.Model);
                 Details.Add("Pilots: " + r.Crew);
                 Details.Add("Value: " + r.Value);

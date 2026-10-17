@@ -331,10 +331,10 @@ namespace TheAirline.Presentation
                         {
                             Route = r,
                             Text = string.Format(
-                                "{0} - {1}  ({2:0} km, {3})",
+                                "{0} - {1}  ({2}, {3})",
                                 r.Destination1.Profile.IATACode,
                                 r.Destination2.Profile.IATACode,
-                                distance,
+                                DistanceFormatter.Km(distance),
                                 FormatSpan(r.GetFlightTime(type)))
                         });
                 }

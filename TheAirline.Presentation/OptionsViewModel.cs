@@ -106,6 +106,27 @@ namespace TheAirline.Presentation
 
         public string DateExample => "Example: " + DateFormatter.Example;
 
+        /// <summary>Distances and speeds in miles (on) or kilometres (off).</summary>
+        public bool UseMiles
+        {
+            get { return DistanceFormatter.UseMiles; }
+            set
+            {
+                DistanceFormatter.UseMiles = value;
+                OnPropertyChanged(nameof(UseMiles));
+                OnPropertyChanged(nameof(UseKilometres));
+                OnPropertyChanged(nameof(DistanceExample));
+            }
+        }
+
+        public bool UseKilometres
+        {
+            get { return !DistanceFormatter.UseMiles; }
+            set { UseMiles = !value; }
+        }
+
+        public string DistanceExample => "Example: " + DistanceFormatter.Km(1000) + ", " + DistanceFormatter.Speed(800);
+
         /// <summary>Save automatically (as "Autosave ...") when leaving the game or closing the window.</summary>
         public bool AutoSave
         {

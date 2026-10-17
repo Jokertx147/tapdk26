@@ -197,8 +197,8 @@ namespace TheAirline.Presentation
 
             string load = capacity > 0 ? string.Format("{0:0}%", 100 * passengers / capacity) : "no flights yet";
             Numbers = string.Format(
-                "{0:0} km  |  {1:0} {2} carried  |  load factor {3}  |  profit {4}",
-                _route.GetDistance(), passengers, IsCargo ? "units of cargo" : "passengers", load, Money(_route.Balance));
+                "{0}  |  {1:0} {2} carried  |  load factor {3}  |  profit {4}",
+                DistanceFormatter.Km(_route.GetDistance()), passengers, IsCargo ? "units of cargo" : "passengers", load, Money(_route.Balance));
 
             var airliners = _route.GetAirliners();
             AircraftText = airliners.Count == 0
