@@ -12,6 +12,7 @@
     <DataTemplate DataType="vm:AirlineViewModel"><v:AirlineView /></DataTemplate>
   </Window.DataTemplates>
 
+  <LayoutTransformControl x:Name="ZoomRoot">
   <Grid>
     <ContentControl Content="{Binding Current}" />
 
@@ -27,4 +28,5 @@
       </Border>
     </Border>
   </Grid>
+  </LayoutTransformControl>
 </Window>

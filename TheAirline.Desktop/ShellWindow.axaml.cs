@@ -7,6 +7,7 @@ namespace TheAirline.Desktop
         public ShellWindow()
         {
             InitializeComponent();
+            UiScale.Attach(this, this.FindControl<LayoutTransformControl>("ZoomRoot"));
         }
     }
 }
