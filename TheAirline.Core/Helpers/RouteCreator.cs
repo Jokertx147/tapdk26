@@ -233,6 +233,125 @@ namespace TheAirline.Helpers
         }
 
         //puts the requested aircraft on the new route with a daily schedule
+        /// <summary>Puts an aircraft on an existing route that has no aircraft yet. Returns false, with the reason in message, when it can't be done.</summary>
+        public static bool AssignAircraft(Route route, NewRouteRequest request, out string message)
+        {
+            Airline airline = GameObject.GetInstance().HumanAirline;
+            FleetAirliner airliner = request.Airliner;
+            message = "";
+
+            if (route == null || !airline.Routes.Contains(route))
+            {
+                message = "That route is not one of yours.";
+                return false;
+            }
+
+            if (airliner == null)
+            {
+                message = "Pick an aircraft first.";
+                return false;
+            }
+
+            if (route.HasAirliner)
+            {
+                message = "This route already has an aircraft.";
+                return false;
+            }
+
+            if (!GetCandidateAirliners(route.Destination1, route.Destination2, route.Type).Contains(airliner))
+            {
+                message = airliner.Name + " can't fly this route (range, runway, or already on a route).";
+                return false;
+            }
+
+            request.Origin = route.Destination1;
+            request.Destination = route.Destination2;
+            AssignAirliner(route, airline, request, ref message);
+
+            if (!airliner.Routes.Contains(route))
+            {
+                message = message.Trim();
+                return false;
+            }
+
+            message = (airliner.Name + " is assigned to " + route.Destination1.Profile.IATACode + " - "
+                       + route.Destination2.Profile.IATACode + ". " + message).Trim();
+            return true;
+        }
+
+        /// <summary>Takes a route off its aircraft and puts it on another one (a new schedule). The old aircraft is stopped when it has no other route. Nothing changes when it fails.</summary>
+        public static bool MoveRoute(Route route, NewRouteRequest request, out string message)
+        {
+            Airline airline = GameObject.GetInstance().HumanAirline;
+            FleetAirliner target = request.Airliner;
+            message = "";
+
+            if (route == null || !airline.Routes.Contains(route) || !route.HasAirliner)
+            {
+                message = "That route has no aircraft to move it from.";
+                return false;
+            }
+
+            if (target == null)
+            {
+                message = "Pick the aircraft to move the route to.";
+                return false;
+            }
+
+            List<FleetAirliner> olds = route.GetAirliners().ToList();
+            if (olds.Contains(target))
+            {
+                message = "The route is already on " + target.Name + ".";
+                return false;
+            }
+
+            if (!GetCandidateAirliners(route.Destination1, route.Destination2, route.Type).Contains(target))
+            {
+                message = target.Name + " can't fly this route (range, runway, or already on a route).";
+                return false;
+            }
+
+            var backups = olds.ToDictionary(
+                o => o,
+                o => new Tuple<List<RouteTimeTableEntry>, FleetAirliner.AirlinerStatus>(
+                    route.TimeTable.Entries.Where(e => e.Airliner == o).ToList(), o.Status));
+
+            foreach (FleetAirliner old in olds)
+            {
+                old.RemoveRoute(route);
+            }
+
+            request.Origin = route.Destination1;
+            request.Destination = route.Destination2;
+            string result = "";
+            AssignAirliner(route, airline, request, ref result);
+
+            if (!target.Routes.Contains(route))
+            {
+                foreach (FleetAirliner old in olds)
+                {
+                    route.TimeTable.Entries.AddRange(backups[old].Item1);
+                    old.AddRoute(route);
+                    old.Status = backups[old].Item2;
+                }
+
+                message = result.Trim() + " The route stays on " + string.Join(", ", olds.Select(o => o.Name)) + ".";
+                return false;
+            }
+
+            foreach (FleetAirliner old in olds)
+            {
+                if (old.Routes.Count == 0)
+                {
+                    old.Status = FleetAirliner.AirlinerStatus.Stopped;
+                }
+            }
+
+            message = ("Route " + route.Destination1.Profile.IATACode + " - " + route.Destination2.Profile.IATACode + " moved from "
+                       + string.Join(", ", olds.Select(o => o.Name)) + " to " + target.Name + ". " + result).Trim();
+            return true;
+        }
+
         private static Route AssignAirliner(Route route, Airline airline, NewRouteRequest request, ref string message)
         {
             FleetAirliner airliner = request.Airliner;

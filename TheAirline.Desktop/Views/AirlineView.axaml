@@ -54,11 +54,14 @@
         <TabItem Header="My Airline">
           <TabControl Classes="sub">
             <TabItem Header="Overview">
-              <StackPanel Margin="0,14,0,0" Spacing="8">
-                <TextBlock Text="{Binding AirlineName}" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="{Binding Summary}" FontSize="15" />
-                <TextBlock Text="Order aircraft under Airliners, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
-              </StackPanel>
+              <Grid RowDefinitions="Auto,*" Margin="0,14,0,0">
+                <StackPanel Spacing="4" Margin="0,0,0,10">
+                  <TextBlock Text="{Binding AirlineName}" FontSize="20" FontWeight="Bold" />
+                  <TextBlock Text="{Binding Summary}" FontSize="15" />
+                  <TextBlock Text="Order aircraft under Airliners, then create routes under Routes." Opacity="0.6" TextWrapping="Wrap" />
+                </StackPanel>
+                <v:WorldMapView Grid.Row="1" DataContext="{Binding Map}" />
+              </Grid>
             </TabItem>
             <TabItem Header="Fleet">
               <Grid RowDefinitions="*,Auto">
@@ -115,6 +118,11 @@
                   <TextBlock Text="{Binding Title}" Opacity="0.8" />
                   <TextBlock Text="{Binding Numbers}" TextWrapping="Wrap" />
                   <TextBlock Text="{Binding AircraftText}" TextWrapping="Wrap" Opacity="0.8" />
+                  <Button Content="Assign an aircraft..." Command="{Binding AssignCommand}" IsVisible="{Binding ShowAssignButton}" HorizontalAlignment="Left" />
+                  <Button Content="Move to another aircraft..." Command="{Binding MoveCommand}" IsVisible="{Binding ShowMoveButton}" HorizontalAlignment="Left" />
+                  <Border IsVisible="{Binding HasAssign}" Background="#262626" CornerRadius="6" Padding="14" MaxWidth="380" HorizontalAlignment="Left">
+                    <v:CreateRouteForm DataContext="{Binding Assign}" />
+                  </Border>
 
                   <StackPanel Spacing="6" IsVisible="{Binding IsCargo}">
                     <TextBlock Text="Cargo price" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />

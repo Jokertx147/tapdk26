@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
              x:Class="TheAirline.Desktop.Views.AirportsView">
   <Grid ColumnDefinitions="300,12,*,12,Auto" RowDefinitions="*,Auto" Margin="0,10,0,0">
 
@@ -39,53 +40,7 @@
     <!-- create route -->
     <Border Grid.Column="4" IsVisible="{Binding HasCreate}" Width="340" Background="#262626" CornerRadius="6" Padding="14">
       <ScrollViewer DataContext="{Binding Create}">
-        <StackPanel Spacing="8">
-          <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold" />
-
-          <ItemsControl ItemsSource="{Binding Offers}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Background="#3A2E1A" CornerRadius="4" Padding="8" Margin="0,0,0,6">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-                    <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
-                              IsVisible="{Binding CanLease}" HorizontalAlignment="Stretch" />
-                    <Button Content="Lease gates" Command="{Binding LeaseCommand}" IsVisible="{Binding CanLease}" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <StackPanel Spacing="8" IsVisible="{Binding IsPassenger}">
-            <TextBlock Text="Service" />
-            <ComboBox ItemsSource="{Binding Tiers}" SelectedItem="{Binding Tier}" HorizontalAlignment="Stretch" />
-          </StackPanel>
-          <StackPanel Spacing="8" IsVisible="{Binding IsCargo}">
-            <TextBlock Text="Price per unit of cargo" />
-            <TextBox Text="{Binding CargoPrice}" />
-          </StackPanel>
-          <TextBlock Text="{Binding AircraftLabel}" />
-          <ComboBox ItemsSource="{Binding Aircraft}" SelectedItem="{Binding SelectedAircraft}" HorizontalAlignment="Stretch" />
-
-          <StackPanel Spacing="8" IsEnabled="{Binding ScheduleEnabled}">
-            <TextBlock Text="Schedule" />
-            <ComboBox ItemsSource="{Binding Operations}" SelectedItem="{Binding Operation}" HorizontalAlignment="Stretch" IsEnabled="{Binding DetailEnabled}" />
-            <TextBlock Text="Turnaround (minutes)" />
-            <ComboBox ItemsSource="{Binding Turnarounds}" SelectedItem="{Binding Turnaround}" HorizontalAlignment="Stretch" IsEnabled="{Binding DetailEnabled}" />
-            <TextBlock Text="Round trips per day" />
-            <ComboBox ItemsSource="{Binding Trips}" SelectedItem="{Binding RoundTrips}" HorizontalAlignment="Stretch" IsEnabled="{Binding DetailEnabled}" />
-            <TextBlock Text="First departure" />
-            <ComboBox ItemsSource="{Binding StartTimes}" SelectedItem="{Binding StartTime}" HorizontalAlignment="Stretch" IsEnabled="{Binding DetailEnabled}" />
-            <CheckBox Content="Start flying straight away" IsChecked="{Binding StartAirliner}" />
-          </StackPanel>
-
-          <TextBlock Text="{Binding Info}" TextWrapping="Wrap" Opacity="0.85" />
-          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-            <Button Content="Cancel" Command="{Binding CancelCommand}" />
-            <Button Content="Create route" Command="{Binding CreateCommand}" />
-          </StackPanel>
-        </StackPanel>
+        <v:CreateRouteForm />
       </ScrollViewer>
     </Border>
 

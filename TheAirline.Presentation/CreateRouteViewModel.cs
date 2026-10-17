@@ -93,6 +93,8 @@ namespace TheAirline.Presentation
         private readonly Airport _origin, _destination;
         private readonly Action<string> _done;
         private readonly bool _cargo;
+        private readonly Route _existing;
+        private readonly bool _move;
         private string _cargoPrice;
         private bool _updating;
         private ServiceTier _tier = ServiceTier.Standard;
@@ -105,16 +107,25 @@ namespace TheAirline.Presentation
         private string _info;
         private bool _scheduleEnabled, _detailEnabled;
 
-        public CreateRouteViewModel(Airport origin, Airport destination, Action<string> done, bool cargo = false)
+        /// <summary>Assign an aircraft (and a schedule) to a route that was created without one.</summary>
+        public CreateRouteViewModel(Route existing, Action<string> done, bool move = false)
+            : this(existing.Destination1, existing.Destination2, done, existing.IsCargoRoute, existing, move)
         {
+        }
+
+        public CreateRouteViewModel(Airport origin, Airport destination, Action<string> done, bool cargo = false, Route existing = null, bool move = false)
+        {
+            _existing = existing;
+            _move = move;
             _origin = origin;
             _destination = destination;
             _done = done;
             _cargo = cargo;
             _cargoPrice = PassengerHelpers.GetCargoPrice(origin, destination).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
-            Title = string.Format(
-                "New {0}route {1} - {2}", cargo ? "cargo " : "", origin.Profile.IATACode, destination.Profile.IATACode);
+            Title = existing != null
+                ? string.Format(move ? "Move {0} - {1} to another aircraft" : "Assign an aircraft to {0} - {1}", origin.Profile.IATACode, destination.Profile.IATACode)
+                : string.Format("New {0}route {1} - {2}", cargo ? "cargo " : "", origin.Profile.IATACode, destination.Profile.IATACode);
             Tiers = Enum.GetValues(typeof(ServiceTier)).Cast<ServiceTier>().ToList();
             Operations = new List<OpsType> { OpsType.Regular, OpsType.Whole_Day };
             Turnarounds = RouteCreator.TurnaroundOptions;
@@ -122,11 +133,18 @@ namespace TheAirline.Presentation
             StartTimes = new ObservableCollection<string>();
             Offers = new ObservableCollection<GateOffer>();
 
-            Aircraft = new List<AircraftChoice> { new AircraftChoice { Name = "(assign an aircraft later)" } };
+            Aircraft = new List<AircraftChoice>();
+            if (existing == null)
+            {
+                Aircraft.Add(new AircraftChoice { Name = "(assign an aircraft later)" });
+            }
+
             Aircraft.AddRange(
                 RouteCreator.GetCandidateAirliners(origin, destination, cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger)
                             .Select(f => new AircraftChoice { Name = f.Name + " - " + f.Airliner.Type.Name, Airliner = f }));
-            _aircraft = Aircraft.Count > 1 ? Aircraft[1] : Aircraft[0];
+            _aircraft = existing == null
+                ? (Aircraft.Count > 1 ? Aircraft[1] : Aircraft[0])
+                : Aircraft.FirstOrDefault();
 
             CreateCommand = new RelayCommand(Create);
             CancelCommand = new RelayCommand(() => _done(null));
@@ -155,6 +173,26 @@ namespace TheAirline.Presentation
         public bool IsPassenger
         {
             get { return !_cargo; }
+        }
+
+        public bool IsNewRoute
+        {
+            get { return _existing == null; }
+        }
+
+        public bool ShowTier
+        {
+            get { return !_cargo && _existing == null; }
+        }
+
+        public bool ShowPrice
+        {
+            get { return _cargo && _existing == null; }
+        }
+
+        public string CreateLabel
+        {
+            get { return _existing == null ? "Create route" : _move ? "Move route" : "Assign aircraft"; }
         }
 
         /// <summary>The price per unit of cargo the route starts with.</summary>
@@ -295,6 +333,12 @@ namespace TheAirline.Presentation
             if (Airliner == null)
             {
                 DetailEnabled = false;
+                if (_existing != null)
+                {
+                    Info = "None of your " + (_cargo ? "cargo " : "") + "aircraft without a route can fly this route (range or runway). Buy one under Airliners.";
+                    return;
+                }
+
                 Info = Aircraft.Count == 1
                     ? "None of your " + (_cargo ? "cargo " : "") + "aircraft can fly this route (range, runway, or already on a route). The route is created without a schedule; assign an aircraft later."
                     : "The route is created without a schedule; assign an aircraft later.";
@@ -363,12 +407,46 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(HasOffers));
         }
 
+        private void AssignExisting()
+        {
+            if (Airliner == null)
+            {
+                Info = "Pick an aircraft first.";
+                return;
+            }
+
+            var request = new NewRouteRequest
+            {
+                Airliner = Airliner,
+                StartAirliner = _startAirliner,
+                Operation = _operation,
+                TurnaroundMinutes = _turnaround,
+                RoundTripsPerDay = _trips < 1 ? 1 : _trips,
+                StartTime = _startTime == null ? new TimeSpan(6, 0, 0) : TimeSpan.Parse(_startTime)
+            };
+
+            string message;
+            if (!(_move ? RouteCreator.MoveRoute(_existing, request, out message) : RouteCreator.AssignAircraft(_existing, request, out message)))
+            {
+                Info = message;
+                return;
+            }
+
+            _done(message);
+        }
+
         private void Create()
         {
             RefreshGates();
             if (Offers.Count > 0)
             {
                 Info = "Lease the missing gates first (see above).";
+                return;
+            }
+
+            if (_existing != null)
+            {
+                AssignExisting();
                 return;
             }
 

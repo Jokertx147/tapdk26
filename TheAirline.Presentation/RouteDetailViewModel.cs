@@ -34,6 +34,7 @@ namespace TheAirline.Presentation
         private readonly Action _changed;
         private string _status;
         private bool _confirmDelete;
+        private CreateRouteViewModel _assign;
 
         public RouteDetailViewModel(Route route, Action changed)
         {
@@ -52,6 +53,8 @@ namespace TheAirline.Presentation
 
             SaveFaresCommand = new RelayCommand(SaveFares, () => IsPassenger);
             SaveCargoPriceCommand = new RelayCommand(SaveCargoPrice, () => IsCargo);
+            AssignCommand = new RelayCommand(() => Assign = new CreateRouteViewModel(_route, OnAssignDone), () => CanAssign);
+            MoveCommand = new RelayCommand(() => Assign = new CreateRouteViewModel(_route, OnAssignDone, true), () => CanMove);
             DeleteCommand = new RelayCommand(() => ConfirmDelete = true);
             ConfirmDeleteCommand = new RelayCommand(Delete);
             CancelDeleteCommand = new RelayCommand(() => ConfirmDelete = false);
@@ -119,6 +122,47 @@ namespace TheAirline.Presentation
             get { return !_confirmDelete; }
         }
 
+        public ICommand AssignCommand { get; }
+        public ICommand MoveCommand { get; }
+
+        /// <summary>The form to put an aircraft on this route, or null when it is closed.</summary>
+        public CreateRouteViewModel Assign
+        {
+            get { return _assign; }
+            private set
+            {
+                if (SetProperty(ref _assign, value))
+                {
+                    OnPropertyChanged(nameof(HasAssign));
+                    OnPropertyChanged(nameof(ShowAssignButton));
+                    OnPropertyChanged(nameof(ShowMoveButton));
+                }
+            }
+        }
+
+        public bool CanMove => _route.HasAirliner;
+
+        public bool ShowMoveButton => CanMove && _assign == null;
+
+        public bool HasAssign => _assign != null;
+
+        /// <summary>True when no aircraft flies this route.</summary>
+        public bool CanAssign => !_route.HasAirliner;
+
+        public bool ShowAssignButton => CanAssign && _assign == null;
+
+        private void OnAssignDone(string message)
+        {
+            Assign = null;
+            if (message != null)
+            {
+                Status = message;
+                _changed();
+            }
+
+            RefreshNumbers();
+        }
+
         public string Status
         {
             get { return _status; }
@@ -157,6 +201,10 @@ namespace TheAirline.Presentation
 
             OnPropertyChanged(nameof(Numbers));
             OnPropertyChanged(nameof(AircraftText));
+            OnPropertyChanged(nameof(CanAssign));
+            OnPropertyChanged(nameof(ShowAssignButton));
+            OnPropertyChanged(nameof(CanMove));
+            OnPropertyChanged(nameof(ShowMoveButton));
         }
 
         private void LoadFares()

@@ -530,6 +530,67 @@ static class VmTest
                 var ctt = cav.Timetable;
                 Console.WriteLine("  timetable aircraft: " + string.Join(", ", ctt.Aircraft.Select(x => x.ToString())));
             }
+            {
+                Console.WriteLine("ASSIGN TEST");
+                var pap = av2.Airports;
+                pap.CargoMode = false;
+                pap.Search = "ATL";
+                pap.Selected = pap.Airports.First(a => a.Text.Contains("ATL"));
+                await Wait(() => !pap.IsBusy, "passenger advice");
+                var free = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet.Where(f => !f.HasRoute).Select(f => f.Name).ToList();
+                Console.WriteLine("  free aircraft: " + string.Join(", ", free));
+                var pick = pap.Advice.FirstOrDefault(a => a.Advice.FleetCanFly) ?? pap.Advice.First();
+                pap.SelectedAdvice = pick;
+                var pcr = pap.Create;
+                Console.WriteLine("  " + pcr.Title + " options: " + string.Join(" | ", pcr.Aircraft.Select(x => x.Name)));
+                pcr.SelectedAircraft = pcr.Aircraft[0];
+                pcr.CreateCommand.Execute(null);
+                for (int k = 0; k < 3 && pcr.Offers.Count > 0; k++) { Console.WriteLine("  leasing: " + pcr.Offers[0].Text); pcr.Offers[0].LeaseCommand.Execute(null); pcr.CreateCommand.Execute(null); }
+                Console.WriteLine("  created without aircraft: " + pap.Status + " | " + pcr.Info);
+                av2.Refresh();
+                var prow = av2.Routes.FirstOrDefault(r => !r.Route.HasAirliner && !r.Route.IsCargoRoute);
+                Console.WriteLine("  route without aircraft: " + prow?.Name);
+                if (prow != null)
+                {
+                    av2.SelectedRoute = prow;
+                    var pd = av2.RouteDetail;
+                    Console.WriteLine("  canAssign=" + pd.CanAssign + " button=" + pd.ShowAssignButton + " text=" + pd.AircraftText);
+                    pd.AssignCommand.Execute(null);
+                    var asg = pd.Assign;
+                    Console.WriteLine("  form: " + asg.Title + " | newRoute=" + asg.IsNewRoute + " label=" + asg.CreateLabel + " aircraft=" + asg.Aircraft.Count + " trips=" + asg.Trips.Count + " info=" + asg.Info);
+                    asg.CreateCommand.Execute(null);
+                    Console.WriteLine("  assign result: status=" + pd.Status + " | info=" + asg.Info + " | hasAssign=" + pd.HasAssign);
+                    Console.WriteLine("  after: canAssign=" + pd.CanAssign + " " + pd.AircraftText);
+                    Console.WriteLine("  canMove=" + pd.CanMove + " moveButton=" + pd.ShowMoveButton);
+                    {
+                        var nb = av2.NewAircraft; nb.Reload();
+                        nb.Selected = nb.Types.First(t => t.Name.Contains("737-600"));
+                        nb.Amount = 1; nb.DownPayment = false; nb.OrderCommand.Execute(null);
+                        Console.WriteLine("  bought 737 for the move: " + nb.Status);
+                        foreach (var fa in TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet) fa.Airliner.BuiltDate = TheAirline.Models.General.GameObject.GetInstance().GameTime.AddDays(-2);
+                        av2.Refresh();
+                    }
+                    pd.MoveCommand.Execute(null);
+                    var mv = pd.Assign;
+                    Console.WriteLine("  move form: " + mv?.Title + " | " + mv?.CreateLabel + " | options=" + string.Join(", ", mv?.Aircraft.Select(x => x.Name) ?? new string[0]) + " | info=" + mv?.Info);
+                    if (mv != null && mv.Aircraft.Count > 0)
+                    {
+                        mv.CreateCommand.Execute(null);
+                        Console.WriteLine("  move result: " + pd.Status + " | info=" + mv.Info + " | now " + pd.AircraftText);
+                        Console.WriteLine("  fleet routes: " + string.Join(", ", TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet.Select(x => x.Name + "=" + x.Routes.Count + "/" + x.Status)));
+                    }
+                }
+            }
+            {
+                Console.WriteLine("MAP TEST");
+                var map = av2.Map;
+                map.Reload();
+                Console.WriteLine("  " + map.Caption + " | places " + map.Places.Count + " lines " + map.Lines.Count + " (cargo " + map.Lines.Count(l => l.IsCargo) + ")");
+                foreach (var a in map.Aircraft) Console.WriteLine("  aircraft " + a.Name + " u=" + a.U.ToString("0.000") + " v=" + a.V.ToString("0.000") + " flying=" + a.InFlight + " hdg=" + a.Heading.ToString("0") + " | " + a.Info);
+                foreach (var pl in map.Places.Take(5)) Console.WriteLine("  place " + pl.Label + " u=" + pl.U.ToString("0.000") + " v=" + pl.V.ToString("0.000") + " hub=" + pl.IsHub);
+                Console.WriteLine("  bad pieces: " + map.Lines.Sum(l => l.Pieces.Count(p => p.Any(q => q[0] < 0 || q[0] > 1 || q[1] < 0 || q[1] > 1))));
+                if (map.Aircraft.Count > 0) { map.Selected = map.Aircraft[0]; Console.WriteLine("  selected: " + map.SelectedText); }
+            }
             GameSession.StopClock();
             Console.WriteLine("VM TEST OK");
             Environment.Exit(0);

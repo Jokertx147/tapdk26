@@ -107,6 +107,7 @@ namespace TheAirline.Presentation
             AirlineList = new AirlinesViewModel();
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
             News = new NewsViewModel();
+            Map = new WorldMapViewModel();
             Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit));
             Refresh();
         }
@@ -179,6 +180,7 @@ namespace TheAirline.Presentation
         public OptionsViewModel Options { get; }
         public NewsViewModel News { get; }
         public FleetOverviewViewModel Overview { get; }
+        public WorldMapViewModel Map { get; }
 
         private RouteItem _selectedRoute;
         private RouteDetailViewModel _routeDetail;
@@ -405,6 +407,7 @@ namespace TheAirline.Presentation
             RefreshRoutes(routes);
             _routeDetail?.RefreshNumbers();
             Overview?.Reload();
+            Map?.Reload();
             News?.Poll();
         }
 
