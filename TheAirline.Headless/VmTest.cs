@@ -725,6 +725,46 @@ static class VmTest
                 bool again = TheAirline.Helpers.MaintenanceService.PerformCheck(ac, TheAirline.Helpers.MaintenanceCheck.A, out msg);
                 Console.WriteLine("  while grounded: " + again + " " + msg);
                 if (!okC || again || !TheAirline.Helpers.MaintenanceService.IsGrounded(ac)) { Console.WriteLine("  FAILED C check"); Environment.Exit(1); }
+                // spare aircraft for a heavy check on an aircraft that flies routes
+                {
+                    foreach (var o1 in hum.Fleet) { o1.CoverUntil = DateTime.MinValue; o1.CoveredUntil = DateTime.MinValue; o1.CoverName = null; o1.GroundedToDate = DateTime.MinValue; }
+                    var fr = hum.Fleet.FirstOrDefault(f => f.Routes.Count > 0 && f.Airliner.BuiltDate <= gm.GameTime);
+                    if (fr == null) Console.WriteLine("  (no aircraft with routes in this game, spare test skipped)");
+                    else
+                    {
+                        var sp1 = TheAirline.Helpers.MaintenanceService.FindSpare(fr);
+                        Console.WriteLine("  routed aircraft " + fr.Name + " (" + fr.Routes.Count + " routes, longest " + TheAirline.Helpers.MaintenanceService.GetSpareRange(fr).ToString("0") + " km), spare: " + (sp1 != null ? sp1.Name : "none"));
+                        string m1;
+                        if (sp1 != null)
+                        {
+                            sp1.GroundedToDate = gm.GameTime.AddDays(5);
+                            bool b1 = TheAirline.Helpers.MaintenanceService.PerformCheck(fr, TheAirline.Helpers.MaintenanceCheck.D, out m1);
+                            Console.WriteLine("  spare grounded -> D check: " + b1 + " | " + m1);
+                            sp1.GroundedToDate = DateTime.MinValue;
+                            if (b1 || !m1.Contains("spare")) { Console.WriteLine("  FAILED waits for spare"); Environment.Exit(1); }
+                            bool c1 = TheAirline.Helpers.MaintenanceService.PerformCheck(fr, TheAirline.Helpers.MaintenanceCheck.D, out m1);
+                            Console.WriteLine("  with spare -> D check: " + c1 + " | " + m1);
+                            if (!c1 || !TheAirline.Helpers.MaintenanceService.IsGrounded(fr) || !TheAirline.Helpers.MaintenanceService.IsCovered(fr) || !TheAirline.Helpers.MaintenanceService.IsCovering(sp1) || sp1.CoverName != fr.Name || fr.CoverName != sp1.Name)
+                            {
+                                Console.WriteLine("  FAILED cover"); Environment.Exit(1);
+                            }
+                            //the spare is busy now, a second heavy check on another routed aircraft needs a different spare
+                            var other = TheAirline.Helpers.MaintenanceService.FindSpare(fr);
+                            Console.WriteLine("  second spare while " + sp1.Name + " covers: " + (other != null ? other.Name : "none"));
+                            if (other == sp1) { Console.WriteLine("  FAILED spare used twice"); Environment.Exit(1); }
+                            mvm.Reload();
+                            foreach (var it in mvm.Items.Where(i => i.Aircraft == fr || i.Aircraft == sp1)) Console.WriteLine("  status line: " + it.Title + " -> " + it.Grounded);
+                        }
+                        else
+                        {
+                            bool b2 = TheAirline.Helpers.MaintenanceService.PerformCheck(fr, TheAirline.Helpers.MaintenanceCheck.D, out m1);
+                            Console.WriteLine("  no spare -> D check: " + b2 + " | " + m1);
+                            if (b2 || !m1.Contains("spare")) { Console.WriteLine("  FAILED no spare"); Environment.Exit(1); }
+                        }
+                    }
+                    foreach (var o2 in hum.Fleet) { o2.CoverUntil = DateTime.MinValue; o2.CoveredUntil = DateTime.MinValue; o2.CoverName = null; o2.GroundedToDate = DateTime.MinValue; }
+                    ac.GroundedToDate = gm.GameTime.AddDays(7);
+                }
                 worst.AText = "120"; worst.BText = "300"; worst.CText = "12"; worst.DText = "60";
                 worst.ApplyIntervalsCommand.Execute(null);
                 Console.WriteLine("  intervals: " + ac.AMaintenanceInterval + "/" + ac.BMaintenanceInterval + "/" + ac.CMaintenanceInterval + "/" + ac.DMaintenanceInterval);
@@ -744,9 +784,15 @@ static class VmTest
                     double mAuto = gm.HumanMoney;
                     var doneAuto = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
                     foreach (var d in doneAuto) Console.WriteLine("  auto: " + d);
-                    Console.WriteLine("  C check will run: " + cWillRun + "; without the switch: " + noAuto.Count + " checks, with it: " + doneAuto.Count + ", money " + (gm.HumanMoney - mAuto).ToString("0") + ", grounded=" + TheAirline.Helpers.MaintenanceService.IsGrounded(ac));
-                    bool lastOk = ac.LastAMaintenance == gm.GameTime && ac.LastBMaintenance == gm.GameTime && (ac.LastCMaintenance == gm.GameTime) == cWillRun;
-                    if (noAuto.Count != 0 || doneAuto.Count != (cWillRun ? 3 : 2) || !lastOk || TheAirline.Helpers.MaintenanceService.IsGrounded(ac) != cWillRun || !(gm.HumanMoney < mAuto)) { Console.WriteLine("  FAILED auto maintenance"); Environment.Exit(1); }
+                    //B grounds the aircraft for a day, so the heavier checks wait: one grounding check at a time
+                    bool abOk = ac.LastAMaintenance == gm.GameTime && ac.LastBMaintenance == gm.GameTime && ac.LastCMaintenance != gm.GameTime;
+                    Console.WriteLine("  without the switch: " + noAuto.Count + " checks, with it: " + doneAuto.Count + ", money " + (gm.HumanMoney - mAuto).ToString("0") + ", grounded=" + TheAirline.Helpers.MaintenanceService.IsGrounded(ac));
+                    if (noAuto.Count != 0 || doneAuto.Count != 2 || !abOk || !TheAirline.Helpers.MaintenanceService.IsGrounded(ac) || !(gm.HumanMoney < mAuto)) { Console.WriteLine("  FAILED auto maintenance"); Environment.Exit(1); }
+                    ac.GroundedToDate = DateTime.MinValue;
+                    var next = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
+                    foreach (var d in next) Console.WriteLine("  auto next day: " + d);
+                    bool cOk = !cWillRun ? next.Count == 0 : next.Count == 1 && ac.LastCMaintenance == gm.GameTime && TheAirline.Helpers.MaintenanceService.IsGrounded(ac);
+                    if (!cOk) { Console.WriteLine("  FAILED auto C check"); Environment.Exit(1); }
                     var again2 = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
                     if (again2.Count != 0) { Console.WriteLine("  FAILED auto repeats"); Environment.Exit(1); }
                     mvm.AutoNoneCommand.Execute(null);
