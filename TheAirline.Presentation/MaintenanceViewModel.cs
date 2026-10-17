@@ -70,6 +70,7 @@ namespace TheAirline.Presentation
         public MaintenanceViewModel(Action changed)
         {
             _changed = changed;
+            MaintenanceService.DistanceText = DistanceFormatter.Km;
             Items = new ObservableCollection<MaintenanceItem>();
             ConfirmCommand = new RelayCommand(Confirm);
             CancelCommand = new RelayCommand(() => SetPending(null, null));
@@ -143,6 +144,13 @@ namespace TheAirline.Presentation
                         overdue++;
                     }
                     int days = MaintenanceService.GetDowntimeDays(aircraft, check);
+                    string blocker = MaintenanceService.GetBlocker(aircraft, check);
+                    string spareText = "";
+                    if (MaintenanceService.NeedsSpare(aircraft, check))
+                    {
+                        var sp = MaintenanceService.IsCovered(aircraft) ? null : MaintenanceService.FindSpare(aircraft);
+                        spareText = blocker != null ? "  |  NO SPARE AIRCRAFT" : sp != null ? "  |  spare: " + sp.Name : "";
+                    }
                     checks.Add(new CheckItem
                     {
                         Label = check + " check",
@@ -152,8 +160,8 @@ namespace TheAirline.Presentation
                         Effect = string.Format(
                             "{0}  |  +{1} to {2}% condition  |  {3}",
                             Money(MaintenanceService.GetCost(aircraft, check)), MaintenanceService.MinGain(check), MaintenanceService.MaxGain(check),
-                            days == 0 ? "no downtime" : "grounded about " + days + (days == 1 ? " day" : " days")),
-                        CanDo = !MaintenanceService.IsGrounded(aircraft),
+                            days == 0 ? "no downtime" : "grounded about " + days + (days == 1 ? " day" : " days")) + spareText,
+                        CanDo = !MaintenanceService.IsGrounded(aircraft) && blocker == null,
                         Command = new RelayCommand(() => AskCheck(aircraft, check))
                     });
                 }
@@ -167,8 +175,10 @@ namespace TheAirline.Presentation
                     Title = aircraft.Name + "  -  " + aircraft.Airliner.Type.Name,
                     ConditionNumber = aircraft.Airliner.Condition,
                     Condition = string.Format("Condition {0:0}% ({1})", aircraft.Airliner.Condition, MaintenanceService.GetConditionText(aircraft.Airliner.Condition)),
-                    IsGrounded = MaintenanceService.IsGrounded(aircraft),
-                    Grounded = MaintenanceService.IsGrounded(aircraft) ? "Grounded until " + DateFormatter.Date(aircraft.GroundedToDate) : "",
+                    IsGrounded = MaintenanceService.IsGrounded(aircraft) || MaintenanceService.IsCovered(aircraft) || MaintenanceService.IsCovering(aircraft),
+                    Grounded = (MaintenanceService.IsGrounded(aircraft) ? "Grounded until " + DateFormatter.Date(aircraft.GroundedToDate) : "")
+                               + (MaintenanceService.IsCovered(aircraft) ? (MaintenanceService.IsGrounded(aircraft) ? ", but " : "") + "covered by " + aircraft.CoverName + ", its routes keep flying" : "")
+                               + (MaintenanceService.IsCovering(aircraft) ? "Standing in for " + aircraft.CoverName + " until " + DateFormatter.Date(aircraft.CoverUntil) : ""),
                     History = history.Count == 0 ? "No checks done yet." : "Recent: " + string.Join("   |   ", history),
                     Checks = checks,
                     AText = (aircraft.AMaintenanceInterval > 0 ? aircraft.AMaintenanceInterval : MaintenanceService.GetIntervalDays(aircraft, MaintenanceCheck.A)).ToString(),
@@ -232,10 +242,12 @@ namespace TheAirline.Presentation
         private void AskCheck(FleetAirliner f, MaintenanceCheck c)
         {
             int days = MaintenanceService.GetDowntimeDays(f, c);
+            var spare = MaintenanceService.NeedsSpare(f, c) ? MaintenanceService.FindSpare(f) : null;
             SetPending(
                 string.Format(
-                    "Do the {0} check on {1} for {2}?{3}", c, f.Name, Money(MaintenanceService.GetCost(f, c)),
-                    days > 0 ? " It will be grounded for about " + days + " days." : ""),
+                    "Do the {0} check on {1} for {2}?{3}{4}", c, f.Name, Money(MaintenanceService.GetCost(f, c)),
+                    days > 0 ? " It will be grounded for about " + days + " days." : "",
+                    spare != null ? " " + spare.Name + " takes over its routes meanwhile." : ""),
                 () => DoCheck(f, c));
         }
 

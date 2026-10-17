@@ -63,7 +63,7 @@ namespace TheAirline.Helpers
                                     == GeneralHelpers.GetSeason(GameObject.GetInstance().GameTime)))
                             .OrderBy(e => e.Time);
 
-                if (GameObject.GetInstance().GameTime > airliner.GroundedToDate)
+                if (GameObject.GetInstance().GameTime > airliner.GroundedToDate || GameObject.GetInstance().GameTime <= airliner.CoveredUntil)
                 {
                     foreach (RouteTimeTableEntry entry in dayEntries)
                     {

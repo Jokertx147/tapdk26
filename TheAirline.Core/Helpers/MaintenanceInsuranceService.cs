@@ -126,6 +126,84 @@ namespace TheAirline.Helpers
             return "Critical";
         }
 
+        public static bool IsHeavy(MaintenanceCheck c)
+        {
+            return c == MaintenanceCheck.C || c == MaintenanceCheck.D;
+        }
+
+        /// <summary>A heavy check on an aircraft that flies routes needs a spare aircraft to take its place.</summary>
+        public static bool NeedsSpare(FleetAirliner f, MaintenanceCheck c)
+        {
+            return IsHeavy(c) && f.Routes.Count > 0;
+        }
+
+        public static bool IsCovering(FleetAirliner f)
+        {
+            return f.CoverUntil > GameObject.GetInstance().GameTime;
+        }
+
+        public static bool IsCovered(FleetAirliner f)
+        {
+            return f.CoveredUntil > GameObject.GetInstance().GameTime;
+        }
+
+        /// <summary>What the spare has to be able to do: the longest route of the aircraft.</summary>
+        public static double GetSpareRange(FleetAirliner f)
+        {
+            double longest = 0;
+            foreach (var r in f.Routes)
+            {
+                longest = Math.Max(longest, r.GetDistance());
+            }
+            return longest;
+        }
+
+        /// <summary>
+        ///     Finds a spare for a heavy check: an aircraft of the same airline that is delivered, has no routes, is not grounded or
+        ///     covering another one, is the same kind (passenger or cargo) and can fly the longest route. The closest in size wins.
+        /// </summary>
+        public static FleetAirliner FindSpare(FleetAirliner f)
+        {
+            GameObject game = GameObject.GetInstance();
+            Airline airline = f.Airliner.Airline;
+            if (airline == null) return null;
+
+            bool cargo = f.Airliner.Type is AirlinerCargoType;
+            double range = GetSpareRange(f);
+            int size = SizeOf(f);
+            return airline.Fleet
+                .Where(s => s != f && s.Routes.Count == 0 && s.Airliner.BuiltDate <= game.GameTime && !IsGrounded(s) && !IsCovering(s) && !IsCovered(s)
+                            && (s.Airliner.Type is AirlinerCargoType) == cargo && s.Airliner.Type.Range >= range)
+                .OrderBy(s => Math.Abs(SizeOf(s) - size))
+                .FirstOrDefault();
+        }
+
+        private static int SizeOf(FleetAirliner f)
+        {
+            var pax = f.Airliner.Type as AirlinerPassengerType;
+            if (pax != null) return pax.MaxSeatingCapacity;
+            var cargo = f.Airliner.Type as AirlinerCargoType;
+            return cargo != null ? (int) cargo.CargoSize : 0;
+        }
+
+        /// <summary>Why a check cannot be done now, or null when it can (apart from money).</summary>
+        public static string GetBlocker(FleetAirliner f, MaintenanceCheck c)
+        {
+            if (!NeedsSpare(f, c)) return null;
+            if (IsCovered(f)) return null;
+            if (FindSpare(f) != null) return null;
+            return "A " + c + " check needs a spare aircraft to take over " + f.Name + "'s routes: one with no routes of its own, not grounded, of the same kind"
+                   + " and able to fly " + DistanceFormatterText(GetSpareRange(f)) + ".";
+        }
+
+        /// <summary>Set by the interface, so the messages here follow the player's choice of kilometres or miles.</summary>
+        public static Func<double, string> DistanceText = km => km.ToString("N0") + " km";
+
+        private static string DistanceFormatterText(double km)
+        {
+            return DistanceText(km);
+        }
+
         /// <summary>Does a check now. Returns false with a message if it is not possible.</summary>
         public static bool PerformCheck(FleetAirliner f, MaintenanceCheck c, out string message)
         {
@@ -139,6 +217,17 @@ namespace TheAirline.Helpers
             {
                 message = "The aircraft is already grounded until " + DateDisplay.Format(f.GroundedToDate) + ".";
                 return false;
+            }
+            FleetAirliner spare = null;
+            if (NeedsSpare(f, c))
+            {
+                string blocker = GetBlocker(f, c);
+                if (blocker != null)
+                {
+                    message = blocker;
+                    return false;
+                }
+                spare = FindSpare(f);
             }
             double cost = GetCost(f, c);
             if (f.Airliner.Airline == game.HumanAirline && game.HumanMoney < cost)
@@ -163,10 +252,17 @@ namespace TheAirline.Helpers
             {
                 f.GroundedToDate = game.GameTime.AddDays(days);
             }
+            if (spare != null)
+            {
+                spare.CoverUntil = f.GroundedToDate;
+                spare.CoverName = f.Name;
+                f.CoveredUntil = f.GroundedToDate;
+                f.CoverName = spare.Name;
+            }
             f.MaintenanceHistory.Add(new Invoice(game.GameTime, Invoice.InvoiceType.Maintenances, -cost), c.ToString());
 
             message = c + " check done for " + f.Name + ": condition " + before.ToString("0") + "% -> " + f.Airliner.Condition.ToString("0") + "%, "
-                      + cost.ToString("C0", CultureInfo.GetCultureInfo("en-US")) + (days > 0 ? ", grounded for " + days + " days" : "") + ".";
+                      + cost.ToString("C0", CultureInfo.GetCultureInfo("en-US")) + (days > 0 ? ", grounded for " + days + " days" : "") + (spare != null ? ", " + spare.Name + " covers its routes" : "") + ".";
             return true;
         }
 
@@ -174,11 +270,15 @@ namespace TheAirline.Helpers
         ///     Daily: does the checks that are due on aircraft set to automatic maintenance. A and B first, and only one check that
         ///     grounds the aircraft at a time. It keeps a cash reserve, so the checks never take the airline to its last dollar.
         /// </summary>
+        //aircraft whose heavy check is waiting for a spare, so the news is only written once
+        private static readonly HashSet<string> WaitingForSpare = new HashSet<string>();
+
         public static List<string> ProcessAuto(Airline airline)
         {
             GameObject game = GameObject.GetInstance();
             var done = new List<string>();
             var skipped = new List<string>();
+            var noSpare = new List<string>();
             foreach (FleetAirliner f in airline.Fleet.ToList())
             {
                 if (!f.AutoMaintenance || f.Airliner.BuiltDate > game.GameTime) continue;
@@ -199,6 +299,15 @@ namespace TheAirline.Helpers
                     if (PerformCheck(f, c, out message))
                     {
                         done.Add(message);
+                        WaitingForSpare.Remove(f.Name);
+                    }
+                    else if (GetBlocker(f, c) != null)
+                    {
+                        if (WaitingForSpare.Add(f.Name))
+                        {
+                            noSpare.Add(f.Name);
+                        }
+                        break;
                     }
                 }
             }
@@ -208,6 +317,13 @@ namespace TheAirline.Helpers
                 if (done.Count > 0)
                 {
                     game.NewsBox.AddNews(new News(News.NewsType.AirlineNews, game.GameTime, "Automatic maintenance", string.Join("\n", done)));
+                }
+                if (noSpare.Count > 0)
+                {
+                    game.NewsBox.AddNews(
+                        new News(
+                            News.NewsType.AirlineNews, game.GameTime, "Automatic maintenance needs a spare aircraft",
+                            "A heavy check is due on " + string.Join(", ", noSpare) + ", but there is no spare aircraft to take over its routes. Keep an aircraft without routes, not grounded, that can fly the longest route."));
                 }
                 if (skipped.Count > 0)
                 {

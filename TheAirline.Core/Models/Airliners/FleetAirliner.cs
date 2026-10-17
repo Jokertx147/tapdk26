@@ -94,6 +94,18 @@ namespace TheAirline.Models.Airliners
         [Versioning("ainterval")]
         public int AMaintenanceInterval { get; set; }
 
+        /// <summary>While a spare aircraft covers this one during a heavy check, its flights carry on until this date.</summary>
+        [Versioning("covereduntil")]
+        public DateTime CoveredUntil { get; set; }
+
+        /// <summary>A spare aircraft is tied up covering another one until this date.</summary>
+        [Versioning("coveruntil")]
+        public DateTime CoverUntil { get; set; }
+
+        /// <summary>Registration of the other aircraft in a cover arrangement (the spare, or the one being covered).</summary>
+        [Versioning("covername")]
+        public string CoverName { get; set; }
+
         /// <summary>When on, the checks that fall due are done automatically.</summary>
         [Versioning("automaintenance")]
         public bool AutoMaintenance { get; set; }
