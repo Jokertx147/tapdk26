@@ -400,6 +400,7 @@ static class VmTest
             await Wait(() => av.Status != null && av.Status.StartsWith("Saved"), "save");
             Console.WriteLine(av.Status);
             av.MainMenuCommand.Execute(null);
+            for (int w = 0; w < 600 && !(shell.Current is MainMenuViewModel); w++) Thread.Sleep(100);
             ((MainMenuViewModel)shell.Current).LoadGameCommand.Execute(null);
             var lg = (LoadGameViewModel)shell.Current;
             await Wait(() => !lg.IsBusy, "load list");
