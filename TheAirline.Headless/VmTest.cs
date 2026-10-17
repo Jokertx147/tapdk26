@@ -939,7 +939,7 @@ static class VmTest
                 hx.RemoveRoute(proute); sc.Routes.Remove(proute);
                 if (!sc.Routes.Contains(proute) && linked.Count != 1) { Console.WriteLine("  FAILED link"); Environment.Exit(1); }
                 bool still = DateTime.Compare(TheAirline.Helpers.ContractService.GetDeadline(sc), gx.GameTime) > 0;
-                if (!still || cvm.Active.Count != 1 || gx.Contracts.Contains(ctype)) { Console.WriteLine("  FAILED contract state"); Environment.Exit(1); }
+                if (!still || cvm.Active.Count != 1 || gx.Contracts.Contains(ctype)) { Console.WriteLine("  FAILED contract state: still=" + still + " active=" + cvm.Active.Count + " offered=" + gx.Contracts.Contains(ctype) + " now=" + gx.GameTime + " deadline=" + TheAirline.Helpers.ContractService.GetDeadline(sc)); Environment.Exit(1); }
                 hx.SpecialContracts.Remove(sc);
             }
             {
