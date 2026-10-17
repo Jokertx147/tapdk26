@@ -60,6 +60,19 @@ namespace TheAirline.Presentation
         public ICommand RemoveCommand { get; set; }
     }
 
+    /// <summary>A flight drawn on the weekly timeline: a day, a start and an end in minutes of that day.</summary>
+    public class TimelineBlock
+    {
+        public int Day { get; set; }
+        public double Start { get; set; }
+        public double End { get; set; }
+        public string Label { get; set; }
+        public string Detail { get; set; }
+        public int ColorIndex { get; set; }
+        public bool IsPreview { get; set; }
+        public RouteTimeTableEntry Entry { get; set; }
+    }
+
     /// <summary>Edit the weekly schedule of one aircraft: add or remove flights on its routes.</summary>
     public class TimetableViewModel : ObservableObject
     {
@@ -73,6 +86,9 @@ namespace TheAirline.Presentation
         private string _status;
         private string _summary;
         private List<AirportOption> _directions = new List<AirportOption>();
+        private List<TimelineBlock> _blocks = new List<TimelineBlock>();
+        private List<TimelineBlock> _preview = new List<TimelineBlock>();
+        private TimelineBlock _selectedBlock;
 
         public TimetableViewModel(Action changed = null)
         {
@@ -87,7 +103,9 @@ namespace TheAirline.Presentation
                          DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
                      })
             {
-                Days.Add(new DayFlag { Day = d, Name = d.ToString().Substring(0, 3), IsChecked = true });
+                var flag = new DayFlag { Day = d, Name = d.ToString().Substring(0, 3), IsChecked = true };
+                flag.PropertyChanged += (s, e) => BuildPreview();
+                Days.Add(flag);
             }
 
             Times = new List<TimeChoice>();
@@ -103,6 +121,9 @@ namespace TheAirline.Presentation
             AddRoundTripCommand = new RelayCommand(() => Add(true), () => _aircraft != null && _route != null);
             AddOneWayCommand = new RelayCommand(() => Add(false), () => _aircraft != null && _route != null);
             RemoveRouteFlightsCommand = new RelayCommand(RemoveRouteFlights, () => _aircraft != null && _route != null);
+            RemoveSelectedCommand = new RelayCommand(
+                () => { if (_selectedBlock?.Entry != null) RemoveEntry(_selectedBlock.Entry); },
+                () => _selectedBlock?.Entry != null);
             DailyCommand = new RelayCommand(() => SetDays(Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().ToArray()));
             WeekdaysCommand = new RelayCommand(
                 () => SetDays(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday));
@@ -123,6 +144,7 @@ namespace TheAirline.Presentation
         public ICommand AddRoundTripCommand { get; }
         public ICommand AddOneWayCommand { get; }
         public ICommand RemoveRouteFlightsCommand { get; }
+        public ICommand RemoveSelectedCommand { get; }
         public ICommand DailyCommand { get; }
         public ICommand WeekdaysCommand { get; }
         public ICommand WeekendCommand { get; }
@@ -143,6 +165,30 @@ namespace TheAirline.Presentation
             }
         }
 
+        /// <summary>Raised when the timeline has to be drawn again.</summary>
+        public event Action TimelineChanged;
+
+        public List<TimelineBlock> Blocks => _blocks;
+        public List<TimelineBlock> Preview => _preview;
+
+        public TimelineBlock SelectedBlock
+        {
+            get { return _selectedBlock; }
+            set
+            {
+                if (SetProperty(ref _selectedBlock, value))
+                {
+                    OnPropertyChanged(nameof(SelectedBlockText));
+                    (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    TimelineChanged?.Invoke();
+                }
+            }
+        }
+
+        public string SelectedBlockText => _selectedBlock == null
+            ? "Click a flight on the timeline to see it. The dashed blocks show the flights you are about to add."
+            : _selectedBlock.Detail;
+
         public RouteOption SelectedRoute
         {
             get { return _route; }
@@ -151,6 +197,7 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _route, value))
                 {
                     LoadDirections();
+                    BuildPreview();
                     RaiseCanExecute();
                 }
             }
@@ -165,19 +212,19 @@ namespace TheAirline.Presentation
         public AirportOption SelectedFrom
         {
             get { return _from; }
-            set { SetProperty(ref _from, value); }
+            set { if (SetProperty(ref _from, value)) BuildPreview(); }
         }
 
         public TimeChoice SelectedTime
         {
             get { return _time; }
-            set { SetProperty(ref _time, value); }
+            set { if (SetProperty(ref _time, value)) BuildPreview(); }
         }
 
         public int Turnaround
         {
             get { return _turnaround; }
-            set { SetProperty(ref _turnaround, value); }
+            set { if (SetProperty(ref _turnaround, value)) BuildPreview(); }
         }
 
         /// <summary>Flight number of the outbound flight; empty picks the next free numbers.</summary>
@@ -216,6 +263,17 @@ namespace TheAirline.Presentation
             foreach (var d in Days)
             {
                 d.IsChecked = days.Contains(d.Day);
+            }
+        }
+
+        /// <summary>Opens the schedule of an aircraft.</summary>
+        public void Select(FleetAirliner f)
+        {
+            ReloadAircraft();
+            var option = Aircraft.FirstOrDefault(a => a.Airliner == f);
+            if (option != null)
+            {
+                SelectedAircraft = option;
             }
         }
 
@@ -325,6 +383,9 @@ namespace TheAirline.Presentation
             if (_aircraft == null)
             {
                 Summary = "You have no delivered aircraft.";
+                _blocks = new List<TimelineBlock>();
+                SelectedBlock = null;
+                BuildPreview();
                 return;
             }
 
@@ -353,9 +414,80 @@ namespace TheAirline.Presentation
                     });
             }
 
+            BuildBlocks(entries);
+            BuildPreview();
+
             Summary = entries.Count == 0
                 ? f.Name + " has no flights yet."
                 : string.Format("{0}: {1} flights a week, about {2:0} hours in the air.", f.Name, entries.Count, airMinutes / 60);
+        }
+
+        private static void AddBlocks(
+            List<TimelineBlock> list, DayOfWeek day, double startMinutes, double durationMinutes, string label, string detail, int color, bool preview, RouteTimeTableEntry entry)
+        {
+            int d = DayIndex(day);
+            double end = startMinutes + Math.Max(durationMinutes, 10);
+            if (end <= 1440)
+            {
+                list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = end, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
+                return;
+            }
+
+            list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
+            list.Add(new TimelineBlock { Day = (d + 1) % 7, Start = 0, End = end - 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
+        }
+
+        private void BuildBlocks(List<RouteTimeTableEntry> entries)
+        {
+            var f = _aircraft.Airliner;
+            var routes = f.Routes.ToList();
+            var keep = _selectedBlock?.Entry;
+            var list = new List<TimelineBlock>();
+            foreach (var e in entries)
+            {
+                TimeSpan flight = e.TimeTable.Route.GetFlightTime(f.Airliner.Type);
+                string route = e.DepartureAirport.Profile.IATACode + " > " + e.Destination.Airport.Profile.IATACode;
+                TimeSpan arrive = e.Time.Add(flight);
+                string detail = string.Format(
+                    "{0} {1}  |  {2}  |  leaves {3}, arrives {4}{5}  |  {6}",
+                    e.Day, e.Destination.FlightCode, route, e.Time.ToString(@"hh\:mm"),
+                    new TimeSpan(arrive.Hours, arrive.Minutes, 0).ToString(@"hh\:mm"), arrive.Days > 0 ? " (+" + arrive.Days + ")" : "", FormatSpan(flight));
+                AddBlocks(list, e.Day, e.Time.TotalMinutes, flight.TotalMinutes, e.Destination.FlightCode + " " + route, detail,
+                          Math.Max(0, routes.IndexOf(e.TimeTable.Route)), false, e);
+            }
+
+            _blocks = list;
+            _selectedBlock = list.FirstOrDefault(b => b.Entry == keep);
+            OnPropertyChanged(nameof(SelectedBlock));
+            OnPropertyChanged(nameof(SelectedBlockText));
+            (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
+        /// <summary>The dashed flights that "Add round trips" would put on the timeline.</summary>
+        private void BuildPreview()
+        {
+            var list = new List<TimelineBlock>();
+            if (_aircraft != null && _route != null && _from != null && Days != null)
+            {
+                var f = _aircraft.Airliner;
+                var route = _route.Route;
+                Airport from = _from.Airport;
+                Airport to = from == route.Destination1 ? route.Destination2 : route.Destination1;
+                TimeSpan flight = route.GetFlightTime(f.Airliner.Type);
+                TimeSpan back = _time.Time.Add(flight).Add(new TimeSpan(0, _turnaround, 0));
+                int color = Math.Max(0, f.Routes.ToList().IndexOf(route));
+                foreach (var day in Days.Where(d => d.IsChecked).Select(d => d.Day))
+                {
+                    AddBlocks(list, day, _time.Time.TotalMinutes, flight.TotalMinutes, from.Profile.IATACode + " > " + to.Profile.IATACode,
+                              "New flight", color, true, null);
+                    DayOfWeek backDay = (DayOfWeek) (((int) day + back.Days) % 7);
+                    AddBlocks(list, backDay, back.Hours * 60 + back.Minutes, flight.TotalMinutes, to.Profile.IATACode + " > " + from.Profile.IATACode,
+                              "New flight", color, true, null);
+                }
+            }
+
+            _preview = list;
+            TimelineChanged?.Invoke();
         }
 
         private void StopIfFlying(FleetAirliner f)
@@ -384,6 +516,7 @@ namespace TheAirline.Presentation
 
             var f = _aircraft.Airliner;
             var route = entry.TimeTable.Route;
+            route.TimeTable.RemoveEntry(entry); // entries made by the route creator can still point at a temporary timetable
             entry.TimeTable.RemoveEntry(entry);
 
             if (!route.TimeTable.Entries.Any(e => e.Airliner == f))

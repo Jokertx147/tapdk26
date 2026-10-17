@@ -206,7 +206,7 @@
 
         <!-- FLIGHTS -->
         <TabItem Header="Flights">
-          <TabControl Classes="sub">
+          <TabControl Classes="sub" SelectedIndex="{Binding FlightsTab}">
           <TabItem Header="Fleet">
             <Grid RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
               <TextBlock Text="Fleet" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
@@ -221,6 +221,7 @@
                         </TextBlock>
                       </StackPanel>
                       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Content="Schedule" Command="{Binding ScheduleCommand}" IsVisible="{Binding CanSchedule}" />
                         <Button Content="Edit cabin" Command="{Binding EditCabinCommand}" IsVisible="{Binding CanEditCabin}" />
                         <Button Content="Start" Command="{Binding StartCommand}" IsVisible="{Binding CanStart}" />
                         <Button Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding CanStop}" />

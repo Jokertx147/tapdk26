@@ -37,6 +37,7 @@
             <WrapPanel>
               <Button Content="Start" Command="{Binding StartCommand}" IsVisible="{Binding CanStart}" Margin="0,0,8,0" />
               <Button Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding CanStop}" Margin="0,0,8,0" />
+              <Button Content="Schedule..." Command="{Binding ScheduleCommand}" IsVisible="{Binding CanSchedule}" Margin="0,0,8,0" />
               <Button Content="Edit cabin" Command="{Binding CabinCommand}" IsVisible="{Binding CanCabin}" Margin="0,0,8,0" />
               <Button Content="{Binding SellText}" Command="{Binding SellCommand}" />
             </WrapPanel>

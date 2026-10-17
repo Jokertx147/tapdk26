@@ -17,14 +17,26 @@
     </Grid>
 
     <!-- advisor -->
-    <Grid Grid.Column="2" RowDefinitions="Auto,*">
+    <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
       <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,0,0,6">
         <RadioButton GroupName="routekind" Content="Passenger routes" IsChecked="{Binding PassengerMode}" />
         <RadioButton GroupName="routekind" Content="Cargo routes" IsChecked="{Binding CargoMode}" />
         <TextBlock Text="{Binding AdviceTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="0.8" />
         <TextBlock Text="(best first, pick one to create it)" VerticalAlignment="Center" Opacity="0.6" />
       </StackPanel>
-      <ListBox Grid.Row="1" ItemsSource="{Binding Advice}" SelectedItem="{Binding SelectedAdvice}">
+      <TextBox Grid.Row="1" Text="{Binding DestinationSearch}" Margin="0,0,0,6"
+               Watermark="or search any destination airport (code, name or country), recommended or not" />
+      <ListBox Grid.Row="2" IsVisible="{Binding IsSearchingDestinations}" ItemsSource="{Binding Destinations}" SelectedItem="{Binding SelectedDestination}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="2">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Details}" Opacity="0.7" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <ListBox Grid.Row="2" IsVisible="{Binding ShowAdvice}" ItemsSource="{Binding Advice}" SelectedItem="{Binding SelectedAdvice}">
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="2">

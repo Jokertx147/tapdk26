@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
              x:Class="TheAirline.Desktop.Views.TimetableView">
   <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,12,400" Margin="0,10,0,0">
 
@@ -18,15 +19,20 @@
     </StackPanel>
 
     <!-- the week of this aircraft -->
-    <Grid Grid.Row="1" RowDefinitions="Auto,*">
-      <Grid ColumnDefinitions="50,60,70,90,110,*" Margin="4,0,0,2" Opacity="0.7">
+    <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto,*">
+      <v:WeekTimelineControl Margin="0,0,0,6" />
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+        <Button Content="Remove this flight" Command="{Binding RemoveSelectedCommand}" />
+        <TextBlock Text="{Binding SelectedBlockText}" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.85" />
+      </StackPanel>
+      <Grid Grid.Row="2" ColumnDefinitions="50,60,70,90,110,*" Margin="4,0,0,2" Opacity="0.7">
         <TextBlock Text="Day" FontWeight="SemiBold" />
         <TextBlock Grid.Column="1" Text="Leaves" FontWeight="SemiBold" />
         <TextBlock Grid.Column="2" Text="Arrives" FontWeight="SemiBold" />
         <TextBlock Grid.Column="3" Text="Flight" FontWeight="SemiBold" />
         <TextBlock Grid.Column="4" Text="Route" FontWeight="SemiBold" />
       </Grid>
-      <ListBox Grid.Row="1" ItemsSource="{Binding Rows}">
+      <ListBox Grid.Row="3" ItemsSource="{Binding Rows}">
         <ListBox.ItemTemplate>
           <DataTemplate>
             <Grid ColumnDefinitions="50,60,70,90,110,*">

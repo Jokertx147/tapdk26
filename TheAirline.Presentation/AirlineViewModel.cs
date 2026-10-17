@@ -27,6 +27,8 @@ namespace TheAirline.Presentation
         public ICommand EditCabinCommand { get; set; }
         public ICommand StartCommand { get; set; }
         public ICommand StopCommand { get; set; }
+        public bool CanSchedule { get; set; }
+        public ICommand ScheduleCommand { get; set; }
     }
 
     public class RouteItem : ObservableObject
@@ -108,7 +110,7 @@ namespace TheAirline.Presentation
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
             News = new NewsViewModel();
             Map = new WorldMapViewModel();
-            Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit));
+            Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit), OpenSchedule);
             Refresh();
         }
 
@@ -141,6 +143,23 @@ namespace TheAirline.Presentation
         }
 
         public string[] Pages => PageNames;
+
+        private int _flightsTab;
+
+        /// <summary>The sub page of Flights: 0 fleet, 1 timetable, 2 all flights.</summary>
+        public int FlightsTab
+        {
+            get { return _flightsTab; }
+            set { SetProperty(ref _flightsTab, value); }
+        }
+
+        /// <summary>Go to the scheduler of an aircraft (Flights > Edit timetable).</summary>
+        public void OpenSchedule(FleetAirliner f)
+        {
+            Timetable.Select(f);
+            Page = Array.IndexOf(PageNames, "Flights");
+            FlightsTab = 1;
+        }
 
         /// <summary>The index of the page shown.</summary>
         public int Page
@@ -381,7 +400,9 @@ namespace TheAirline.Presentation
                             CanEditCabin = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.Type is AirlinerPassengerType,
                             EditCabinCommand = new RelayCommand(() => Refit = new CabinRefitViewModel(f, CloseRefit)),
                             StartCommand = new RelayCommand(() => StartAirliner(f)),
-                            StopCommand = new RelayCommand(() => StopAirliner(f))
+                            StopCommand = new RelayCommand(() => StopAirliner(f)),
+                            CanSchedule = f.Airliner.BuiltDate <= game.GameTime,
+                            ScheduleCommand = new RelayCommand(() => OpenSchedule(f))
                         });
                 }
 

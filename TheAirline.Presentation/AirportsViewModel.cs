@@ -58,8 +58,28 @@ namespace TheAirline.Presentation
     }
 
     /// <summary>Airports tab: pick an airport, see the advisor's suggested routes, create one.</summary>
+    /// <summary>An airport found when searching for any destination, not only the recommended ones.</summary>
+    public class DestinationItem
+    {
+        public DestinationItem(Airport origin, Airport airport)
+        {
+            Airport = airport;
+            double km = MathHelpers.GetDistance(origin, airport);
+            Distance = km;
+            Name = airport.Profile.IATACode + "  " + airport.Profile.Name + ", " + airport.Profile.Country?.Name;
+            Details = string.Format("{0:N0} km", km);
+        }
+
+        public Airport Airport { get; }
+        public double Distance { get; }
+        public string Name { get; }
+        public string Details { get; }
+    }
+
     public class AirportsViewModel : ObservableObject
     {
+        private string _destSearch = "";
+        private DestinationItem _selectedDestination;
         private readonly Action _changed;
         private string _search = "";
         private AirportItem _selected;
@@ -75,12 +95,72 @@ namespace TheAirline.Presentation
             _changed = changed;
             Airports = new ObservableCollection<AirportItem>();
             Advice = new ObservableCollection<AdviceItem>();
+            Destinations = new ObservableCollection<DestinationItem>();
             ApplySearch();
             Selected = Airports.FirstOrDefault();
         }
 
         public ObservableCollection<AirportItem> Airports { get; }
         public ObservableCollection<AdviceItem> Advice { get; }
+        public ObservableCollection<DestinationItem> Destinations { get; }
+
+        /// <summary>Search any airport as the destination of a new route (code, name or country), recommended or not.</summary>
+        public string DestinationSearch
+        {
+            get { return _destSearch; }
+            set
+            {
+                if (SetProperty(ref _destSearch, value ?? ""))
+                {
+                    OnPropertyChanged(nameof(IsSearchingDestinations));
+                    OnPropertyChanged(nameof(ShowAdvice));
+                    ApplyDestinationSearch();
+                }
+            }
+        }
+
+        public bool IsSearchingDestinations => _destSearch.Trim().Length > 0;
+        public bool ShowAdvice => !IsSearchingDestinations;
+
+        public DestinationItem SelectedDestination
+        {
+            get { return _selectedDestination; }
+            set
+            {
+                if (SetProperty(ref _selectedDestination, value) && value != null && _selected != null && value.Airport != _selected.Airport)
+                {
+                    Create = new CreateRouteViewModel(_selected.Airport, value.Airport, OnCreateDone, _cargo);
+                }
+            }
+        }
+
+        private void ApplyDestinationSearch()
+        {
+            Destinations.Clear();
+            _selectedDestination = null;
+            OnPropertyChanged(nameof(SelectedDestination));
+            if (_selected == null || !IsSearchingDestinations)
+            {
+                return;
+            }
+
+            _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
+            string s = _destSearch.Trim();
+            var origin = _selected.Airport;
+            var found = _all.Where(
+                              a => a != origin && a.Profile.Coordinates != null
+                                   && (a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)
+                                       || a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
+                                       || (a.Profile.Country != null && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)))
+                            .Select(a => new DestinationItem(origin, a))
+                            .OrderBy(d => string.Equals(d.Airport.Profile.IATACode, s, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                            .ThenBy(d => d.Distance)
+                            .Take(80);
+            foreach (var d in found)
+            {
+                Destinations.Add(d);
+            }
+        }
 
         /// <summary>Filters by IATA code, name or country; empty shows the airline's own airports.</summary>
         public string Search
@@ -103,6 +183,7 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _selected, value))
                 {
                     Create = null;
+                    ApplyDestinationSearch();
                     LoadAdvice();
                 }
             }
@@ -186,6 +267,8 @@ namespace TheAirline.Presentation
             }
             _selectedAdvice = null;
             OnPropertyChanged(nameof(SelectedAdvice));
+            _selectedDestination = null;
+            OnPropertyChanged(nameof(SelectedDestination));
         }
 
         private void ApplySearch()

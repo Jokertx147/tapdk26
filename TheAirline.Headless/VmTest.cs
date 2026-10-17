@@ -582,6 +582,49 @@ static class VmTest
                 }
             }
             {
+                Console.WriteLine("SCHEDULER TEST");
+                var sf = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet.First(x => x.Name == "N005DL");
+                var fi2 = av2.Fleet.First(x => x.Name == "N005DL");
+                Console.WriteLine("  fleet row can schedule=" + fi2.CanSchedule);
+                fi2.ScheduleCommand.Execute(null);
+                var tv = av2.Timetable;
+                Console.WriteLine("  page=" + av2.Pages[av2.Page] + " tab=" + av2.FlightsTab + " aircraft=" + tv.SelectedAircraft?.Text);
+                Console.WriteLine("  routes in dropdown: " + string.Join(" | ", tv.Routes.Select(r => r.Text)));
+                Console.WriteLine("  blocks=" + tv.Blocks.Count + " preview=" + tv.Preview.Count + " days checked=" + tv.Days.Count(d => d.IsChecked));
+                foreach (var bk in tv.Blocks.Take(3)) Console.WriteLine("    block day " + bk.Day + " " + bk.Start + "-" + bk.End + " " + bk.Label);
+                tv.SelectedBlock = tv.Blocks.FirstOrDefault();
+                Console.WriteLine("  selected: " + tv.SelectedBlockText);
+                tv.WeekendCommand.Execute(null);
+                Console.WriteLine("  weekend preview blocks=" + tv.Preview.Count);
+                tv.SelectedTime = tv.Times.First(t => t.Time == new TimeSpan(21, 0, 0));
+                Console.WriteLine("  21:00 preview blocks=" + tv.Preview.Count + " (night flights wrap past midnight)");
+                int before = tv.Blocks.Count;
+                tv.AddRoundTripCommand.Execute(null);
+                Console.WriteLine("  added: " + tv.Status + " | blocks " + before + " -> " + tv.Blocks.Count);
+                tv.SelectedBlock = tv.Blocks.Last();
+                tv.RemoveSelectedCommand.Execute(null);
+                Console.WriteLine("  removed one: " + tv.Status + " | blocks now " + tv.Blocks.Count);
+                var ov = av2.Overview; ov.Selected = ov.Rows.First(r => r.Name == "N005DL");
+                Console.WriteLine("  overview canSchedule=" + ov.CanSchedule);
+                av2.Page = 0; ov.ScheduleCommand.Execute(null);
+                Console.WriteLine("  from overview: page=" + av2.Pages[av2.Page] + " tab=" + av2.FlightsTab);
+            }
+            {
+                Console.WriteLine("ANY DESTINATION TEST");
+                var dap = av2.Airports;
+                dap.CargoMode = false;
+                dap.Search = "ATL";
+                dap.Selected = dap.Airports.First(a => a.Text.StartsWith("ATL"));
+                dap.DestinationSearch = "HNL";
+                Console.WriteLine("  search HNL: " + dap.Destinations.Count + " first=" + dap.Destinations.FirstOrDefault()?.Name + " | " + dap.Destinations.FirstOrDefault()?.Details + " searching=" + dap.IsSearchingDestinations + " advice visible=" + dap.ShowAdvice);
+                dap.SelectedDestination = dap.Destinations.First();
+                Console.WriteLine("  create form: " + dap.Create?.Title + " aircraft=" + dap.Create?.Aircraft.Count + " offers=" + dap.Create?.Offers.Count + " info=" + dap.Create?.Info);
+                dap.DestinationSearch = "japan";
+                Console.WriteLine("  search japan: " + dap.Destinations.Count + " nearest=" + dap.Destinations.FirstOrDefault()?.Name + " " + dap.Destinations.FirstOrDefault()?.Details);
+                dap.DestinationSearch = "";
+                Console.WriteLine("  cleared: searching=" + dap.IsSearchingDestinations + " advice visible=" + dap.ShowAdvice);
+            }
+            {
                 Console.WriteLine("MAP TEST");
                 var map = av2.Map;
                 map.Reload();

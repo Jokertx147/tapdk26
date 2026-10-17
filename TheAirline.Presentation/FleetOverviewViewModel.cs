@@ -43,14 +43,17 @@ namespace TheAirline.Presentation
 
         private readonly Action _changed;
         private readonly Action<FleetAirliner> _refit;
+        private readonly Action<FleetAirliner> _schedule;
         private string _search = "", _sortBy = "Name", _status, _pendingText, _signature;
         private OverviewRow _selected;
         private Action _pending;
 
-        public FleetOverviewViewModel(Action changed, Action<FleetAirliner> refit)
+        public FleetOverviewViewModel(Action changed, Action<FleetAirliner> refit, Action<FleetAirliner> schedule = null)
         {
             _changed = changed;
             _refit = refit;
+            _schedule = schedule;
+            ScheduleCommand = new RelayCommand(() => { if (_selected != null) _schedule?.Invoke(_selected.Aircraft); });
             Rows = new ObservableCollection<OverviewRow>();
             Details = new ObservableCollection<string>();
             RouteLines = new ObservableCollection<OverviewRouteLine>();
@@ -71,6 +74,8 @@ namespace TheAirline.Presentation
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
         public ICommand CabinCommand { get; }
+        public ICommand ScheduleCommand { get; }
+        public bool CanSchedule => _selected != null && _selected.Aircraft.Airliner.BuiltDate <= GameObject.GetInstance().GameTime;
         public ICommand SellCommand { get; }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
@@ -345,6 +350,7 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(CanStart));
             OnPropertyChanged(nameof(CanStop));
             OnPropertyChanged(nameof(CanCabin));
+            OnPropertyChanged(nameof(CanSchedule));
             OnPropertyChanged(nameof(CanSell));
         }
     }

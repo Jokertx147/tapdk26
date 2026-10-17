@@ -390,6 +390,7 @@ namespace TheAirline.Helpers
             {
                 if (!TimeTableHelpers.IsRouteEntryInOccupied(entry, airliner))
                 {
+                    entry.TimeTable = route.TimeTable;
                     route.TimeTable.AddEntry(entry);
                 }
             }
