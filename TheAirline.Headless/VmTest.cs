@@ -665,6 +665,91 @@ static class VmTest
                 Console.WriteLine("  bad pieces: " + map.Lines.Sum(l => l.Pieces.Count(p => p.Any(q => q[0] < 0 || q[0] > 1 || q[1] < 0 || q[1] > 1))));
                 if (map.Aircraft.Count > 0) { map.Selected = map.Aircraft[0]; Console.WriteLine("  selected: " + map.SelectedText); }
             }
+            {
+                Console.WriteLine("MAINTENANCE AND INSURANCE TEST");
+                var gm = TheAirline.Models.General.GameObject.GetInstance();
+                var hum = gm.HumanAirline;
+                var mvm = new MaintenanceViewModel(() => { });
+                Console.WriteLine("  " + mvm.Summary);
+                var worst = mvm.Items.FirstOrDefault();
+                if (worst == null) { Console.WriteLine("  FAILED no aircraft"); Environment.Exit(1); }
+                worst.Aircraft.Airliner.Condition = 60;
+                mvm.Reload();
+                worst = mvm.Items.First(i => i.Aircraft.Airliner.Condition <= 60);
+                var ac = worst.Aircraft;
+                foreach (var c in worst.Checks) Console.WriteLine("  " + c.Label + " last " + c.Last + " " + c.Due + " | " + c.Effect);
+                double m0x = gm.HumanMoney; double c0 = ac.Airliner.Condition;
+                worst.Checks[0].Command.Execute(null);
+                Console.WriteLine("  pending: " + mvm.PendingText);
+                mvm.ConfirmCommand.Execute(null);
+                Console.WriteLine("  A check: " + mvm.Status + " | money " + (gm.HumanMoney - m0x).ToString("0") + " condition " + c0 + " -> " + ac.Airliner.Condition);
+                if (!(ac.Airliner.Condition > c0) || !(gm.HumanMoney < m0x)) { Console.WriteLine("  FAILED A check"); Environment.Exit(1); }
+                string msg;
+                ac.GroundedToDate = DateTime.MinValue;
+                bool okC = TheAirline.Helpers.MaintenanceService.PerformCheck(ac, TheAirline.Helpers.MaintenanceCheck.C, out msg);
+                Console.WriteLine("  C check: " + msg + " grounded=" + TheAirline.Helpers.MaintenanceService.IsGrounded(ac));
+                bool again = TheAirline.Helpers.MaintenanceService.PerformCheck(ac, TheAirline.Helpers.MaintenanceCheck.A, out msg);
+                Console.WriteLine("  while grounded: " + again + " " + msg);
+                if (!okC || again || !TheAirline.Helpers.MaintenanceService.IsGrounded(ac)) { Console.WriteLine("  FAILED C check"); Environment.Exit(1); }
+                worst.AText = "120"; worst.BText = "300"; worst.CText = "12"; worst.DText = "60";
+                worst.ApplyIntervalsCommand.Execute(null);
+                Console.WriteLine("  intervals: " + ac.AMaintenanceInterval + "/" + ac.BMaintenanceInterval + "/" + ac.CMaintenanceInterval + "/" + ac.DMaintenanceInterval);
+
+                // wear and breakdowns, uninsured
+                var flying = hum.Fleet.Where(f => f.Routes.Count > 0 && f.Airliner.BuiltDate <= gm.GameTime).ToList();
+                Console.WriteLine("  flying aircraft: " + flying.Count);
+                var rndT = new Random(7);
+                int breakdowns = 0; string firstText = null;
+                if (flying.Count > 0)
+                {
+                    var h0 = flying[0];
+                    double cb = h0.Airliner.Condition = 90;
+                    TheAirline.Helpers.MaintenanceService.ProcessMonth(hum, rndT);
+                    Console.WriteLine("  wear in a month: " + (cb - h0.Airliner.Condition).ToString("0.00"));
+                    for (int i = 0; i < 400 && breakdowns == 0; i++)
+                    {
+                        h0.Airliner.Condition = 30; h0.GroundedToDate = DateTime.MinValue;
+                        var ms = TheAirline.Helpers.MaintenanceService.ProcessMonth(hum, rndT);
+                        if (ms.Count > 0) { breakdowns += ms.Count; firstText = ms[0]; }
+                    }
+                    Console.WriteLine("  uninsured breakdown: " + firstText);
+                    if (breakdowns == 0 || !firstText.Contains("not covered")) { Console.WriteLine("  FAILED breakdown"); Environment.Exit(1); }
+                }
+
+                // insurance
+                var ivm = new InsuranceViewModel(() => { });
+                Console.WriteLine("  " + ivm.Summary);
+                Console.WriteLine("  quote: " + ivm.QuoteText);
+                ivm.Type = ivm.Types[3]; ivm.Scope = ivm.Scopes[3]; ivm.PaymentTerm = ivm.Terms[0]; ivm.Years = 2; ivm.AmountText = "40000000";
+                double mb = gm.HumanMoney;
+                ivm.BuyCommand.Execute(null);
+                Console.WriteLine("  pending: " + ivm.PendingText);
+                ivm.ConfirmCommand.Execute(null);
+                Console.WriteLine("  buy: " + ivm.Status + " policies=" + ivm.Policies.Count + " money " + (gm.HumanMoney - mb).ToString("0"));
+                if (ivm.Policies.Count != 1 || !(gm.HumanMoney < mb)) { Console.WriteLine("  FAILED buy"); Environment.Exit(1); }
+                Console.WriteLine("  " + ivm.Policies[0].Text + "\n  " + ivm.Policies[0].Detail);
+                if (flying.Count > 0)
+                {
+                    var g0 = flying[0]; int paid = 0; string t2 = null;
+                    for (int i = 0; i < 400 && paid == 0; i++)
+                    {
+                        g0.Airliner.Condition = 30; g0.GroundedToDate = DateTime.MinValue;
+                        var ms = TheAirline.Helpers.MaintenanceService.ProcessMonth(hum, rndT);
+                        if (ms.Count > 0) { paid++; t2 = ms[0]; }
+                    }
+                    Console.WriteLine("  insured breakdown: " + t2);
+                }
+                double mp = gm.HumanMoney; var pol = hum.InsurancePolicies[0]; double rem0 = pol.RemainingPayments;
+                for (int i = 0; i < 70; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                Console.WriteLine("  after 70 days: remaining payments " + rem0 + " -> " + pol.RemainingPayments + " next " + pol.NextPaymentDue.ToShortDateString());
+                if (!(pol.RemainingPayments < rem0)) { Console.WriteLine("  FAILED monthly payment"); Environment.Exit(1); }
+                ivm.Reload();
+                ivm.Policies[0].CancelCommand.Execute(null);
+                Console.WriteLine("  pending: " + ivm.PendingText);
+                ivm.ConfirmCommand.Execute(null);
+                Console.WriteLine("  cancel: " + ivm.Status + " policies=" + hum.InsurancePolicies.Count);
+                if (hum.InsurancePolicies.Count != 0) { Console.WriteLine("  FAILED cancel"); Environment.Exit(1); }
+            }
             GameSession.StopClock();
             Console.WriteLine("VM TEST OK");
             Environment.Exit(0);

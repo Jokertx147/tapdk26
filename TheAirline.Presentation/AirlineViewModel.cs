@@ -104,6 +104,8 @@ namespace TheAirline.Presentation
             Finance = new FinanceViewModel();
             AirportManager = new AirportManagerViewModel(OnGameChanged);
             Loans = new LoansViewModel(OnGameChanged);
+            Maintenance = new MaintenanceViewModel(OnGameChanged);
+            Insurance = new InsuranceViewModel(OnGameChanged);
             Timetable = new TimetableViewModel(OnGameChanged);
             Alliances = new AlliancesViewModel(OnGameChanged);
             AirlineList = new AirlinesViewModel();
@@ -193,6 +195,8 @@ namespace TheAirline.Presentation
         public FinanceViewModel Finance { get; }
         public AirportManagerViewModel AirportManager { get; }
         public LoansViewModel Loans { get; }
+        public MaintenanceViewModel Maintenance { get; }
+        public InsuranceViewModel Insurance { get; }
         public TimetableViewModel Timetable { get; }
         public AlliancesViewModel Alliances { get; }
         public AirlinesViewModel AirlineList { get; }
@@ -241,6 +245,8 @@ namespace TheAirline.Presentation
             Pilots.Reload();
             AirportManager?.Reload();
             Loans?.Reload();
+            Maintenance?.Reload();
+            Insurance?.Reload();
             Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();
@@ -365,6 +371,8 @@ namespace TheAirline.Presentation
                 {
                     _loanMonth = game.GameTime.Month;
                     Loans.Reload();
+                    Maintenance.Reload();
+                    Insurance.Reload();
                 }
             }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));

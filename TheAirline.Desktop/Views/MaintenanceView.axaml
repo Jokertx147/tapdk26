@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.MaintenanceView">
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+      <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+            <Button Content="No" Command="{Binding CancelCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+
+      <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="#262626" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+              <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
+                <Grid ColumnDefinitions="260,*">
+                  <ProgressBar Minimum="0" Maximum="100" Value="{Binding ConditionNumber}" Height="14" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="{Binding Condition}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Text="{Binding Grounded}" Foreground="OrangeRed" IsVisible="{Binding IsGrounded}" />
+                <ItemsControl ItemsSource="{Binding Checks}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid ColumnDefinitions="90,130,170,*,Auto" Margin="0,2">
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Last}" Opacity="0.7" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding Due}" VerticalAlignment="Center">
+                          <TextBlock.Styles>
+                            <Style Selector="TextBlock"><Setter Property="Opacity" Value="0.8" /></Style>
+                          </TextBlock.Styles>
+                        </TextBlock>
+                        <TextBlock Grid.Column="3" Text="{Binding Effect}" Opacity="0.7" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <Button Grid.Column="4" Content="Do check" Command="{Binding Command}" IsEnabled="{Binding CanDo}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding History}" Opacity="0.6" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Check every" VerticalAlignment="Center" Opacity="0.7" />
+                  <TextBox Text="{Binding AText}" Width="60" />
+                  <TextBlock Text="d (A)" VerticalAlignment="Center" Opacity="0.7" />
+                  <TextBox Text="{Binding BText}" Width="60" />
+                  <TextBlock Text="d (B)" VerticalAlignment="Center" Opacity="0.7" />
+                  <TextBox Text="{Binding CText}" Width="60" />
+                  <TextBlock Text="mo (C)" VerticalAlignment="Center" Opacity="0.7" />
+                  <TextBox Text="{Binding DText}" Width="60" />
+                  <TextBlock Text="mo (D)" VerticalAlignment="Center" Opacity="0.7" />
+                  <Button Content="Set" Command="{Binding ApplyIntervalsCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -88,6 +88,12 @@
             <TabItem Header="Loans">
               <v:LoansView DataContext="{Binding Loans}" />
             </TabItem>
+            <TabItem Header="Maintenance">
+              <v:MaintenanceView DataContext="{Binding Maintenance}" />
+            </TabItem>
+            <TabItem Header="Insurance">
+              <v:InsuranceView DataContext="{Binding Insurance}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

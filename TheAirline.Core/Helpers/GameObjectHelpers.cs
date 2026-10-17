@@ -2679,10 +2679,13 @@ namespace TheAirline.Helpers
                 }
                 //maintenance, insurance, and ratings
 
-                AirlineInsuranceHelpers.CheckExpiredInsurance(airline);
                 if (airline.InsurancePolicies != null)
                 {
-                    AirlineInsuranceHelpers.MakeInsurancePayment(airline);
+                    InsuranceService.ProcessMonth(airline);
+                }
+                if (airline == GameObject.GetInstance().HumanAirline)
+                {
+                    MaintenanceService.ProcessMonth(airline);
                 }
 
                 RandomEvent.CheckExpired();
