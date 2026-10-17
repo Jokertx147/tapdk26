@@ -170,6 +170,56 @@ namespace TheAirline.Helpers
             return true;
         }
 
+        /// <summary>
+        ///     Daily: does the checks that are due on aircraft set to automatic maintenance. A and B first, and only one check that
+        ///     grounds the aircraft at a time. It keeps a cash reserve, so the checks never take the airline to its last dollar.
+        /// </summary>
+        public static List<string> ProcessAuto(Airline airline)
+        {
+            GameObject game = GameObject.GetInstance();
+            var done = new List<string>();
+            var skipped = new List<string>();
+            foreach (FleetAirliner f in airline.Fleet.ToList())
+            {
+                if (!f.AutoMaintenance || f.Airliner.BuiltDate > game.GameTime) continue;
+
+                foreach (MaintenanceCheck c in new[] {MaintenanceCheck.A, MaintenanceCheck.B, MaintenanceCheck.C, MaintenanceCheck.D})
+                {
+                    if (IsGrounded(f)) break;
+                    if (GetDueDate(f, c).Date > game.GameTime.Date) continue;
+
+                    double cost = GetCost(f, c);
+                    if (airline.Money < cost*2)
+                    {
+                        if (!skipped.Contains(f.Name)) skipped.Add(f.Name);
+                        break;
+                    }
+
+                    string message;
+                    if (PerformCheck(f, c, out message))
+                    {
+                        done.Add(message);
+                    }
+                }
+            }
+
+            if (airline == game.HumanAirline)
+            {
+                if (done.Count > 0)
+                {
+                    game.NewsBox.AddNews(new News(News.NewsType.AirlineNews, game.GameTime, "Automatic maintenance", string.Join("\n", done)));
+                }
+                if (skipped.Count > 0)
+                {
+                    game.NewsBox.AddNews(
+                        new News(
+                            News.NewsType.AirlineNews, game.GameTime, "Automatic maintenance waiting for cash",
+                            "There is not enough money for the checks that are due on: " + string.Join(", ", skipped) + "."));
+                }
+            }
+            return done;
+        }
+
         /// <summary>Monthly wear and chance of breakdowns for one airline. Returns messages for what happened.</summary>
         public static List<string> ProcessMonth(Airline airline, Random rnd = null)
         {

@@ -94,6 +94,10 @@ namespace TheAirline.Models.Airliners
         [Versioning("ainterval")]
         public int AMaintenanceInterval { get; set; }
 
+        /// <summary>When on, the checks that fall due are done automatically.</summary>
+        [Versioning("automaintenance")]
+        public bool AutoMaintenance { get; set; }
+
         [Versioning("airliner")]
         public Airliner Airliner { get; set; }
 

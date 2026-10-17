@@ -13,6 +13,10 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Content="Automatic maintenance for all aircraft" Command="{Binding AutoAllCommand}" />
+        <Button Content="Manual maintenance for all" Command="{Binding AutoNoneCommand}" />
+      </StackPanel>
       <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
 
       <ItemsControl ItemsSource="{Binding Items}">
@@ -20,7 +24,10 @@
           <DataTemplate>
             <Border Background="#262626" CornerRadius="6" Padding="12" Margin="0,0,0,10">
               <StackPanel Spacing="6">
-                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <CheckBox Grid.Column="1" Content="Automatic maintenance" IsChecked="{Binding Auto}" />
+                </Grid>
                 <Grid ColumnDefinitions="260,*">
                   <ProgressBar Minimum="0" Maximum="100" Value="{Binding ConditionNumber}" Height="14" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="{Binding Condition}" Margin="12,0,0,0" VerticalAlignment="Center" />

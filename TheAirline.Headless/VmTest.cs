@@ -696,6 +696,30 @@ static class VmTest
                 worst.ApplyIntervalsCommand.Execute(null);
                 Console.WriteLine("  intervals: " + ac.AMaintenanceInterval + "/" + ac.BMaintenanceInterval + "/" + ac.CMaintenanceInterval + "/" + ac.DMaintenanceInterval);
 
+                // automatic maintenance
+                {
+                    ac.GroundedToDate = DateTime.MinValue;
+                    var past = gm.GameTime.AddDays(-2000);
+                    ac.PurchasedDate = past; ac.LastAMaintenance = past; ac.LastBMaintenance = past; ac.LastCMaintenance = past; ac.LastDMaintenance = past;
+                    var others = hum.Fleet.Where(f => f != ac).ToList();
+                    foreach (var o in others) o.AutoMaintenance = false;
+                    var noAuto = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
+                    worst.Auto = true;
+                    Console.WriteLine("  auto on: " + mvm.Status + " | summary: " + mvm.Summary.Substring(0, Math.Min(120, mvm.Summary.Length)));
+                    double mAuto = gm.HumanMoney;
+                    var doneAuto = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
+                    foreach (var d in doneAuto) Console.WriteLine("  auto: " + d);
+                    Console.WriteLine("  without the switch: " + noAuto.Count + " checks, with it: " + doneAuto.Count + ", money " + (gm.HumanMoney - mAuto).ToString("0") + ", grounded=" + TheAirline.Helpers.MaintenanceService.IsGrounded(ac));
+                    bool lastOk = ac.LastAMaintenance == gm.GameTime && ac.LastBMaintenance == gm.GameTime && ac.LastCMaintenance == gm.GameTime;
+                    if (noAuto.Count != 0 || doneAuto.Count != 3 || !lastOk || !TheAirline.Helpers.MaintenanceService.IsGrounded(ac) || !(gm.HumanMoney < mAuto)) { Console.WriteLine("  FAILED auto maintenance"); Environment.Exit(1); }
+                    var again2 = TheAirline.Helpers.MaintenanceService.ProcessAuto(hum);
+                    if (again2.Count != 0) { Console.WriteLine("  FAILED auto repeats"); Environment.Exit(1); }
+                    mvm.AutoNoneCommand.Execute(null);
+                    Console.WriteLine("  all manual: " + mvm.Status + " | still auto: " + hum.Fleet.Count(f => f.AutoMaintenance));
+                    if (hum.Fleet.Any(f => f.AutoMaintenance)) { Console.WriteLine("  FAILED manual for all"); Environment.Exit(1); }
+                    ac.GroundedToDate = DateTime.MinValue;
+                }
+
                 // wear and breakdowns, uninsured
                 var flying = hum.Fleet.Where(f => f.Routes.Count > 0 && f.Airliner.BuiltDate <= gm.GameTime).ToList();
                 Console.WriteLine("  flying aircraft: " + flying.Count);

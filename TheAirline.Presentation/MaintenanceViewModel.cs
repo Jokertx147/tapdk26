@@ -34,6 +34,24 @@ namespace TheAirline.Presentation
         public string History { get; set; }
         public List<CheckItem> Checks { get; set; }
         public ICommand ApplyIntervalsCommand { get; set; }
+        public Action<MaintenanceItem, bool> AutoChanged { get; set; }
+
+        /// <summary>Do the checks that fall due automatically.</summary>
+        public bool Auto
+        {
+            get { return Aircraft != null && Aircraft.AutoMaintenance; }
+            set
+            {
+                if (Aircraft == null || Aircraft.AutoMaintenance == value)
+                {
+                    return;
+                }
+
+                Aircraft.AutoMaintenance = value;
+                OnPropertyChanged(nameof(Auto));
+                AutoChanged?.Invoke(this, value);
+            }
+        }
 
         public string AText { get { return _aText; } set { SetProperty(ref _aText, value); } }
         public string BText { get { return _bText; } set { SetProperty(ref _bText, value); } }
@@ -55,6 +73,8 @@ namespace TheAirline.Presentation
             Items = new ObservableCollection<MaintenanceItem>();
             ConfirmCommand = new RelayCommand(Confirm);
             CancelCommand = new RelayCommand(() => SetPending(null, null));
+            AutoAllCommand = new RelayCommand(() => SetAutoForAll(true));
+            AutoNoneCommand = new RelayCommand(() => SetAutoForAll(false));
             Reload();
         }
 
@@ -62,6 +82,8 @@ namespace TheAirline.Presentation
         public string Summary { get; private set; }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
+        public ICommand AutoAllCommand { get; }
+        public ICommand AutoNoneCommand { get; }
         public bool HasPending => _pending != null;
 
         public string PendingText
@@ -163,16 +185,48 @@ namespace TheAirline.Presentation
                     item.DText = old.DText;
                 }
                 item.ApplyIntervalsCommand = new RelayCommand(() => ApplyIntervals(item));
+                item.AutoChanged = OnAutoChanged;
                 Items.Add(item);
             }
 
+            int auto = delivered.Count(f => f.AutoMaintenance);
             double avg = delivered.Count == 0 ? 0 : delivered.Average(f => f.Airliner.Condition);
             Summary = delivered.Count == 0
                 ? "You have no aircraft yet. Buy one under Airliners."
                 : string.Format(
-                    "{0} aircraft  |  average condition {1:0}%  |  {2} overdue checks  |  worn aircraft break down more often, and lose value. A and B checks are cheap; C and D checks ground the aircraft.",
-                    delivered.Count, avg, overdue);
+                    "{0} aircraft  |  average condition {1:0}%  |  {2} overdue checks  |  {3} on automatic maintenance  |  worn aircraft break down more often, and lose value. A and B checks are cheap; C and D checks ground the aircraft.",
+                    delivered.Count, avg, overdue, auto);
             OnPropertyChanged(nameof(Summary));
+        }
+
+        private void OnAutoChanged(MaintenanceItem item, bool on)
+        {
+            Status = on
+                ? item.Aircraft.Name + " is on automatic maintenance: the checks are done as they fall due, as long as there is cash for them."
+                : item.Aircraft.Name + " is back on manual maintenance.";
+            Reload();
+        }
+
+        private void SetAutoForAll(bool on)
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            if (airline == null)
+            {
+                return;
+            }
+
+            int n = 0;
+            foreach (var f in airline.Fleet)
+            {
+                if (f.AutoMaintenance != on)
+                {
+                    f.AutoMaintenance = on;
+                    n++;
+                }
+            }
+
+            Status = on ? "Automatic maintenance is on for " + n + " more aircraft." : "Automatic maintenance is off for " + n + " aircraft.";
+            Reload();
         }
 
         private void AskCheck(FleetAirliner f, MaintenanceCheck c)

@@ -1700,6 +1700,11 @@ namespace TheAirline.Helpers
                     }
                 }
 
+                if (a == GameObject.GetInstance().HumanAirline)
+                {
+                    MaintenanceService.ProcessAuto(a);
+                }
+
                 //checks for special contracts
                 var sContracts = new List<SpecialContract>(a.SpecialContracts.Where(s => s.Date <= GameObject.GetInstance().GameTime));
 
