@@ -37,6 +37,13 @@ namespace TheAirline.Helpers
                 //    airline.Fleet.FindAll(f => f.Status != FleetAirliner.AirlinerStatus.Stopped),
                 //    airliner =>
             {
+                if (airliner.Airliner.Airline == null)
+                {
+                    // an aircraft in the fleet must belong to the airline (a lost link used to stop the whole game)
+                    TheAirline.Infrastructure.StartupLog.Write("Aircraft " + airliner.Name + " was in the fleet of " + airline.Profile.Name + " without an owner; fixed.");
+                    airliner.Airliner.Airline = airline;
+                }
+
                 if (airliner.CurrentFlight != null)
                 {
                     //Boolean stopoverRoute = airliner.CurrentFlight.Entry.MainEntry != null;
