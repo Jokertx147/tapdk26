@@ -157,6 +157,54 @@
                     <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
                   </StackPanel>
 
+                  <StackPanel Spacing="6" IsVisible="{Binding IsPassenger}">
+                    <StackPanel Spacing="6" DataContext="{Binding Service}">
+                      <TextBlock Text="Onboard service" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Set all classes to" VerticalAlignment="Center" Opacity="0.7" />
+                        <Button Content="Basic" Command="{Binding BasicCommand}" />
+                        <Button Content="Standard" Command="{Binding StandardCommand}" />
+                        <Button Content="Premium" Command="{Binding PremiumCommand}" />
+                      </StackPanel>
+                      <ItemsControl ItemsSource="{Binding Classes}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <StackPanel Spacing="4" Margin="0,6,0,0">
+                              <TextBlock Text="{Binding ClassName}" FontWeight="SemiBold" />
+                              <ItemsControl ItemsSource="{Binding Rows}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <Grid ColumnDefinitions="120,*" Margin="0,2">
+                                      <TextBlock Text="{Binding TypeName}" VerticalAlignment="Center" Opacity="0.8" />
+                                      <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch" />
+                                    </Grid>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <TextBlock Text="{Binding CostText}" TextWrapping="Wrap" Opacity="0.7" />
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="Save service" Command="{Binding SaveCommand}" />
+                        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <TextBlock Text="{Binding ScoreTitle}" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap" />
+                      <ItemsControl ItemsSource="{Binding Scores}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid ColumnDefinitions="190,*" Margin="0,1">
+                              <TextBlock Text="{Binding Name}" Opacity="0.8" />
+                              <TextBlock Grid.Column="1" Text="{Binding Value}" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </StackPanel>
+
                   <Border Height="1" Background="#404040" Margin="0,10" />
                   <Button Content="Delete route" Command="{Binding DeleteCommand}" IsVisible="{Binding NotConfirmDelete}" HorizontalAlignment="Left" />
                   <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding ConfirmDelete}">

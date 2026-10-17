@@ -59,11 +59,17 @@ namespace TheAirline.Presentation
             ConfirmDeleteCommand = new RelayCommand(Delete);
             CancelDeleteCommand = new RelayCommand(() => ConfirmDelete = false);
 
+            if (IsPassenger)
+            {
+                Service = new RouteServiceViewModel(route);
+            }
+
             RefreshNumbers();
             LoadFares();
         }
 
         public string Title { get; }
+        public RouteServiceViewModel Service { get; }
         public string Code { get; }
         public bool IsPassenger { get; }
         public bool IsCargo { get; }
@@ -205,6 +211,7 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(ShowAssignButton));
             OnPropertyChanged(nameof(CanMove));
             OnPropertyChanged(nameof(ShowMoveButton));
+            Service?.RefreshScores();
         }
 
         private void LoadFares()

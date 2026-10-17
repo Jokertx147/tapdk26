@@ -752,6 +752,27 @@ static class VmTest
                 if (hum.InsurancePolicies.Count != 0) { Console.WriteLine("  FAILED cancel"); Environment.Exit(1); }
             }
             {
+                Console.WriteLine("ROUTE SERVICE TEST");
+                var sh = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+                var sroute = sh.Routes.FirstOrDefault(r => r is TheAirline.Models.Routes.PassengerRoute && r.HasAirliner);
+                if (sroute == null) { Console.WriteLine("  FAILED no passenger route"); Environment.Exit(1); }
+                var srd = new RouteDetailViewModel(sroute, () => { });
+                var svc = srd.Service;
+                foreach (var c in svc.Classes) Console.WriteLine("  " + c.ClassName + ": " + string.Join(" | ", c.Rows.Select(r => r.TypeName + "=" + r.Selected.Facility.Name + " (" + r.Options.Count + " options)")));
+                Console.WriteLine("  " + svc.ScoreTitle + ": " + string.Join(", ", svc.Scores.Select(x => x.Name + " " + x.Value)));
+                Console.WriteLine("  " + svc.CostText);
+                svc.PremiumCommand.Execute(null);
+                svc.SaveCommand.Execute(null);
+                var eco = ((TheAirline.Models.Routes.PassengerRoute)sroute).Classes[0];
+                Console.WriteLine("  premium saved: " + svc.Status + " food=" + eco.GetFacility(TheAirline.Models.Routes.RouteFacility.FacilityType.Food)?.Name + " | " + svc.CostText);
+                var premiumFood = eco.GetFacility(TheAirline.Models.Routes.RouteFacility.FacilityType.Food);
+                svc.BasicCommand.Execute(null);
+                svc.SaveCommand.Execute(null);
+                var basicFood = eco.GetFacility(TheAirline.Models.Routes.RouteFacility.FacilityType.Food);
+                Console.WriteLine("  basic saved: food=" + basicFood?.Name + " | " + svc.CostText + " | scores: " + string.Join(", ", svc.Scores.Select(x => x.Name + " " + x.Value)));
+                if (premiumFood == null || basicFood == null || premiumFood.ServiceLevel <= basicFood.ServiceLevel) { Console.WriteLine("  FAILED service presets"); Environment.Exit(1); }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

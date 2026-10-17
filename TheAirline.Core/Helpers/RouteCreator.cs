@@ -508,7 +508,7 @@ namespace TheAirline.Helpers
         }
 
         //the facility that fits a service tier: the cheapest for basic, the best for premium, one in the middle for standard
-        private static RouteFacility PickFacility(Airline airline, RouteFacility.FacilityType type, ServiceTier tier)
+        public static RouteFacility PickFacility(Airline airline, RouteFacility.FacilityType type, ServiceTier tier)
         {
             List<RouteFacility> facilities =
                 AirlineHelpers.GetRouteFacilities(airline, type).OrderBy(f => f.ServiceLevel).ToList();
