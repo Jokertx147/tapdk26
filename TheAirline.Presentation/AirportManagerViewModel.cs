@@ -798,7 +798,7 @@ namespace TheAirline.Presentation
             {
                 bool mine = t.Airline == airline;
                 string owner = mine ? "yours" : t.Airline == null ? "airport" : t.Airline.Profile.Name;
-                string state = t.DeliveryDate > now ? "ready " + t.DeliveryDate.ToString("d MMM yyyy") : "in use";
+                string state = t.DeliveryDate > now ? "ready " + DateFormatter.Date(t.DeliveryDate) : "in use";
                 var terminal = t;
 
                 bool buyable = t.DeliveryDate <= now && t.IsBuyable;
@@ -914,7 +914,7 @@ namespace TheAirline.Presentation
             AirlineHelpers.AddAirlineInvoice(
                 airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Purchases, -price);
 
-            Status = name + " ordered, ready " + delivery.ToString("d MMM yyyy") + ".";
+            Status = name + " ordered, ready " + DateFormatter.Date(delivery) + ".";
             LoadDetail();
             _changed();
         }

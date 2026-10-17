@@ -838,6 +838,33 @@ static class VmTest
                 hx.SpecialContracts.Remove(sc);
             }
             {
+                Console.WriteLine("DATE FORMAT AND ON ORDER TEST");
+                bool oldUs = DateFormatter.UseUs;
+                var dd = new DateTime(2007, 3, 25, 14, 30, 0);
+                DateFormatter.UseUs = true;
+                string us = DateFormatter.Date(dd); string usT = DateFormatter.DateTime(dd);
+                DateFormatter.UseUs = false;
+                string intl = DateFormatter.Date(dd);
+                Console.WriteLine("  us=" + us + " (" + usT + ") international=" + intl);
+                var opt = av2.Options;
+                opt.UseUsDate = true;
+                string headerUs = av2.Date;
+                av2.Refresh();
+                headerUs = av2.Date;
+                opt.UseInternationalDate = true;
+                av2.Refresh();
+                Console.WriteLine("  top bar date: us=" + headerUs + " international=" + av2.Date);
+                DateFormatter.UseUs = oldUs;
+                if (us != "03-25-2007" || intl != "25-03-2007") { Console.WriteLine("  FAILED date format"); Environment.Exit(1); }
+                var gz = TheAirline.Models.General.GameObject.GetInstance();
+                int onOrder = av2.Fleet.Count(f => f.IsOnOrder);
+                int expected = gz.HumanAirline.Fleet.Count(f => f.Airliner.BuiltDate > gz.GameTime);
+                Console.WriteLine("  fleet items on order: " + onOrder + " (expected " + expected + "), idle " + av2.Fleet.Count(f => f.IsIdle));
+                var ov = new FleetOverviewViewModel(() => { }, f => { }, f => { });
+                Console.WriteLine("  overview: " + ov.Title + " | rows on order " + ov.Rows.Count(r => r.IsOnOrder));
+                if (onOrder != expected) { Console.WriteLine("  FAILED on order"); Environment.Exit(1); }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

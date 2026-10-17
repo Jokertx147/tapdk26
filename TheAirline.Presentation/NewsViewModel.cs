@@ -15,7 +15,7 @@ namespace TheAirline.Presentation
         {
             News = news;
             _read = news.IsRead;
-            Date = news.Date.ToString("d MMM yyyy");
+            Date = DateFormatter.Date(news.Date);
             Type = TypeName(news.Type);
             Subject = news.Subject;
         }

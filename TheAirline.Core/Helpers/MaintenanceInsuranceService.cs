@@ -10,6 +10,17 @@ using TheAirline.Models.General.Finances;
 
 namespace TheAirline.Helpers
 {
+    /// <summary>How the game shows a date in its messages; the screens can replace it with their own format.</summary>
+    public static class DateDisplay
+    {
+        public static Func<DateTime, string> Formatter = d => d.ToShortDateString();
+
+        public static string Format(DateTime d)
+        {
+            return Formatter(d);
+        }
+    }
+
     public enum MaintenanceCheck
     {
         A,
@@ -126,7 +137,7 @@ namespace TheAirline.Helpers
             }
             if (IsGrounded(f))
             {
-                message = "The aircraft is already grounded until " + f.GroundedToDate.ToShortDateString() + ".";
+                message = "The aircraft is already grounded until " + DateDisplay.Format(f.GroundedToDate) + ".";
                 return false;
             }
             double cost = GetCost(f, c);

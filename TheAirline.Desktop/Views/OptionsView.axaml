@@ -33,6 +33,13 @@
       </ListBox>
       <Button Content="Delete the selected save" Command="{Binding DeleteCommand}" HorizontalAlignment="Left" />
 
+      <TextBlock Text="Date format" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <RadioButton GroupName="datefmt" Content="US (MM-DD-YYYY)" IsChecked="{Binding UseUsDate}" />
+        <RadioButton GroupName="datefmt" Content="International (DD-MM-YYYY)" IsChecked="{Binding UseInternationalDate}" />
+      </StackPanel>
+      <TextBlock Text="{Binding DateExample}" Opacity="0.6" />
+
       <TextBlock Text="Leave" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <Button Content="Main menu" Command="{Binding MainMenuCommand}" />

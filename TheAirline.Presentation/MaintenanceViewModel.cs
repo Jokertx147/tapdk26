@@ -124,8 +124,8 @@ namespace TheAirline.Presentation
                     checks.Add(new CheckItem
                     {
                         Label = check + " check",
-                        Last = MaintenanceService.GetLastDate(aircraft, check).ToString("d MMM yyyy", CultureInfo.InvariantCulture),
-                        Due = (late ? "overdue since " : "due ") + MaintenanceService.GetDueDate(aircraft, check).ToString("d MMM yyyy", CultureInfo.InvariantCulture),
+                        Last = DateFormatter.Date(MaintenanceService.GetLastDate(aircraft, check)),
+                        Due = (late ? "overdue since " : "due ") + DateFormatter.Date(MaintenanceService.GetDueDate(aircraft, check)),
                         Overdue = late,
                         Effect = string.Format(
                             "{0}  |  +{1} to {2}% condition  |  {3}",
@@ -137,7 +137,7 @@ namespace TheAirline.Presentation
                 }
 
                 var history = aircraft.MaintenanceHistory.Reverse().Take(4)
-                    .Select(h => h.Key.Date.ToString("d MMM yyyy", CultureInfo.InvariantCulture) + " " + h.Value + " check " + Money(-h.Key.Amount)).ToList();
+                    .Select(h => DateFormatter.Date(h.Key.Date) + " " + h.Value + " check " + Money(-h.Key.Amount)).ToList();
 
                 var item = new MaintenanceItem
                 {
@@ -146,7 +146,7 @@ namespace TheAirline.Presentation
                     ConditionNumber = aircraft.Airliner.Condition,
                     Condition = string.Format("Condition {0:0}% ({1})", aircraft.Airliner.Condition, MaintenanceService.GetConditionText(aircraft.Airliner.Condition)),
                     IsGrounded = MaintenanceService.IsGrounded(aircraft),
-                    Grounded = MaintenanceService.IsGrounded(aircraft) ? "Grounded until " + aircraft.GroundedToDate.ToString("d MMM yyyy", CultureInfo.InvariantCulture) : "",
+                    Grounded = MaintenanceService.IsGrounded(aircraft) ? "Grounded until " + DateFormatter.Date(aircraft.GroundedToDate) : "",
                     History = history.Count == 0 ? "No checks done yet." : "Recent: " + string.Join("   |   ", history),
                     Checks = checks,
                     AText = (aircraft.AMaintenanceInterval > 0 ? aircraft.AMaintenanceInterval : MaintenanceService.GetIntervalDays(aircraft, MaintenanceCheck.A)).ToString(),

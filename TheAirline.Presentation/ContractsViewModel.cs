@@ -65,7 +65,7 @@ namespace TheAirline.Presentation
 
         private static string Date(DateTime d)
         {
-            return d.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+            return DateFormatter.Date(d);
         }
 
         private void SetPending(string text, Action action)

@@ -277,6 +277,7 @@
                       <StackPanel>
                         <StackPanel Orientation="Horizontal">
                           <Border IsVisible="{Binding IsIdle}" Background="#C26A00" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="IDLE" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                          <Border IsVisible="{Binding IsOnOrder}" Background="#1F6FB5" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="&#x2708; ON ORDER" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
                           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                         </StackPanel>
                         <TextBlock Opacity="0.7">

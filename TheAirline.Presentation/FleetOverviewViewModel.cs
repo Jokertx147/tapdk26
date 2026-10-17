@@ -23,6 +23,7 @@ namespace TheAirline.Presentation
         public string Condition { get; set; }
         public int Routes { get; set; }
         public bool IsIdle { get; set; }
+        public bool IsOnOrder { get; set; }
         public string Crew { get; set; }
         public string Value { get; set; }
         public double ValueNumber { get; set; }
@@ -137,7 +138,7 @@ namespace TheAirline.Presentation
         {
             if (f.Airliner.BuiltDate > GameObject.GetInstance().GameTime)
             {
-                return f.Name + " has not been delivered yet (" + f.Airliner.BuiltDate.ToString("d MMM yyyy") + ").";
+                return f.Name + " has not been delivered yet (" + DateFormatter.Date(f.Airliner.BuiltDate) + ").";
             }
             if (f.Routes.Count == 0)
             {
@@ -263,7 +264,7 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(Selected));
             OnPropertyChanged(nameof(HasRows));
             int idle = rows.Count(r => r.IsIdle);
-            Title = fleet.Count + " aircraft, total value " + Money(rows.Sum(r => r.ValueNumber)) + (idle > 0 ? "  |  " + idle + " idle (no route)" : "");
+            Title = fleet.Count + " aircraft, total value " + Money(rows.Sum(r => r.ValueNumber)) + (idle > 0 ? "  |  " + idle + " idle (no route)" : "") + (rows.Count(r => r.IsOnOrder) > 0 ? "  |  " + rows.Count(r => r.IsOnOrder) + " awaiting delivery" : "");
             OnPropertyChanged(nameof(Title));
             LoadDetails();
         }
@@ -288,7 +289,7 @@ namespace TheAirline.Presentation
                 Name = f.Name,
                 Type = a.Type.Name,
                 Cabin = a.CabinConfiguration,
-                Status = a.BuiltDate > game.GameTime ? "Delivery " + a.BuiltDate.ToString("d MMM yyyy") : f.Status.ToString(),
+                Status = a.BuiltDate > game.GameTime ? "Delivery " + DateFormatter.Date(a.BuiltDate) : f.Status.ToString(),
                 Homebase = f.Homebase?.Profile.IATACode,
                 Ownership = ownership,
                 Age = a.Age + " y",
@@ -297,6 +298,7 @@ namespace TheAirline.Presentation
                 ConditionNumber = a.Condition,
                 Routes = f.Routes.Count,
                 IsIdle = f.Routes.Count == 0 && a.BuiltDate <= game.GameTime,
+                IsOnOrder = a.BuiltDate > game.GameTime,
                 Crew = f.Pilots.Count + "/" + a.Type.CockpitCrew,
                 Value = Money(value),
                 ValueNumber = value
@@ -314,8 +316,8 @@ namespace TheAirline.Presentation
                 var a = f.Airliner;
                 Details.Add("Registration: " + a.TailNumber + (a.Registered != null ? " (" + a.Registered.Name + ")" : ""));
                 Details.Add("Type: " + a.Type.Manufacturer?.Name + " " + a.Type.Name);
-                Details.Add("Built: " + a.BuiltDate.ToString("d MMM yyyy") + ", age " + a.Age + " years");
-                Details.Add("Acquired: " + f.PurchasedDate.ToString("d MMM yyyy") + " (" + r.Ownership + ")");
+                Details.Add("Built: " + DateFormatter.Date(a.BuiltDate) + ", age " + a.Age + " years");
+                Details.Add("Acquired: " + DateFormatter.Date(f.PurchasedDate) + " (" + r.Ownership + ")");
                 Details.Add("Homebase: " + f.Homebase?.Profile.Name);
                 Details.Add("Condition: " + r.Condition + ", flown " + string.Format("{0:N0} km", a.Flown) + ", " + string.Format("{0:N0} km", a.Flown - a.LastServiceCheck) + " since the last service");
                 Details.Add("Range: " + string.Format("{0:N0} km", a.Range) + ", cruising speed " + string.Format("{0:N0} km/h", a.CruisingSpeed)

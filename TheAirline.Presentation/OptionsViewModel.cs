@@ -85,6 +85,27 @@ namespace TheAirline.Presentation
 
         public bool IsBusy => _busy;
 
+        /// <summary>Dates as MM-DD-YYYY (on) or DD-MM-YYYY (off).</summary>
+        public bool UseUsDate
+        {
+            get { return DateFormatter.UseUs; }
+            set
+            {
+                DateFormatter.UseUs = value;
+                OnPropertyChanged(nameof(UseUsDate));
+                OnPropertyChanged(nameof(UseInternationalDate));
+                OnPropertyChanged(nameof(DateExample));
+            }
+        }
+
+        public bool UseInternationalDate
+        {
+            get { return !DateFormatter.UseUs; }
+            set { UseUsDate = !value; }
+        }
+
+        public string DateExample => "Example: " + DateFormatter.Example;
+
         /// <summary>Save automatically (as "Autosave ...") when leaving the game or closing the window.</summary>
         public bool AutoSave
         {

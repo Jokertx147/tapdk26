@@ -372,12 +372,12 @@ namespace TheAirline.Presentation
             double discount = 1 - total / (UnitPrice() * _amount);
 
             Summary = string.Format(
-                "{0} x {1}: total {2}{3}.  Delivery {4:d MMM yyyy}.{5}" + (_cabin != null ? "  Cabin " + _cabin.Layout + "." : ""),
+                "{0} x {1}: total {2}{3}.  Delivery {4}.{5}" + (_cabin != null ? "  Cabin " + _cabin.Layout + "." : ""),
                 _amount,
                 _selected.Name,
                 Convert.ToString(f.Convert(total)),
                 discount > 0.0001 ? string.Format(" (incl. {0:0.0}% discount)", discount * 100) : "",
-                delivery,
+                DateFormatter.Date(delivery),
                 _downPayment
                     ? "  Pay " + Convert.ToString(f.Convert(down)) + " now, the aircraft price on delivery day."
                     : "  Paid in full now.");
@@ -468,7 +468,7 @@ namespace TheAirline.Presentation
 
             AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.Purchases, -now_pay);
 
-            string text = string.Format("Ordered {0} x {1}, delivery {2:d MMM yyyy}.", _amount, _selected.Name, delivery);
+            string text = string.Format("Ordered {0} x {1}, delivery {2}.", _amount, _selected.Name, DateFormatter.Date(delivery));
             Amount = 1;
             DownPayment = false;
             LoadOptions();

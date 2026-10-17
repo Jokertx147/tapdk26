@@ -20,6 +20,7 @@ namespace TheAirline.Presentation
         public string Homebase { get; set; }
         public int Routes { get; set; }
         public bool IsIdle { get; set; }
+        public bool IsOnOrder { get; set; }
         public string Crew { get; set; }
         public string Note { get; set; }
         public bool CanStart { get; set; }
@@ -91,6 +92,8 @@ namespace TheAirline.Presentation
             TogglePauseCommand = new RelayCommand(TogglePause);
             SaveCommand = new AsyncCommand(SaveAsync);
             GameSession.InGame = true;
+            DateDisplay.Formatter = DateFormatter.Date;
+            DateFormatter.Changed += OnDateFormatChanged;
             MainMenuCommand = new AsyncCommand(
                 async () =>
                     {
@@ -152,6 +155,14 @@ namespace TheAirline.Presentation
         }
 
         public string[] Pages => PageNames;
+
+        private void OnDateFormatChanged()
+        {
+            // the screens built their texts with the old format
+            _financeDate = null;
+            _signature = null;
+            OnGameChanged();
+        }
 
         private int _flightsTab;
 
@@ -371,7 +382,7 @@ namespace TheAirline.Presentation
             }
 
             AirlineName = airline.Profile.Name;
-            Date = game.GameTime.ToString("d MMMM yyyy");
+            Date = DateFormatter.Date(game.GameTime);
             if (_financeDate != Date)
             {
                 _financeDate = Date;
@@ -409,11 +420,12 @@ namespace TheAirline.Presentation
                             Name = f.Name,
                             Type = f.Airliner?.Type?.Name,
                             Status = f.Airliner.BuiltDate > game.GameTime
-                                ? "Delivery " + f.Airliner.BuiltDate.ToString("d MMM yyyy")
+                                ? "Delivery " + DateFormatter.Date(f.Airliner.BuiltDate)
                                 : f.Status.ToString(),
                             Homebase = f.Homebase?.Profile.IATACode,
                             Routes = f.Routes.Count,
                             IsIdle = f.Routes.Count == 0 && f.Airliner.BuiltDate <= game.GameTime,
+                            IsOnOrder = f.Airliner.BuiltDate > game.GameTime,
                             Crew = f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + " pilots",
                             CanStart = f.Status == FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
                             CanStop = f.Status != FleetAirliner.AirlinerStatus.Stopped && f.Airliner.BuiltDate <= game.GameTime,
@@ -493,6 +505,7 @@ namespace TheAirline.Presentation
 
         public void Dispose()
         {
+            DateFormatter.Changed -= OnDateFormatChanged;
         }
     }
 }

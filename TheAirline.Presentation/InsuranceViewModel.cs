@@ -210,8 +210,8 @@ namespace TheAirline.Presentation
                         policy.InsType, policy.InsScope, Money(policy.InsuredAmount), Money(policy.PaymentAmount), policy.InsTerms.ToString().ToLowerInvariant()),
                     Detail = string.Format(
                         "Runs until {0}  |  {1} payments left, next {2}  |  deductible {3}  |  {4}",
-                        policy.InsuranceExpires.ToString("d MMM yyyy", CultureInfo.InvariantCulture), policy.RemainingPayments,
-                        policy.RemainingPayments > 0 ? policy.NextPaymentDue.ToString("d MMM yyyy", CultureInfo.InvariantCulture) : "none",
+                        DateFormatter.Date(policy.InsuranceExpires), policy.RemainingPayments,
+                        policy.RemainingPayments > 0 ? DateFormatter.Date(policy.NextPaymentDue) : "none",
                         Money(policy.Deductible),
                         InsuranceService.CoversAircraft(policy.InsType) ? "covers breakdown repairs" : "liability only, no repairs"),
                     CancelCommand = new RelayCommand(() => AskCancel(captured))

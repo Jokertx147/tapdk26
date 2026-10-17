@@ -197,7 +197,7 @@ namespace TheAirline.Presentation
                         heading = Math.Atan2(du, -(p1[1] - p0[1])) * 180 / Math.PI;
                         flying = true;
                         info = "flying " + from.Profile.IATACode + " - " + to.Profile.IATACode + ", " + (int) (fr * 100) + "% of the way, lands "
-                               + landing.ToString("d MMM HH:mm");
+                               + DateFormatter.DateTime(landing);
                         double[] pos = Project(lat, lon);
                         return Make(f, pos, heading, true, info);
                     }
@@ -205,7 +205,7 @@ namespace TheAirline.Presentation
                     if (now < takeoff && from != null)
                     {
                         at = from;
-                        info = "at " + at.Profile.IATACode + ", departs " + takeoff.ToString("d MMM HH:mm") + " to " + to.Profile.IATACode;
+                        info = "at " + at.Profile.IATACode + ", departs " + DateFormatter.DateTime(takeoff) + " to " + to.Profile.IATACode;
                     }
                     else if (now >= landing)
                     {

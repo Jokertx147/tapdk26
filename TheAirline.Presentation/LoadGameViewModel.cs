@@ -135,6 +135,6 @@ namespace TheAirline.Presentation
 
         public DateTime SavedAt { get; }
 
-        public string SavedText => "saved " + SavedAt.ToString("g");
+        public string SavedText => "saved " + DateFormatter.DateTime(SavedAt);
     }
 }

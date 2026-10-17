@@ -180,8 +180,8 @@ namespace TheAirline.Presentation
                 var alliance = _selected.Alliance;
                 Title = alliance.Name;
                 Info = string.Format(
-                    "Headquarters {0}  |  founded {1:d MMM yyyy}  |  {2} routes in total",
-                    alliance.Headquarter?.Profile.Name ?? "-", alliance.FormationDate, alliance.Members.Sum(m => m.Airline.Routes.Count));
+                    "Headquarters {0}  |  founded {1}  |  {2} routes in total",
+                    alliance.Headquarter?.Profile.Name ?? "-", DateFormatter.Date(alliance.FormationDate), alliance.Members.Sum(m => m.Airline.Routes.Count));
 
                 bool member = alliance.Members.Any(m => m.Airline == human);
                 foreach (var m in alliance.Members.ToList())
@@ -206,7 +206,7 @@ namespace TheAirline.Presentation
                         Requests.Add(
                             new PendingMemberItem
                             {
-                                Text = p.Airline.Profile.Name + " asks to join (" + p.Date.ToString("d MMM yyyy") + ")",
+                                Text = p.Airline.Profile.Name + " asks to join (" + DateFormatter.Date(p.Date) + ")",
                                 AcceptCommand = new RelayCommand(() => Answer(alliance, captured, true)),
                                 DeclineCommand = new RelayCommand(() => Answer(alliance, captured, false))
                             });
