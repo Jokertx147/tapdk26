@@ -773,6 +773,71 @@ static class VmTest
                 if (premiumFood == null || basicFood == null || premiumFood.ServiceLevel <= basicFood.ServiceLevel) { Console.WriteLine("  FAILED service presets"); Environment.Exit(1); }
             }
             {
+                Console.WriteLine("FACILITIES AND CONTRACTS TEST");
+                var gx = TheAirline.Models.General.GameObject.GetInstance();
+                var hx = gx.HumanAirline;
+                var fvm = new AirlineServicesViewModel(() => { });
+                Console.WriteLine("  " + fvm.Summary + " | listed " + fvm.Facilities.Count + " | training choices " + fvm.TrainingChoices.Count);
+                foreach (var fxi in fvm.Facilities.Take(4)) Console.WriteLine("  " + fxi.Text + " | " + fxi.Detail);
+                var news = fvm.Facilities.FirstOrDefault(f => f.Facility.Uid == "102");
+                if (news == null) { Console.WriteLine("  FAILED newspaper facility not listed"); Environment.Exit(1); }
+                double fm = gx.HumanMoney;
+                news.Command.Execute(null);
+                Console.WriteLine("  pending: " + fvm.PendingText);
+                fvm.ConfirmCommand.Execute(null);
+                Console.WriteLine("  bought: " + fvm.Status + " owned=" + hx.Facilities.Any(f => f.Uid == "102") + " money " + (gx.HumanMoney - fm).ToString("0"));
+                if (!hx.Facilities.Any(f => f.Uid == "102") || !(gx.HumanMoney < fm)) { Console.WriteLine("  FAILED buy facility"); Environment.Exit(1); }
+                var froute = hx.Routes.First(r => r is TheAirline.Models.Routes.PassengerRoute && r.HasAirliner);
+                var fsvc = new RouteDetailViewModel(froute, () => { }).Service;
+                var newsRow = fsvc.Classes[0].Rows.First(r => r.Type == TheAirline.Models.Routes.RouteFacility.FacilityType.Newspapers);
+                Console.WriteLine("  newspaper options now: " + string.Join(" / ", newsRow.Options.Select(o => o.Facility.Name)));
+                newsRow.Selected = newsRow.Options.Last();
+                fsvc.SaveCommand.Execute(null);
+                var usedNews = ((TheAirline.Models.Routes.PassengerRoute)froute).Classes[0].GetFacility(TheAirline.Models.Routes.RouteFacility.FacilityType.Newspapers);
+                Console.WriteLine("  route newspaper: " + usedNews?.Name);
+                fvm.Reload();
+                fvm.Owned.First(f => f.Facility.Uid == "102").Command.Execute(null);
+                Console.WriteLine("  pending: " + fvm.PendingText);
+                fvm.ConfirmCommand.Execute(null);
+                var afterNews = ((TheAirline.Models.Routes.PassengerRoute)froute).Classes[0].GetFacility(TheAirline.Models.Routes.RouteFacility.FacilityType.Newspapers);
+                Console.WriteLine("  sold: " + fvm.Status + " owned=" + hx.Facilities.Any(f => f.Uid == "102") + " route newspaper now: " + afterNews?.Name);
+                if (hx.Facilities.Any(f => f.Uid == "102") || (usedNews != null && usedNews.Requires != null && afterNews == usedNews)) { Console.WriteLine("  FAILED sell facility"); Environment.Exit(1); }
+                if (fvm.TrainingChoices.Count > 0)
+                {
+                    int before = hx.Facilities.Count;
+                    fvm.SelectedTraining = fvm.TrainingChoices[0];
+                    fvm.BuyTrainingCommand.Execute(null);
+                    fvm.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  training: " + fvm.Status + " facilities " + before + " -> " + hx.Facilities.Count);
+                }
+
+                var ctype = TheAirline.Models.General.SpecialContractTypes.GetTypes().FirstOrDefault(t => !t.IsFixedDate);
+                if (ctype == null) { Console.WriteLine("  FAILED no contract type loaded"); Environment.Exit(1); }
+                ctype.LastDate = gx.GameTime;
+                gx.Contracts.Add(ctype);
+                var cvm = new ContractsViewModel(() => { });
+                Console.WriteLine("  " + cvm.OffersTitle + " | " + cvm.Offers[0].Name + " | " + cvm.Offers[0].Terms);
+                foreach (var l in cvm.Offers[0].Lines) Console.WriteLine("    " + l);
+                cvm.Offers[0].AcceptCommand.Execute(null);
+                Console.WriteLine("  pending: " + cvm.PendingText);
+                cvm.ConfirmCommand.Execute(null);
+                var sc = hx.SpecialContracts.First();
+                Console.WriteLine("  accepted: " + cvm.Status + " active=" + cvm.Active.Count + " judged on " + TheAirline.Helpers.ContractService.GetDeadline(sc).ToShortDateString());
+                foreach (var l in cvm.Active[0].Lines) Console.WriteLine("    " + l);
+                var scr = ctype.Routes[0];
+                var proute = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), scr.Departure, scr.Destination, gx.GameTime, 100);
+                hx.AddRoute(proute);
+                var linked = TheAirline.Helpers.ContractService.LinkRoute(hx, proute);
+                Console.WriteLine("  linked route: " + string.Join(",", linked) + " in contract=" + sc.Routes.Contains(proute));
+                cvm.Reload();
+                Console.WriteLine("  " + cvm.Active[0].Lines[0]);
+                hx.RemoveRoute(proute); sc.Routes.Remove(proute);
+                if (!sc.Routes.Contains(proute) && linked.Count != 1) { Console.WriteLine("  FAILED link"); Environment.Exit(1); }
+                bool still = DateTime.Compare(TheAirline.Helpers.ContractService.GetDeadline(sc), gx.GameTime) > 0;
+                if (!still || cvm.Active.Count != 1 || gx.Contracts.Contains(ctype)) { Console.WriteLine("  FAILED contract state"); Environment.Exit(1); }
+                hx.SpecialContracts.Remove(sc);
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

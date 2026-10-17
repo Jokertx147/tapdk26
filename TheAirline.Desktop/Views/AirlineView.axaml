@@ -94,6 +94,12 @@
             <TabItem Header="Insurance">
               <v:InsuranceView DataContext="{Binding Insurance}" />
             </TabItem>
+            <TabItem Header="Facilities">
+              <v:ServicesView DataContext="{Binding Services}" />
+            </TabItem>
+            <TabItem Header="Contracts">
+              <v:ContractsView DataContext="{Binding Contracts}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

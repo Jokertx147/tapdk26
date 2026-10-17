@@ -181,6 +181,7 @@ namespace TheAirline.Helpers
             FleetAirlinerHelpers.CreateStopoverRoute(route, null, null);
             route.Season = Weather.Season.AllYear;
             airline.AddRoute(route);
+            ContractService.LinkRoute(airline, route);
 
             message = string.Format("Route {0} - {1} created.", origin.Profile.IATACode, destination.Profile.IATACode);
 
