@@ -444,6 +444,92 @@ static class VmTest
                 Console.WriteLine("SPARE EQUIVALENCE: checked " + (cnt - 0) + " mismatches=" + mismatches);
                 Console.WriteLine("SPARE TIMING: contracts=" + cnt + " worst ms=" + worst.ToString("0") + " at " + worstWhere);
             }
+            // ---- cargo routes ----
+            {
+                Console.WriteLine("CARGO TEST");
+                var cav = av2;
+                var cam = cav.AirportManager;
+                cam.OnlyMine = false;
+                foreach (var code in new[] { "DFW", "RSW" })
+                {
+                    cam.Search = code;
+                    cam.Selected = cam.Airports.First(a => a.Text.Contains(code));
+                    Console.WriteLine("  " + code + " before: " + cam.GateSummary);
+                    cam.TerminalCargo = true; cam.TerminalName = "Cargo " + code; cam.TerminalGates = 3;
+                    cam.BuildTerminalCommand.Execute(null); cam.ConfirmPendingCommand.Execute(null);
+                    Console.WriteLine("  build cargo terminal: " + cam.Status);
+                    cam.TerminalCargo = false;
+                }
+                for (int d = 0; d < 200; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                Console.WriteLine("  date now " + TheAirline.Models.General.GameObject.GetInstance().GameTime.ToShortDateString());
+                foreach (var code in new[] { "DFW", "RSW" })
+                {
+                    cam.Search = code;
+                    cam.Selected = cam.Airports.First(a => a.Text.Contains(code));
+                    cam.LeaseCargo = true;
+                    Console.WriteLine("  header: " + cam.LeaseHeader + " gates choices=" + cam.GateChoices.Count);
+                    cam.Gates = 1; cam.LeaseCommand.Execute(null);
+                    Console.WriteLine("  lease cargo " + code + ": " + cam.Status + " | " + cam.GateSummary);
+                    foreach (var f in cam.Facilities.Where(x => x.Name.Contains("argo"))) Console.WriteLine("    facility " + f.Name + ": " + f.Current + " -> " + f.Next);
+                    cam.LeaseCargo = false;
+                }
+                foreach (var code in new[] { "DFW", "RSW" })
+                {
+                    cam.Search = code;
+                    cam.Selected = cam.Airports.First(a => a.Text.Contains(code));
+                    var cf = cam.Facilities.First(x => x.Name.Contains("argo"));
+                    Console.WriteLine("  " + code + " cargo facility canBuy=" + cf.CanBuy + " building=" + cf.Building);
+                    cf.BuyCommand.Execute(null);
+                    Console.WriteLine("  buy facility: " + cam.Status);
+                }
+                for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                // buy a cargo aircraft
+                var cna = cav.NewAircraft;
+                cna.Reload();
+                var cargoType = cna.Types.FirstOrDefault(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType && t.Type.Range >= 1700);
+                Console.WriteLine("  cargo types in new-aircraft list: " + cna.Types.Count(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType) + " pick=" + cargoType?.Name + " | " + cargoType?.Details);
+                cna.Selected = cargoType;
+                cna.Amount = 1; cna.DownPayment = false;
+                cna.OrderCommand.Execute(null);
+                Console.WriteLine("  order: " + cna.Status);
+                foreach (var fa in TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet.Where(x => x.Airliner.Type is TheAirline.Models.Airliners.AirlinerCargoType))
+                    fa.Airliner.BuiltDate = TheAirline.Models.General.GameObject.GetInstance().GameTime.AddDays(-2);
+                cav.Refresh();
+
+                var cap = cav.Airports;
+                cap.CargoMode = true;
+                cap.Search = "DFW";
+                cap.Selected = cap.Airports.First(a => a.Text.Contains("DFW"));
+                await Wait(() => !cap.IsBusy, "cargo advice");
+                Console.WriteLine("  " + cap.AdviceTitle + " rows=" + cap.Advice.Count);
+                foreach (var ad in cap.Advice.Take(3)) Console.WriteLine("    " + ad.Name + " | " + ad.Numbers + " | " + ad.Notes);
+                var rsw = cap.Advice.FirstOrDefault(a => a.Name.Contains("RSW"));
+                Console.WriteLine("  RSW advice: " + (rsw == null ? "none" : rsw.Name + " | " + rsw.Numbers + " | " + rsw.Notes));
+                if (rsw != null) cap.SelectedAdvice = rsw;
+                var ccr = rsw != null ? cap.Create : new CreateRouteViewModel(cap.Selected.Airport, cam.Airports.First(a => a.Text.Contains("RSW")).Airport, m => Console.WriteLine("  done: " + m), true);
+                Console.WriteLine("  " + ccr.Title + " cargo=" + ccr.IsCargo + " price=" + ccr.CargoPrice + " aircraft=" + ccr.Aircraft.Count + " offers=" + ccr.Offers.Count + " trips=" + ccr.Trips.Count + " info=" + ccr.Info);
+                ccr.CargoPrice = "abc"; ccr.CreateCommand.Execute(null);
+                Console.WriteLine("  bad price: " + ccr.Info);
+                ccr.CargoPrice = "7.5";
+                ccr.CreateCommand.Execute(null);
+                if (rsw == null) Console.WriteLine("  (direct)");
+                Console.WriteLine("  create: " + cap.Status + " | " + ccr.Info);
+                var croute = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Routes.FirstOrDefault(r => r.IsCargoRoute);
+                Console.WriteLine("  cargo route exists=" + (croute != null) + (croute == null ? "" : " " + croute.Destination1.Profile.IATACode + "-" + croute.Destination2.Profile.IATACode + " price=" + ((TheAirline.Models.Routes.CargoRoute) croute).PricePerUnit + " entries=" + croute.TimeTable.Entries.Count));
+                cav.Refresh();
+                Console.WriteLine("  routes list: " + string.Join(" ; ", cav.Routes.Select(r => r.Name)));
+                var crow = cav.Routes.FirstOrDefault(r => r.Name.Contains("cargo"));
+                if (crow != null)
+                {
+                    cav.SelectedRoute = crow;
+                    var det = cav.RouteDetail;
+                    Console.WriteLine("  detail IsCargo=" + det.IsCargo + " price=" + det.CargoPrice);
+                    det.CargoPrice = "9.25"; det.SaveCargoPriceCommand.Execute(null);
+                    Console.WriteLine("  saved price: " + ((TheAirline.Models.Routes.CargoRoute) croute).PricePerUnit);
+                }
+                var ctt = cav.Timetable;
+                Console.WriteLine("  timetable aircraft: " + string.Join(", ", ctt.Aircraft.Select(x => x.ToString())));
+            }
             GameSession.StopClock();
             Console.WriteLine("VM TEST OK");
             Environment.Exit(0);

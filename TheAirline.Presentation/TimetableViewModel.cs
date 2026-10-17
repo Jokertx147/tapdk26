@@ -226,7 +226,8 @@ namespace TheAirline.Presentation
             var list = Human.DeliveredFleet
                             .Where(
                                 f => f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
-                                     || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)
+                                     || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
+                                     || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
                             .OrderBy(f => f.Name)
                             .ToList();
 
@@ -257,7 +258,8 @@ namespace TheAirline.Presentation
             if (_aircraft != null)
             {
                 var type = _aircraft.Airliner.Airliner.Type;
-                foreach (var r in Human.Routes.Where(r => !r.IsCargoRoute).OrderBy(r => r.Destination1.Profile.IATACode))
+                bool cargoAircraft = type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo;
+                foreach (var r in Human.Routes.Where(r => r.IsCargoRoute == cargoAircraft).OrderBy(r => r.Destination1.Profile.IATACode))
                 {
                     double distance = r.GetDistance();
                     long runway = Math.Min(r.Destination1.GetMaxRunwayLength(), r.Destination2.GetMaxRunwayLength());
@@ -322,7 +324,7 @@ namespace TheAirline.Presentation
             Rows.Clear();
             if (_aircraft == null)
             {
-                Summary = "You have no delivered passenger aircraft.";
+                Summary = "You have no delivered aircraft.";
                 return;
             }
 

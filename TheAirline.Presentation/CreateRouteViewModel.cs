@@ -7,6 +7,7 @@ using TheAirline.Helpers;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
+using TheAirline.Models.Routes;
 
 namespace TheAirline.Presentation
 {
@@ -29,14 +30,17 @@ namespace TheAirline.Presentation
     {
         private readonly Airport _airport;
         private readonly Action _signed;
+        private readonly Terminal.TerminalType _terminalType;
         private ContractChoice _selected;
 
-        public GateOffer(Airport airport, Action signed)
+        public GateOffer(Airport airport, Action signed, Terminal.TerminalType terminalType = Terminal.TerminalType.Passenger)
         {
             _airport = airport;
             _signed = signed;
+            _terminalType = terminalType;
+            string kind = terminalType == Terminal.TerminalType.Cargo ? "cargo " : "";
             var f = new ValueCurrencyFormatter();
-            int gates = Math.Min(2, RouteCreator.GetFreePassengerGates(airport));
+            int gates = Math.Min(2, RouteCreator.GetFreeGates(airport, terminalType));
             CanLease = gates > 0;
             Options = new List<ContractChoice>();
 
@@ -52,8 +56,10 @@ namespace TheAirline.Presentation
 
             Title = airport.Profile.IATACode + " " + airport.Profile.Name;
             Text = CanLease
-                ? "You have no free gate at " + Title + ". Lease gates there to create the route."
-                : "There are no free gates at " + Title + " to lease.";
+                ? "You have no free " + kind + "gate at " + Title + ". Lease gates there to create the route."
+                : terminalType == Terminal.TerminalType.Cargo
+                    ? "There are no free cargo gates at " + Title + " to lease. Build a cargo terminal there first (Airports tab > Build a terminal)."
+                    : "There are no free gates at " + Title + " to lease.";
             LeaseCommand = new RelayCommand(Lease, () => CanLease);
         }
 
@@ -76,16 +82,18 @@ namespace TheAirline.Presentation
                 return;
             }
 
-            RouteCreator.SignContract(_airport, _selected.Type);
+            RouteCreator.SignContract(_airport, _selected.Type, _terminalType);
             _signed();
         }
     }
 
-    /// <summary>Create a passenger route between two airports, with an optional schedule for one aircraft.</summary>
+    /// <summary>Create a passenger or cargo route between two airports, with an optional schedule for one aircraft.</summary>
     public class CreateRouteViewModel : ObservableObject
     {
         private readonly Airport _origin, _destination;
         private readonly Action<string> _done;
+        private readonly bool _cargo;
+        private string _cargoPrice;
         private bool _updating;
         private ServiceTier _tier = ServiceTier.Standard;
         private AircraftChoice _aircraft;
@@ -97,13 +105,16 @@ namespace TheAirline.Presentation
         private string _info;
         private bool _scheduleEnabled, _detailEnabled;
 
-        public CreateRouteViewModel(Airport origin, Airport destination, Action<string> done)
+        public CreateRouteViewModel(Airport origin, Airport destination, Action<string> done, bool cargo = false)
         {
             _origin = origin;
             _destination = destination;
             _done = done;
+            _cargo = cargo;
+            _cargoPrice = PassengerHelpers.GetCargoPrice(origin, destination).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
-            Title = string.Format("New route {0} - {1}", origin.Profile.IATACode, destination.Profile.IATACode);
+            Title = string.Format(
+                "New {0}route {1} - {2}", cargo ? "cargo " : "", origin.Profile.IATACode, destination.Profile.IATACode);
             Tiers = Enum.GetValues(typeof(ServiceTier)).Cast<ServiceTier>().ToList();
             Operations = new List<OpsType> { OpsType.Regular, OpsType.Whole_Day };
             Turnarounds = RouteCreator.TurnaroundOptions;
@@ -113,7 +124,7 @@ namespace TheAirline.Presentation
 
             Aircraft = new List<AircraftChoice> { new AircraftChoice { Name = "(assign an aircraft later)" } };
             Aircraft.AddRange(
-                RouteCreator.GetCandidateAirliners(origin, destination)
+                RouteCreator.GetCandidateAirliners(origin, destination, cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger)
                             .Select(f => new AircraftChoice { Name = f.Name + " - " + f.Airliner.Type.Name, Airliner = f }));
             _aircraft = Aircraft.Count > 1 ? Aircraft[1] : Aircraft[0];
 
@@ -135,6 +146,33 @@ namespace TheAirline.Presentation
         public ObservableCollection<GateOffer> Offers { get; }
         public ICommand CreateCommand { get; }
         public ICommand CancelCommand { get; }
+
+        public bool IsCargo
+        {
+            get { return _cargo; }
+        }
+
+        public bool IsPassenger
+        {
+            get { return !_cargo; }
+        }
+
+        /// <summary>The price per unit of cargo the route starts with.</summary>
+        public string CargoPrice
+        {
+            get { return _cargoPrice; }
+            set { SetProperty(ref _cargoPrice, value); }
+        }
+
+        public string AircraftLabel
+        {
+            get { return _cargo ? "Cargo aircraft (only aircraft without routes)" : "Aircraft (only aircraft without routes)"; }
+        }
+
+        private Terminal.TerminalType TerminalKind
+        {
+            get { return _cargo ? Terminal.TerminalType.Cargo : Terminal.TerminalType.Passenger; }
+        }
 
         public ServiceTier Tier
         {
@@ -258,7 +296,7 @@ namespace TheAirline.Presentation
             {
                 DetailEnabled = false;
                 Info = Aircraft.Count == 1
-                    ? "None of your aircraft can fly this route (range, runway, or already on a route). The route is created without a schedule; assign an aircraft later."
+                    ? "None of your " + (_cargo ? "cargo " : "") + "aircraft can fly this route (range, runway, or already on a route). The route is created without a schedule; assign an aircraft later."
                     : "The route is created without a schedule; assign an aircraft later.";
                 return;
             }
@@ -309,11 +347,11 @@ namespace TheAirline.Presentation
             Offers.Clear();
             foreach (Airport a in new[] { _origin, _destination }.Distinct())
             {
-                if (!AirportHelpers.HasFreeGates(a, GameObject.GetInstance().HumanAirline, Terminal.TerminalType.Passenger))
+                if (!AirportHelpers.HasFreeGates(a, GameObject.GetInstance().HumanAirline, TerminalKind))
                 {
-                    if (RouteCreator.NeedsContract(a))
+                    if (RouteCreator.NeedsContract(a, TerminalKind))
                     {
-                        Offers.Add(new GateOffer(a, RefreshGates));
+                        Offers.Add(new GateOffer(a, RefreshGates, TerminalKind));
                     }
                     else
                     {
@@ -334,8 +372,23 @@ namespace TheAirline.Presentation
                 return;
             }
 
+            double cargoPrice = 0;
+            if (_cargo
+                && (!double.TryParse(
+                        (_cargoPrice ?? "").Replace(',', '.'),
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out cargoPrice)
+                    || cargoPrice <= 0))
+            {
+                Info = "The price per unit must be a number above 0 (for example 8.50).";
+                return;
+            }
+
             var request = new NewRouteRequest
             {
+                RouteType = _cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger,
+                CargoPrice = cargoPrice,
                 Origin = _origin,
                 Destination = _destination,
                 Tier = _tier,

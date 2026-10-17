@@ -105,6 +105,7 @@ namespace TheAirline.Presentation
         private string _terminalName = "Terminal";
         private int _terminalGates = 10;
         private bool _terminalCargo;
+        private bool _leaseCargo;
         private Action _pending;
         private string _pendingText;
 
@@ -164,6 +165,48 @@ namespace TheAirline.Presentation
         {
             get { return _terminalGates; }
             set { SetProperty(ref _terminalGates, value); OnPropertyChanged(nameof(TerminalPriceText)); }
+        }
+
+        /// <summary>Lease cargo gates instead of passenger gates.</summary>
+        public bool LeaseCargo
+        {
+            get { return _leaseCargo; }
+            set
+            {
+                if (SetProperty(ref _leaseCargo, value))
+                {
+                    if (_selected != null)
+                    {
+                        RefreshGateChoices(_selected.Airport);
+                    }
+
+                    OnPropertyChanged(nameof(LeaseHeader));
+                }
+            }
+        }
+
+        public string LeaseHeader
+        {
+            get { return _leaseCargo ? "Lease cargo gates" : "Lease passenger gates"; }
+        }
+
+        private Terminal.TerminalType LeaseKind
+        {
+            get { return _leaseCargo ? Terminal.TerminalType.Cargo : Terminal.TerminalType.Passenger; }
+        }
+
+        private void RefreshGateChoices(Airport airport)
+        {
+            GateChoices.Clear();
+            int free = airport.Terminals.GetFreeGates(LeaseKind);
+            for (int i = 1; i <= Math.Min(free, 8); i++)
+            {
+                GateChoices.Add(i);
+            }
+
+            _gates = GateChoices.Count > 0 ? GateChoices[0] : 0;
+            OnPropertyChanged(nameof(Gates));
+            OnPropertyChanged(nameof(PriceText));
         }
 
         /// <summary>Build a cargo terminal instead of a passenger terminal.</summary>
@@ -481,6 +524,23 @@ namespace TheAirline.Presentation
                               .Sum(c => c.NumberOfGates);
             GateSummary = string.Format("Passenger gates: {0} in total, {1} free, {2} leased by you", total, free, mine);
 
+            int cargoTotal = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Cargo);
+            if (cargoTotal > 0 || airport.GetAirlineContracts(airline).Any(c => c.TerminalType == Terminal.TerminalType.Cargo))
+            {
+                GateSummary += string.Format(
+                    "{0}Cargo gates: {1} in total, {2} free, {3} leased by you",
+                    Environment.NewLine,
+                    cargoTotal,
+                    airport.Terminals.GetFreeGates(Terminal.TerminalType.Cargo),
+                    airport.GetAirlineContracts(airline)
+                           .Where(c => c.TerminalType == Terminal.TerminalType.Cargo)
+                           .Sum(c => c.NumberOfGates));
+            }
+            else
+            {
+                GateSummary += Environment.NewLine + "No cargo terminal here. Build one under Terminals to fly cargo.";
+            }
+
             foreach (var c in airport.GetAirlineContracts(airline))
             {
                 Contracts.Add(
@@ -495,14 +555,7 @@ namespace TheAirline.Presentation
 
             LoadGateOffers(airport);
 
-            for (int i = 1; i <= Math.Min(free, 8); i++)
-            {
-                GateChoices.Add(i);
-            }
-
-            _gates = GateChoices.Count > 0 ? GateChoices[0] : 0;
-            OnPropertyChanged(nameof(Gates));
-            OnPropertyChanged(nameof(PriceText));
+            RefreshGateChoices(airport);
 
             LoadTerminals(airport);
             OnPropertyChanged(nameof(TerminalPriceText));
@@ -511,7 +564,9 @@ namespace TheAirline.Presentation
             bool hasContract = Contracts.Count > 0;
             foreach (AirportFacility.FacilityType type in Enum.GetValues(typeof(AirportFacility.FacilityType)))
             {
-                if (type == AirportFacility.FacilityType.Cargo)
+                // cargo facilities only make sense where there is a cargo terminal
+                if (type == AirportFacility.FacilityType.Cargo
+                    && !airport.Terminals.AirportTerminals.Exists(t => t.Type == Terminal.TerminalType.Cargo))
                 {
                     continue;
                 }
@@ -786,24 +841,25 @@ namespace TheAirline.Presentation
             var airport = _selected.Airport;
             var airline = Human;
 
-            if (_gates < 1 || airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger) < _gates)
+            var kind = LeaseKind;
+            if (_gates < 1 || airport.Terminals.GetFreeGates(kind) < _gates)
             {
-                Status = "There are no free gates to lease at " + airport.Profile.IATACode + ".";
+                Status = "There are no free " + (_leaseCargo ? "cargo " : "") + "gates to lease at " + airport.Profile.IATACode + ".";
                 return;
             }
 
             double yearly = AirportHelpers.GetYearlyContractPayment(airport, _contractType.Type, _gates, 2);
 
-            if (RouteCreator.NeedsContract(airport))
+            if (RouteCreator.NeedsContract(airport, kind))
             {
                 // new contract (takes up to two gates, like the route creator does)
-                RouteCreator.SignContract(airport, _contractType.Type);
-                Status = "Gates leased at " + airport.Profile.IATACode + ".";
+                RouteCreator.SignContract(airport, _contractType.Type, kind);
+                Status = (_leaseCargo ? "Cargo gates" : "Gates") + " leased at " + airport.Profile.IATACode + ".";
             }
             else
             {
                 AirportHelpers.RentGates(
-                    airport, airline, _contractType.Type, Terminal.TerminalType.Passenger, _gates, 2);
+                    airport, airline, _contractType.Type, kind, _gates, 2);
                 Status = _gates + " more gate(s) leased at " + airport.Profile.IATACode + " (" + Money(yearly) + "/year).";
             }
 

@@ -79,7 +79,8 @@
           <Button Content="Cancel" Command="{Binding CancelEndCommand}" />
         </StackPanel>
 
-        <TextBlock Text="Lease gates" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <TextBlock Text="{Binding LeaseHeader}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <CheckBox Content="Cargo gates (for cargo aircraft)" IsChecked="{Binding LeaseCargo}" />
         <StackPanel Orientation="Horizontal" Spacing="10">
           <ComboBox ItemsSource="{Binding ContractTypes}" SelectedItem="{Binding ContractType}" MinWidth="170" />
           <ComboBox ItemsSource="{Binding GateChoices}" SelectedItem="{Binding Gates}" MinWidth="70" />

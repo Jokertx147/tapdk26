@@ -424,7 +424,7 @@ namespace TheAirline.Presentation
                         new RouteItem
                         {
                             Route = r,
-                            Name = r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode,
+                            Name = r.Destination1.Profile.IATACode + " - " + r.Destination2.Profile.IATACode + (r.IsCargoRoute ? " (cargo)" : ""),
                             Distance = string.Format("{0:0} km", MathHelpers.GetDistance(r.Destination1, r.Destination2))
                         });
                 }

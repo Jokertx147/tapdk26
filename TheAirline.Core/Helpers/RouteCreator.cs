@@ -53,6 +53,12 @@ namespace TheAirline.Helpers
         public int RoundTripsPerDay { get; set; }
 
         public bool StartAirliner { get; set; }
+
+        //passenger (the default) or cargo
+        public Route.RouteType RouteType { get; set; }
+
+        //the price per unit of cargo (cargo routes only)
+        public double CargoPrice { get; set; }
     }
 
     /// <summary>
@@ -63,16 +69,22 @@ namespace TheAirline.Helpers
         public static readonly List<int> TurnaroundOptions = new List<int> { 30, 45, 60, 75, 90, 105, 120 };
 
         //the human airline's passenger aircraft that can fly between the two airports
-        public static List<FleetAirliner> GetCandidateAirliners(Airport origin, Airport destination)
+        public static List<FleetAirliner> GetCandidateAirliners(
+            Airport origin,
+            Airport destination,
+            Route.RouteType routeType = Route.RouteType.Passenger)
         {
             double distance = MathHelpers.GetDistance(origin, destination);
             long runway = Math.Min(origin.GetMaxRunwayLength(), destination.GetMaxRunwayLength());
+            bool cargo = routeType == Route.RouteType.Cargo;
 
             return GameObject.GetInstance()
                              .HumanAirline.DeliveredFleet.Where(
                                  f =>
-                                 f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
-                                 || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)
+                                 cargo
+                                     ? f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo
+                                     : (f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
+                                        || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed))
                              .Where(f => f.Routes.Count == 0)
                              .Where(f => f.Airliner.Type.Range >= distance && f.Airliner.Type.MinRunwaylength <= runway)
                              .OrderBy(f => f.Name)
@@ -125,16 +137,25 @@ namespace TheAirline.Helpers
 
             if (airline.Routes.Exists(
                 r =>
-                (r.Destination1 == origin && r.Destination2 == destination)
-                || (r.Destination1 == destination && r.Destination2 == origin)))
+                r.IsCargoRoute == (request.RouteType == Route.RouteType.Cargo)
+                && ((r.Destination1 == origin && r.Destination2 == destination)
+                    || (r.Destination1 == destination && r.Destination2 == origin))))
             {
                 message = "You already have a route between these airports.";
                 return null;
             }
 
+            bool isCargo = request.RouteType == Route.RouteType.Cargo;
+
             try
             {
-                AirlineHelpers.IsRouteDestinationsOk(airline, origin, destination, Route.RouteType.Passenger, null, null);
+                AirlineHelpers.IsRouteDestinationsOk(
+                    airline,
+                    origin,
+                    destination,
+                    isCargo ? Route.RouteType.Cargo : Route.RouteType.Passenger,
+                    null,
+                    null);
             }
             catch (Exception ex)
             {
@@ -145,6 +166,35 @@ namespace TheAirline.Helpers
             int year = GameObject.GetInstance().GameTime.Year;
             double baseFare = PassengerHelpers.GetPassengerPrice(origin, destination);
 
+            Route route;
+
+            if (isCargo)
+            {
+                double price = request.CargoPrice > 0 ? request.CargoPrice : PassengerHelpers.GetCargoPrice(origin, destination);
+                route = new CargoRoute(Guid.NewGuid().ToString(), origin, destination, GameObject.GetInstance().GameTime, price);
+            }
+            else
+            {
+                route = CreatePassengerRoute(airline, origin, destination, request.Tier, year, baseFare);
+            }
+
+            FleetAirlinerHelpers.CreateStopoverRoute(route, null, null);
+            route.Season = Weather.Season.AllYear;
+            airline.AddRoute(route);
+
+            message = string.Format("Route {0} - {1} created.", origin.Profile.IATACode, destination.Profile.IATACode);
+
+            return AssignAirliner(route, airline, request, ref message);
+        }
+
+        private static Route CreatePassengerRoute(
+            Airline airline,
+            Airport origin,
+            Airport destination,
+            ServiceTier tier,
+            int year,
+            double baseFare)
+        {
             var route = new PassengerRoute(Guid.NewGuid().ToString(), origin, destination, GameObject.GetInstance().GameTime, 0);
 
             foreach (AirlinerClass.ClassType classType in AirlinerClass.GetAirlinerTypes())
@@ -170,7 +220,7 @@ namespace TheAirline.Helpers
                         continue;
                     }
 
-                    RouteFacility facility = PickFacility(airline, facilityType, request.Tier);
+                    RouteFacility facility = PickFacility(airline, facilityType, tier);
 
                     if (facility != null)
                     {
@@ -179,12 +229,12 @@ namespace TheAirline.Helpers
                 }
             }
 
-            FleetAirlinerHelpers.CreateStopoverRoute(route, null, null);
-            route.Season = Weather.Season.AllYear;
-            airline.AddRoute(route);
+            return route;
+        }
 
-            message = string.Format("Route {0} - {1} created.", origin.Profile.IATACode, destination.Profile.IATACode);
-
+        //puts the requested aircraft on the new route with a daily schedule
+        private static Route AssignAirliner(Route route, Airline airline, NewRouteRequest request, ref string message)
+        {
             FleetAirliner airliner = request.Airliner;
 
             if (airliner == null)
@@ -254,11 +304,11 @@ namespace TheAirline.Helpers
         }
 
         //true when the human airline has no passenger contract at the airport, so a contract can fix a missing gate
-        public static bool NeedsContract(Airport airport)
+        public static bool NeedsContract(Airport airport, Terminal.TerminalType terminalType = Terminal.TerminalType.Passenger)
         {
             Airline airline = GameObject.GetInstance().HumanAirline;
 
-            return !airport.GetAirlineContracts(airline).Any(c => c.TerminalType == Terminal.TerminalType.Passenger);
+            return !airport.GetAirlineContracts(airline).Any(c => c.TerminalType == terminalType);
         }
 
         public static int GetFreePassengerGates(Airport airport)
@@ -266,35 +316,53 @@ namespace TheAirline.Helpers
             return airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
         }
 
+        public static int GetFreeGates(Airport airport, Terminal.TerminalType terminalType)
+        {
+            return airport.Terminals.GetFreeGates(terminalType);
+        }
+
         //signs a passenger gate contract (up to two gates, two years) and takes the gates; same rules as the airport page
-        public static void SignContract(Airport airport, AirportContract.ContractType contractType)
+        public static void SignContract(
+            Airport airport,
+            AirportContract.ContractType contractType,
+            Terminal.TerminalType terminalType = Terminal.TerminalType.Passenger)
         {
             Airline airline = GameObject.GetInstance().HumanAirline;
             DateTime now = GameObject.GetInstance().GameTime;
+            bool cargo = terminalType == Terminal.TerminalType.Cargo;
 
-            int gates = Math.Min(2, GetFreePassengerGates(airport));
+            int gates = Math.Min(2, GetFreeGates(airport, terminalType));
 
-            if (contractType == AirportContract.ContractType.Full
-                && airport.GetAirportFacility(airline, AirportFacility.FacilityType.CheckIn).TypeLevel == 0)
+            // a full contract includes the basic facility of the kind (check-in for passengers, cargo for cargo)
+            if (contractType == AirportContract.ContractType.Full)
             {
-                AirportFacility checkin =
-                    AirportFacilities.GetFacilities(AirportFacility.FacilityType.CheckIn).Find(f => f.TypeLevel == 1);
+                AirportFacility.FacilityType facilityType = cargo
+                    ? AirportFacility.FacilityType.Cargo
+                    : AirportFacility.FacilityType.CheckIn;
 
-                airport.AddAirportFacility(airline, checkin, now);
-                AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.Purchases, -checkin.Price);
+                if (airport.GetAirportFacility(airline, facilityType, cargo).TypeLevel == 0)
+                {
+                    AirportFacility basic = AirportFacilities.GetFacilities(facilityType).Find(f => f.TypeLevel == 1);
+
+                    airport.AddAirportFacility(airline, basic, now);
+                    AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.Purchases, -basic.Price);
+                }
             }
 
             double yearlyPayment = AirportHelpers.GetYearlyContractPayment(airport, contractType, gates, 2);
 
             var contract = new AirportContract(
-                airline, airport, contractType, Terminal.TerminalType.Passenger, now, gates, 2, yearlyPayment, true);
+                airline, airport, contractType, terminalType, now, gates, 2, yearlyPayment, true);
 
             AirportHelpers.AddAirlineContract(contract);
 
             for (int i = 0; i < gates; i++)
             {
-                Gate gate = airport.Terminals.GetGates().First(g => g.Airline == null);
-                gate.Airline = airline;
+                Gate gate = airport.Terminals.GetGates().FirstOrDefault(g => g.Airline == null);
+                if (gate != null)
+                {
+                    gate.Airline = airline;
+                }
             }
         }
 
@@ -309,7 +377,7 @@ namespace TheAirline.Helpers
                 case "3002":
                     return "The route is not of an appropriate type for these airports.";
                 case "3003":
-                    return "Cargo is missing at the airports.";
+                    return "Both airports need a cargo facility of yours (Airports tab > Facilities), or a Full cargo gate contract, which includes one.";
                 case "3004":
                     return "Your airline has no license for this route.";
                 case "3005":

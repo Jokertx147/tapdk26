@@ -20,9 +20,9 @@ namespace TheAirline.Presentation
             Name = type.Name;
             Seats = (type as AirlinerPassengerType)?.MaxSeatingCapacity ?? 0;
             Details = string.Format(
-                "{0}  |  {1} seats  |  range {2} km  |  {3}",
+                "{0}  |  {1}  |  range {2} km  |  {3}",
                 type.Manufacturer?.Name,
-                Seats,
+                type is AirlinerCargoType ? "cargo " + ((AirlinerCargoType) type).CargoSize + " units" : Seats + " seats",
                 type.Range,
                 Convert.ToString(new ValueCurrencyFormatter().Convert((double) type.Price)));
         }
@@ -229,7 +229,8 @@ namespace TheAirline.Presentation
             _all = AirlinerTypes.GetTypes(
                                     t => t.Produced.From <= now && t.Produced.To > now
                                          && (t.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
-                                             || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed))
+                                             || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
+                                             || t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo))
                                 .OrderBy(t => t.Manufacturer?.Name)
                                 .ThenBy(t => t.Name)
                                 .Select(t => new NewTypeItem(t))

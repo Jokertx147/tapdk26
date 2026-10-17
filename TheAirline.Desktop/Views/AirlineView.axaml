@@ -116,7 +116,17 @@
                   <TextBlock Text="{Binding Numbers}" TextWrapping="Wrap" />
                   <TextBlock Text="{Binding AircraftText}" TextWrapping="Wrap" Opacity="0.8" />
 
-                  <TextBlock Text="Fares" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+                  <StackPanel Spacing="6" IsVisible="{Binding IsCargo}">
+                    <TextBlock Text="Cargo price" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBox Text="{Binding CargoPrice}" Width="120" />
+                      <TextBlock Text="per unit of cargo" VerticalAlignment="Center" Opacity="0.7" />
+                      <Button Content="Save price" Command="{Binding SaveCargoPriceCommand}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                  </StackPanel>
+
+                  <TextBlock Text="Fares" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" IsVisible="{Binding IsPassenger}" />
                   <ItemsControl ItemsSource="{Binding Fares}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
@@ -128,7 +138,7 @@
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
-                  <StackPanel Orientation="Horizontal" Spacing="10">
+                  <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsPassenger}">
                     <Button Content="Save fares" Command="{Binding SaveFaresCommand}" />
                     <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
                   </StackPanel>

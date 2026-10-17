@@ -24,7 +24,7 @@ namespace TheAirline.Presentation
             Seats = (airliner.Type as AirlinerPassengerType)?.MaxSeatingCapacity ?? 0;
             PriceText = Convert.ToString(f.Convert(airliner.GetPrice()));
             LeaseText = Convert.ToString(f.Convert(airliner.GetLeasingPrice())) + " / month";
-            Details = string.Format("built {0}  |  {1} seats  |  range {2} km  |  {3}", Year, Seats, Range, PriceText);
+            Details = string.Format("built {0}  |  {1}  |  range {2} km  |  {3}", Year, airliner.Type is AirlinerCargoType ? "cargo " + ((AirlinerCargoType) airliner.Type).CargoSize + " units" : Seats + " seats", Range, PriceText);
         }
 
         public Airliner Airliner { get; }
@@ -112,7 +112,8 @@ namespace TheAirline.Presentation
             _all = Airliners.GetAirlinersForSale()
                             .Where(
                                 a => a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
-                                     || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)
+                                     || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
+                                     || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
                             .OrderByDescending(a => a.BuiltDate.Year)
                             .ThenBy(a => a.Type.Name)
                             .Select(a => new AircraftItem(a))

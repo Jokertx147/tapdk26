@@ -25,9 +25,22 @@ namespace TheAirline.Presentation
 
     public class AdviceItem
     {
+        public AdviceItem(CargoAdvice a)
+        {
+            Destination = a.Destination;
+            var f = new ValueCurrencyFormatter();
+            Name = a.Destination.Profile.IATACode + "  " + a.Destination.Profile.Name + ", " + a.Destination.Profile.Country?.Name;
+            Numbers = string.Format(
+                "{0:0} km  |  cargo demand {1}  |  {2} competitor(s)  |  ~{3}/day{4}",
+                a.Distance, a.Demand, a.Competitors, f.Convert(a.RevenuePerDay),
+                a.FleetCanFly ? "" : "  |  no cargo aircraft of yours can fly it");
+            Notes = a.Advice;
+        }
+
         public AdviceItem(RouteAdvice a)
         {
             Advice = a;
+            Destination = a.Destination;
             var f = new ValueCurrencyFormatter();
             Name = a.Destination.Profile.IATACode + "  " + a.Destination.Profile.Name + ", " + a.Destination.Profile.Country?.Name;
             Numbers = string.Format(
@@ -38,6 +51,7 @@ namespace TheAirline.Presentation
         }
 
         public RouteAdvice Advice { get; }
+        public Airport Destination { get; }
         public string Name { get; }
         public string Numbers { get; }
         public string Notes { get; }
@@ -54,6 +68,7 @@ namespace TheAirline.Presentation
         private string _status;
         private bool _busy;
         private List<Airport> _all;
+        private bool _cargo;
 
         public AirportsViewModel(Action changed)
         {
@@ -93,6 +108,33 @@ namespace TheAirline.Presentation
             }
         }
 
+        /// <summary>True when the suggestions and the new route are for cargo instead of passengers.</summary>
+        public bool CargoMode
+        {
+            get { return _cargo; }
+            set
+            {
+                if (SetProperty(ref _cargo, value))
+                {
+                    OnPropertyChanged(nameof(PassengerMode));
+                    OnPropertyChanged(nameof(AdviceTitle));
+                    Create = null;
+                    LoadAdvice();
+                }
+            }
+        }
+
+        public bool PassengerMode
+        {
+            get { return !_cargo; }
+            set { CargoMode = !value; }
+        }
+
+        public string AdviceTitle
+        {
+            get { return _cargo ? "Suggested cargo routes" : "Suggested routes"; }
+        }
+
         public AdviceItem SelectedAdvice
         {
             get { return _selectedAdvice; }
@@ -100,7 +142,7 @@ namespace TheAirline.Presentation
             {
                 if (SetProperty(ref _selectedAdvice, value) && value != null && _selected != null)
                 {
-                    Create = new CreateRouteViewModel(_selected.Airport, value.Advice.Destination, OnCreateDone);
+                    Create = new CreateRouteViewModel(_selected.Airport, value.Destination, OnCreateDone, _cargo);
                 }
             }
         }
@@ -198,10 +240,14 @@ namespace TheAirline.Presentation
                 Status = "Looking for routes from " + airport.Profile.IATACode + "...";
             }
 
-            List<RouteAdvice> advice;
+            List<AdviceItem> advice;
+            bool cargo = _cargo;
             try
             {
-                advice = await Task.Run(() => RouteAdvisor.GetAdvice(airport));
+                advice = await Task.Run(
+                    () => cargo
+                        ? CargoAdvisor.GetAdvice(airport).Select(a => new AdviceItem(a)).ToList()
+                        : RouteAdvisor.GetAdvice(airport).Select(a => new AdviceItem(a)).ToList());
             }
             catch (Exception e)
             {
@@ -210,7 +256,7 @@ namespace TheAirline.Presentation
                 return;
             }
 
-            if (id != _loadId)
+            if (id != _loadId || cargo != _cargo)
             {
                 return; // a newer request replaced this one
             }
@@ -223,12 +269,14 @@ namespace TheAirline.Presentation
 
             foreach (var a in advice)
             {
-                Advice.Add(new AdviceItem(a));
+                Advice.Add(a);
             }
 
             if (announce || advice.Count == 0)
             {
-                Status = advice.Count == 0 ? "No routes to suggest from " + airport.Profile.IATACode + "." : null;
+                Status = advice.Count == 0
+                    ? "No " + (cargo ? "cargo " : "") + "routes to suggest from " + airport.Profile.IATACode + "."
+                    : null;
             }
         }
     }

@@ -17,7 +17,12 @@
 
     <!-- advisor -->
     <Grid Grid.Column="2" RowDefinitions="Auto,*">
-      <TextBlock Text="Suggested routes (best first). Pick one to create it." FontWeight="SemiBold" Margin="0,0,0,6" />
+      <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,0,0,6">
+        <RadioButton GroupName="routekind" Content="Passenger routes" IsChecked="{Binding PassengerMode}" />
+        <RadioButton GroupName="routekind" Content="Cargo routes" IsChecked="{Binding CargoMode}" />
+        <TextBlock Text="{Binding AdviceTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="0.8" />
+        <TextBlock Text="(best first, pick one to create it)" VerticalAlignment="Center" Opacity="0.6" />
+      </StackPanel>
       <ListBox Grid.Row="1" ItemsSource="{Binding Advice}" SelectedItem="{Binding SelectedAdvice}">
         <ListBox.ItemTemplate>
           <DataTemplate>
@@ -52,9 +57,15 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <TextBlock Text="Service" />
-          <ComboBox ItemsSource="{Binding Tiers}" SelectedItem="{Binding Tier}" HorizontalAlignment="Stretch" />
-          <TextBlock Text="Aircraft (only aircraft without routes)" />
+          <StackPanel Spacing="8" IsVisible="{Binding IsPassenger}">
+            <TextBlock Text="Service" />
+            <ComboBox ItemsSource="{Binding Tiers}" SelectedItem="{Binding Tier}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Spacing="8" IsVisible="{Binding IsCargo}">
+            <TextBlock Text="Price per unit of cargo" />
+            <TextBox Text="{Binding CargoPrice}" />
+          </StackPanel>
+          <TextBlock Text="{Binding AircraftLabel}" />
           <ComboBox ItemsSource="{Binding Aircraft}" SelectedItem="{Binding SelectedAircraft}" HorizontalAlignment="Stretch" />
 
           <StackPanel Spacing="8" IsEnabled="{Binding ScheduleEnabled}">

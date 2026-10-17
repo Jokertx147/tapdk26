@@ -44,8 +44,14 @@ namespace TheAirline.Presentation
             Title = route.Destination1.Profile.Name + " - " + route.Destination2.Profile.Name;
             Code = route.Destination1.Profile.IATACode + " - " + route.Destination2.Profile.IATACode;
             IsPassenger = route is PassengerRoute;
+            IsCargo = route is CargoRoute;
+            if (IsCargo)
+            {
+                _cargoPrice = ((CargoRoute) route).PricePerUnit.ToString("0.00", CultureInfo.InvariantCulture);
+            }
 
             SaveFaresCommand = new RelayCommand(SaveFares, () => IsPassenger);
+            SaveCargoPriceCommand = new RelayCommand(SaveCargoPrice, () => IsCargo);
             DeleteCommand = new RelayCommand(() => ConfirmDelete = true);
             ConfirmDeleteCommand = new RelayCommand(Delete);
             CancelDeleteCommand = new RelayCommand(() => ConfirmDelete = false);
@@ -57,6 +63,36 @@ namespace TheAirline.Presentation
         public string Title { get; }
         public string Code { get; }
         public bool IsPassenger { get; }
+        public bool IsCargo { get; }
+        public ICommand SaveCargoPriceCommand { get; }
+
+        private string _cargoPrice;
+
+        /// <summary>The price per unit of cargo of a cargo route.</summary>
+        public string CargoPrice
+        {
+            get { return _cargoPrice; }
+            set { SetProperty(ref _cargoPrice, value); }
+        }
+
+        private void SaveCargoPrice()
+        {
+            double price;
+            var cr = _route as CargoRoute;
+            if (cr == null)
+            {
+                return;
+            }
+
+            if (!double.TryParse((_cargoPrice ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out price) || price <= 0)
+            {
+                Status = "The price per unit must be a number above 0 (for example 8.50).";
+                return;
+            }
+
+            cr.PricePerUnit = price;
+            Status = "Price saved.";
+        }
         public string Numbers { get; private set; }
         public string AircraftText { get; private set; }
         public ObservableCollection<FareItem> Fares { get; }
@@ -100,7 +136,8 @@ namespace TheAirline.Presentation
             double passengers = 0, capacity = 0;
             try
             {
-                passengers = Convert.ToDouble(_route.Statistics.GetTotalValue(StatisticsTypes.GetStatisticsType("Passengers")));
+                passengers = Convert.ToDouble(
+                    _route.Statistics.GetTotalValue(StatisticsTypes.GetStatisticsType(IsCargo ? "Cargo" : "Passengers")));
                 capacity = Convert.ToDouble(_route.Statistics.GetTotalValue(StatisticsTypes.GetStatisticsType("Capacity")));
             }
             catch (Exception)
@@ -110,8 +147,8 @@ namespace TheAirline.Presentation
 
             string load = capacity > 0 ? string.Format("{0:0}%", 100 * passengers / capacity) : "no flights yet";
             Numbers = string.Format(
-                "{0:0} km  |  {1:0} passengers carried  |  load factor {2}  |  profit {3}",
-                _route.GetDistance(), passengers, load, Money(_route.Balance));
+                "{0:0} km  |  {1:0} {2} carried  |  load factor {3}  |  profit {4}",
+                _route.GetDistance(), passengers, IsCargo ? "units of cargo" : "passengers", load, Money(_route.Balance));
 
             var airliners = _route.GetAirliners();
             AircraftText = airliners.Count == 0
