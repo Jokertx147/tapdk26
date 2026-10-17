@@ -90,9 +90,13 @@ namespace TheAirline.Presentation
 
             TogglePauseCommand = new RelayCommand(TogglePause);
             SaveCommand = new AsyncCommand(SaveAsync);
-            MainMenuCommand = new RelayCommand(
-                () =>
+            GameSession.InGame = true;
+            MainMenuCommand = new AsyncCommand(
+                async () =>
                     {
+                        Status = GameSession.AutoSaveOnExit ? "Saving..." : Status;
+                        await System.Threading.Tasks.Task.Run(() => GameSession.AutoSaveIfNeeded());
+                        GameSession.InGame = false;
                         GameSession.StopClock();
                         // the game changes the loaded data, so it is read again for the next game
                         TheAirline.Infrastructure.GameDataLoader.Invalidate();

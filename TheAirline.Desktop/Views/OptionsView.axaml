@@ -38,7 +38,8 @@
         <Button Content="Main menu" Command="{Binding MainMenuCommand}" />
         <Button Content="Exit the game" Command="{Binding ExitCommand}" />
       </StackPanel>
-      <TextBlock Text="The game is not saved when you leave. Save it first." Opacity="0.6" />
+      <CheckBox Content="Autosave when I leave the game" IsChecked="{Binding AutoSave}" />
+      <TextBlock Text="{Binding LeaveText}" Opacity="0.6" TextWrapping="Wrap" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

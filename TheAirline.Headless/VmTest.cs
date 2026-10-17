@@ -750,6 +750,17 @@ static class VmTest
                 Console.WriteLine("  cancel: " + ivm.Status + " policies=" + hum.InsurancePolicies.Count);
                 if (hum.InsurancePolicies.Count != 0) { Console.WriteLine("  FAILED cancel"); Environment.Exit(1); }
             }
+            {
+                Console.WriteLine("AUTOSAVE TEST");
+                GameSession.AutoSaveOnExit = true;
+                Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());
+                string asv = GameSession.AutoSaveIfNeeded();
+                Console.WriteLine("  saved as: " + asv);
+                if (asv == null) { Console.WriteLine("  FAILED autosave"); Environment.Exit(1); }
+                GameSession.AutoSaveOnExit = false;
+                Console.WriteLine("  switched off -> " + (GameSession.AutoSaveIfNeeded() ?? "no save"));
+                GameSession.AutoSaveOnExit = true;
+            }
             GameSession.StopClock();
             Console.WriteLine("VM TEST OK");
             Environment.Exit(0);

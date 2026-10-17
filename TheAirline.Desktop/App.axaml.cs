@@ -21,6 +21,19 @@ namespace TheAirline.Desktop
                     action => Dispatcher.UIThread.Post(action),
                     () => desktop.Shutdown());
                 desktop.MainWindow = new ShellWindow {DataContext = shell};
+                bool saved = false;
+                desktop.ShutdownRequested += (s, e) =>
+                {
+                    // closing the window or choosing Exit: save first, then close for real
+                    if (saved || !GameSession.InGame || !GameSession.AutoSaveOnExit)
+                    {
+                        return;
+                    }
+
+                    e.Cancel = true;
+                    System.Threading.Tasks.Task.Run(() => GameSession.AutoSaveIfNeeded())
+                        .ContinueWith(_ => Dispatcher.UIThread.Post(() => { saved = true; desktop.Shutdown(); }));
+                };
                 desktop.Exit += (s, e) => GameSession.StopClock();
             }
 

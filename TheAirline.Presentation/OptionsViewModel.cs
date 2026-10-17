@@ -85,6 +85,17 @@ namespace TheAirline.Presentation
 
         public bool IsBusy => _busy;
 
+        /// <summary>Save automatically (as "Autosave ...") when leaving the game or closing the window.</summary>
+        public bool AutoSave
+        {
+            get { return GameSession.AutoSaveOnExit; }
+            set { GameSession.AutoSaveOnExit = value; OnPropertyChanged(nameof(AutoSave)); OnPropertyChanged(nameof(LeaveText)); }
+        }
+
+        public string LeaveText => AutoSave
+            ? "The game is saved as \"" + GameSession.AutoSaveName() + "\" when you leave."
+            : "The game is not saved when you leave. Save it first.";
+
         public string PendingText
         {
             get { return _pendingText; }

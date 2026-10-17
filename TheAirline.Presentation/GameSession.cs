@@ -68,6 +68,70 @@ namespace TheAirline.Presentation
             }
         }
 
+        /// <summary>True while a game is open on the main screen (set by the main screen).</summary>
+        public static volatile bool InGame;
+
+        private static string AutoSaveSettingPath()
+        {
+            return System.IO.Path.Combine(AppSettings.GetCommonApplicationDataPath(), "autosave.txt");
+        }
+
+        /// <summary>Save the game automatically when it is left. On by default; remembered in a small file.</summary>
+        public static bool AutoSaveOnExit
+        {
+            get
+            {
+                try
+                {
+                    string p = AutoSaveSettingPath();
+                    return !System.IO.File.Exists(p) || System.IO.File.ReadAllText(p).Trim() != "off";
+                }
+                catch (Exception)
+                {
+                    return true;
+                }
+            }
+            set
+            {
+                try
+                {
+                    System.IO.File.WriteAllText(AutoSaveSettingPath(), value ? "on" : "off");
+                }
+                catch (Exception ex)
+                {
+                    StartupLog.Write("Could not store the autosave setting: " + ex.Message);
+                }
+            }
+        }
+
+        public static string AutoSaveName()
+        {
+            var airline = GameObject.GetInstance()?.HumanAirline;
+            return "Autosave " + SafeFileName(airline?.Profile?.Name ?? "game");
+        }
+
+        /// <summary>Saves under the autosave name if that is switched on and a game is open. Blocks; call when leaving. Returns the name or null.</summary>
+        public static string AutoSaveIfNeeded()
+        {
+            if (!InGame || !AutoSaveOnExit || GameObject.GetInstance()?.HumanAirline == null)
+            {
+                return null;
+            }
+
+            string name = AutoSaveName();
+            try
+            {
+                StopClock();
+                SerializedLoadSaveHelpers.SaveGame(name);
+                return name;
+            }
+            catch (Exception ex)
+            {
+                StartupLog.Write("Autosave failed: " + ex);
+                return null;
+            }
+        }
+
         /// <summary>Stops the clock and waits until the running turn has finished. Call from a background thread.</summary>
         public static void StopClock()
         {
