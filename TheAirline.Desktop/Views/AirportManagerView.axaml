@@ -136,6 +136,41 @@
           </StackPanel>
         </Border>
 
+        <TextBlock Text="Hubs" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <TextBlock Text="{Binding HubText}" Opacity="0.8" />
+        <ItemsControl ItemsSource="{Binding Hubs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding Airline}" /><Run Text="  " /><Run Text="{Binding Type}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding Effect}" Opacity="0.7" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Close hub" Command="{Binding RemoveCommand}" IsVisible="{Binding IsMine}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="Create a hub" Opacity="0.7" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding HubOffers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding Name}" /><Run Text="   " /><Run Text="{Binding Price}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding Effect}" Opacity="0.7" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Reason}" Opacity="0.7" TextWrapping="Wrap" Foreground="Orange" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Create" Command="{Binding BuyCommand}" IsVisible="{Binding CanBuild}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <TextBlock Text="Facilities (needs a contract here)" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
         <ItemsControl ItemsSource="{Binding Facilities}">
           <ItemsControl.ItemTemplate>

@@ -9,6 +9,7 @@ using TheAirline.Models.Airports;
 using TheAirline.Models.General;
 using TheAirline.Models.General.Environment;
 using TheAirline.Models.General.Finances;
+using TheAirline.Models.Routes;
 
 namespace TheAirline.Presentation
 {
@@ -89,6 +90,28 @@ namespace TheAirline.Presentation
     }
 
     /// <summary>Airports tab: your airports (or any airport you search for), gate contracts and facilities.</summary>
+    /// <summary>A hub of some airline at the selected airport.</summary>
+    public class HubItem
+    {
+        public string Airline { get; set; }
+        public string Type { get; set; }
+        public string Effect { get; set; }
+        public bool IsMine { get; set; }
+        public ICommand RemoveCommand { get; set; }
+    }
+
+    /// <summary>A kind of hub the airline could create at the selected airport.</summary>
+    public class HubOffer
+    {
+        public HubType Type { get; set; }
+        public string Name { get; set; }
+        public string Price { get; set; }
+        public string Effect { get; set; }
+        public string Reason { get; set; }
+        public bool CanBuild { get; set; }
+        public ICommand BuyCommand { get; set; }
+    }
+
     public class AirportManagerViewModel : ObservableObject
     {
         private readonly Action _changed;
@@ -126,6 +149,8 @@ namespace TheAirline.Presentation
             EndContractCommand = new RelayCommand(() => ConfirmEnd = true, () => _selectedContract != null);
             ConfirmEndCommand = new RelayCommand(EndContract);
             Terminals = new ObservableCollection<TerminalItem>();
+            Hubs = new ObservableCollection<HubItem>();
+            HubOffers = new ObservableCollection<HubOffer>();
             TerminalGateChoices = new List<int> { 5, 10, 15, 20, 30, 40, 50 };
             BuildTerminalCommand = new RelayCommand(AskBuildTerminal, () => _selected != null);
             ConfirmPendingCommand = new RelayCommand(
@@ -144,6 +169,11 @@ namespace TheAirline.Presentation
 
         public ObservableCollection<AirportItem> Airports { get; }
         public ObservableCollection<ContractItem> Contracts { get; }
+        public ObservableCollection<HubItem> Hubs { get; }
+        public ObservableCollection<HubOffer> HubOffers { get; }
+        public string HubText { get; private set; }
+        public bool HasHubs => Hubs.Count > 0;
+        public bool HasHubOffers => HubOffers.Count > 0;
         public ObservableCollection<GateSaleOffer> GateOffers { get; } = new ObservableCollection<GateSaleOffer>();
         public bool HasGateOffers => GateOffers.Count > 0;
         public string GateOffersText { get; private set; }
@@ -498,9 +528,15 @@ namespace TheAirline.Presentation
             Facilities.Clear();
             GateChoices.Clear();
             Terminals.Clear();
+            Hubs.Clear();
+            HubOffers.Clear();
 
             if (_selected == null)
             {
+                HubText = "";
+                OnPropertyChanged(nameof(HubText));
+                OnPropertyChanged(nameof(HasHubs));
+                OnPropertyChanged(nameof(HasHubOffers));
                 Title = Info = GateSummary = "";
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(Info));
@@ -594,9 +630,158 @@ namespace TheAirline.Presentation
                     });
             }
 
+            LoadHubs(airport);
+
             OnPropertyChanged(nameof(Title));
             OnPropertyChanged(nameof(Info));
             OnPropertyChanged(nameof(GateSummary));
+        }
+
+        public static string HubEffect(HubType.TypeOfHub type)
+        {
+            switch (type)
+            {
+                case HubType.TypeOfHub.Hub: return "+20% passenger demand on flights to this airport";
+                case HubType.TypeOfHub.RegionalHub: return "+20% demand on flights from the same world region";
+                case HubType.TypeOfHub.FocusCity: return "+15% demand on domestic flights";
+                case HubType.TypeOfHub.FortressHub: return "+30% passenger demand on flights to this airport";
+                default: return "";
+            }
+        }
+
+        // why the airline can't create this kind of hub here, or null when it can (the same rules as the game)
+        private static string HubReason(Airline airline, Airport airport, HubType type, double price)
+        {
+            if (airport.HasHub(airline))
+            {
+                return "You already have a hub here.";
+            }
+
+            if ((airport.GetCurrentAirportFacility(airline, AirportFacility.FacilityType.Service)?.TypeLevel ?? 0) <= 0)
+            {
+                return "Needs a service center of yours here (Facilities).";
+            }
+
+            if (airline.Money <= price)
+            {
+                return "You need more than " + Money(price) + ".";
+            }
+
+            var terminalType = airline.AirlineRouteFocus == Route.RouteType.Cargo ? Terminal.TerminalType.Cargo : Terminal.TerminalType.Passenger;
+            double allGates = airport.Terminals.GetNumberOfGates(terminalType);
+            double percent = allGates > 0 ? 100.0 * airport.Terminals.GetNumberOfGates(airline) / allGates : 0;
+            int limit = (int) airline.GetAirlineValue() + 1;
+            int total = airline.GetHubs().Count;
+
+            switch (type.Type)
+            {
+                case HubType.TypeOfHub.RegionalHub:
+                    if (airport.Profile.Size != GeneralHelpers.Size.Large && airport.Profile.Size != GeneralHelpers.Size.Medium)
+                        return "Only at medium or large airports (not smaller or the very biggest ones).";
+                    if (airport.GetHubs().Count >= 7)
+                        return "This airport already has the most hubs it can take (7).";
+                    break;
+                case HubType.TypeOfHub.FortressHub:
+                    if (airport.Profile.Size <= GeneralHelpers.Size.Medium)
+                        return "Only at large airports.";
+                    if (percent <= 70)
+                        return "You need more than 70% of the gates here (you have " + (int) percent + "%).";
+                    if (total >= limit)
+                        return "You have as many hubs as your airline value allows (" + limit + ").";
+                    break;
+                case HubType.TypeOfHub.Hub:
+                    if (percent <= 20)
+                        return "You need more than 20% of the gates here (you have " + (int) percent + "%).";
+                    if (total >= limit)
+                        return "You have as many hubs as your airline value allows (" + limit + ").";
+                    if (airport.GetHubs(HubType.TypeOfHub.Hub).Count >= (int) airport.Profile.Size)
+                        return "This airport has no room for another plain hub.";
+                    break;
+            }
+
+            return AirlineHelpers.CanCreateHub(airline, airport, type) ? null : "You can't create this kind of hub here.";
+        }
+
+        private void LoadHubs(Airport airport)
+        {
+            var airline = Human;
+            foreach (var h in airport.GetHubs())
+            {
+                var hub = h;
+                bool mine = hub.Airline == airline;
+                Hubs.Add(
+                    new HubItem
+                    {
+                        Airline = hub.Airline.Profile.Name,
+                        Type = hub.Type.Name,
+                        Effect = HubEffect(hub.Type.Type),
+                        IsMine = mine,
+                        RemoveCommand = mine ? new RelayCommand(() => AskRemoveHub(airport, hub)) : null
+                    });
+            }
+
+            foreach (var t in HubTypes.GetHubTypes().OrderBy(t => t.Price))
+            {
+                var type = t;
+                double price = AirportHelpers.GetHubPrice(airport, type);
+                string reason = HubReason(airline, airport, type, price);
+                HubOffers.Add(
+                    new HubOffer
+                    {
+                        Type = type,
+                        Name = type.Name,
+                        Price = Money(price),
+                        Effect = HubEffect(type.Type),
+                        Reason = reason,
+                        CanBuild = reason == null,
+                        BuyCommand = new RelayCommand(() => AskCreateHub(airport, type, price))
+                    });
+            }
+
+            HubText = Hubs.Count == 0
+                ? "No airline has a hub here."
+                : airport.HasHub(airline) ? "You have a hub here." : "You have no hub here.";
+            OnPropertyChanged(nameof(HubText));
+            OnPropertyChanged(nameof(HasHubs));
+            OnPropertyChanged(nameof(HasHubOffers));
+        }
+
+        private void AskCreateHub(Airport airport, HubType type, double price)
+        {
+            string reason = HubReason(Human, airport, type, price);
+            if (reason != null)
+            {
+                Status = reason;
+                return;
+            }
+
+            _pending = () =>
+                {
+                    if (HubReason(Human, airport, type, price) != null)
+                    {
+                        return;
+                    }
+
+                    airport.AddHub(new Hub(Human, type));
+                    AirlineHelpers.AddAirlineInvoice(
+                        Human, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Purchases, -price);
+                    Status = type.Name + " created at " + airport.Profile.IATACode + ". " + HubEffect(type.Type) + ".";
+                    LoadDetail();
+                    _changed();
+                };
+            PendingText = string.Format("Create a {0} at {1} for {2}? {3}.", type.Name.ToLower(), airport.Profile.IATACode, Money(price), HubEffect(type.Type));
+        }
+
+        private void AskRemoveHub(Airport airport, Hub hub)
+        {
+            _pending = () =>
+                {
+                    airport.RemoveHub(hub);
+                    Status = "The " + hub.Type.Name.ToLower() + " at " + airport.Profile.IATACode + " was closed (no refund).";
+                    LoadDetail();
+                    _changed();
+                };
+            PendingText = "Close your " + hub.Type.Name.ToLower() + " at " + airport.Profile.IATACode + "? You get no money back.";
         }
 
         private static double TerminalPrice(Airport airport, int gates)

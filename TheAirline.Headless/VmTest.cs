@@ -625,6 +625,37 @@ static class VmTest
                 Console.WriteLine("  cleared: searching=" + dap.IsSearchingDestinations + " advice visible=" + dap.ShowAdvice);
             }
             {
+                Console.WriteLine("HUB TEST");
+                var hm = av2.AirportManager;
+                hm.OnlyMine = false; hm.Search = "ATL";
+                hm.Selected = hm.Airports.First(a => a.Text.StartsWith("ATL"));
+                Console.WriteLine("  " + hm.HubText + " existing=" + string.Join(", ", hm.Hubs.Select(h => h.Airline + " " + h.Type)));
+                foreach (var o in hm.HubOffers) Console.WriteLine("  offer " + o.Name + " " + o.Price + " | " + o.Effect + " | can=" + o.CanBuild + " reason=" + o.Reason);
+                var sc = hm.Facilities.FirstOrDefault(f2 => f2.Name == "Service");
+                if (sc != null && sc.CanBuy && !hm.HubOffers.Any(o => o.CanBuild))
+                {
+                    sc.BuyCommand.Execute(null); Console.WriteLine("  service center: " + hm.Status);
+                    for (int d = 0; d < 40; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                    hm.Selected = hm.Airports.First(a => a.Text.StartsWith("ATL"));
+                    foreach (var o in hm.HubOffers) Console.WriteLine("  offer after service center " + o.Name + " can=" + o.CanBuild + " reason=" + o.Reason);
+                }
+                var ok = hm.HubOffers.FirstOrDefault(o => o.CanBuild);
+                if (ok != null)
+                {
+                    double hm0 = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money;
+                    ok.BuyCommand.Execute(null); Console.WriteLine("  pending: " + hm.PendingText);
+                    hm.ConfirmPendingCommand.Execute(null);
+                    Console.WriteLine("  created: " + hm.Status + " | " + hm.HubText + " | money " + (TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Money - hm0).ToString("0") + " | hubs: " + string.Join(", ", hm.Hubs.Select(h => h.Airline + " " + h.Type)));
+                    Console.WriteLine("  offers now: " + string.Join(" / ", hm.HubOffers.Select(o => o.Name + "=" + o.CanBuild + ":" + o.Reason)));
+                    av2.Refresh();
+                    Console.WriteLine("  map hubs: " + string.Join(",", av2.Map.Places.Where(p => p.IsHub).Select(p => p.Label)));
+                    var hmine = hm.Hubs.First(h => h.IsMine);
+                    hmine.RemoveCommand.Execute(null); Console.WriteLine("  pending: " + hm.PendingText);
+                    hm.ConfirmPendingCommand.Execute(null);
+                    Console.WriteLine("  closed: " + hm.Status + " | " + hm.HubText);
+                }
+            }
+            {
                 Console.WriteLine("MAP TEST");
                 var map = av2.Map;
                 map.Reload();
