@@ -26,7 +26,7 @@ namespace TheAirline.Desktop.Views
         private double _cx = 0.5, _cy = 0.4;
         private bool _fitted;
         private Point _down, _last;
-        private bool _dragging, _moved;
+        private bool _dragging, _moved, _leftDrag;
         private string _hoverKey;
 
         private static readonly IBrush Sea = new SolidColorBrush(Color.Parse("#b5d0d0"));
@@ -103,11 +103,67 @@ namespace TheAirline.Desktop.Views
         }
 
         private double MinScale => Math.Max(Bounds.Width, Bounds.Height);
-        private double MaxScale => Math.Max(MinScale, 2048 * 3);
+        private double MaxScale => Math.Max(MinScale, 2048 * 6);
 
         private Point ToScreen(double u, double v)
         {
             return new Point(Bounds.Width / 2 + (u - _cx) * _scale, Bounds.Height / 2 + (v - _cy) * _scale);
+        }
+
+        /// <summary>Zooms around the middle of the view (buttons and keys), or around a point.</summary>
+        public void ZoomBy(double factor, Point? around = null)
+        {
+            Point p = around ?? new Point(Bounds.Width / 2, Bounds.Height / 2);
+            double u = _cx + (p.X - Bounds.Width / 2) / _scale, v = _cy + (p.Y - Bounds.Height / 2) / _scale;
+            _scale = Math.Max(MinScale, Math.Min(MaxScale, _scale * factor));
+            _cx = u - (p.X - Bounds.Width / 2) / _scale;
+            _cy = v - (p.Y - Bounds.Height / 2) / _scale;
+            Clamp();
+            InvalidateVisual();
+        }
+
+        public void PanBy(double dx, double dy)
+        {
+            _cx += dx / _scale;
+            _cy += dy / _scale;
+            Clamp();
+            InvalidateVisual();
+        }
+
+        /// <summary>Back to the view that fits the airline's network.</summary>
+        public void FitView()
+        {
+            Fit();
+            InvalidateVisual();
+        }
+
+        /// <summary>Centres the view on the selected aircraft and zooms in a little if the view is wide.</summary>
+        public void CenterOnSelected()
+        {
+            if (_vm?.Selected == null) return;
+            _cx = _vm.Selected.U;
+            _cy = _vm.Selected.V;
+            if (_scale < MinScale * 3) _scale = MinScale * 3;
+            Clamp();
+            InvalidateVisual();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            double step = 60;
+            switch (e.Key)
+            {
+                case Key.Left: PanBy(-step, 0); break;
+                case Key.Right: PanBy(step, 0); break;
+                case Key.Up: PanBy(0, -step); break;
+                case Key.Down: PanBy(0, step); break;
+                case Key.OemPlus: case Key.Add: ZoomBy(1.25); break;
+                case Key.OemMinus: case Key.Subtract: ZoomBy(0.8); break;
+                case Key.Home: FitView(); break;
+                default: return;
+            }
+            e.Handled = true;
         }
 
         private void Clamp()
@@ -259,7 +315,16 @@ namespace TheAirline.Desktop.Views
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
-            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+            var props = e.GetCurrentPoint(this).Properties;
+            if (!props.IsLeftButtonPressed && !props.IsMiddleButtonPressed && !props.IsRightButtonPressed) return;
+            Focus();
+            _leftDrag = props.IsLeftButtonPressed;
+            if (e.ClickCount == 2 && _leftDrag)
+            {
+                ZoomBy(2, e.GetPosition(this));
+                e.Handled = true;
+                return;
+            }
             _dragging = true;
             _moved = false;
             _down = _last = e.GetPosition(this);
@@ -295,7 +360,7 @@ namespace TheAirline.Desktop.Views
             if (!_dragging) return;
             _dragging = false;
             e.Pointer.Capture(null);
-            if (!_moved && _vm != null)
+            if (!_moved && _vm != null && _leftDrag)
             {
                 Point p = e.GetPosition(this);
                 var hit = _vm.Aircraft.ToList()

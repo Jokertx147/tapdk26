@@ -9,13 +9,17 @@
       <CheckBox Content="Airports" IsChecked="{Binding ShowAirports}" />
       <CheckBox Content="Aircraft" IsChecked="{Binding ShowAircraft}" />
       <TextBlock Text="{Binding Caption}" VerticalAlignment="Center" Opacity="0.7" />
+      <Button Content="+" Click="ZoomIn" ToolTip.Tip="Zoom in" MinWidth="32" />
+      <Button Content="-" Click="ZoomOut" ToolTip.Tip="Zoom out" MinWidth="32" />
+      <Button Content="Fit network" Click="FitNetwork" ToolTip.Tip="Show the whole airline network" />
+      <Button Content="Find selected" Click="FindSelected" ToolTip.Tip="Centre on the selected aircraft" />
     </StackPanel>
     <Border Grid.Row="1" BorderBrush="#555555" BorderThickness="1" MinHeight="300">
-      <v:WorldMapControl DataContext="{Binding}" />
+      <v:WorldMapControl x:Name="MapControl" DataContext="{Binding}" />
     </Border>
     <StackPanel Grid.Row="2" Margin="0,6,0,0" Spacing="2">
       <TextBlock Text="{Binding SelectedText}" TextWrapping="Wrap" />
-      <TextBlock Text="Drag to move, scroll to zoom. Yellow arrows are aircraft in the air, grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="Drag to move (arrow keys work too), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air, grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
 </UserControl>
