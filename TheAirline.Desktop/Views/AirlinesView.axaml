@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
              x:Class="TheAirline.Desktop.Views.AirlinesView">
   <Grid RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
     <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
@@ -27,7 +28,10 @@
         <ListBox.ItemTemplate>
           <DataTemplate>
             <Grid ColumnDefinitions="2.4*,0.5*,1.6*,0.6*,0.6*,0.7*,0.8*,1.6*">
-              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=64}" Width="36" Height="20" Stretch="Uniform" />
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              </StackPanel>
               <TextBlock Grid.Column="1" Text="{Binding Code}" />
               <TextBlock Grid.Column="2" Text="{Binding Country}" TextTrimming="CharacterEllipsis" />
               <TextBlock Grid.Column="3" Text="{Binding Fleet}" />
@@ -43,6 +47,7 @@
 
     <ScrollViewer Grid.Column="2" IsVisible="{Binding HasProfile}">
       <StackPanel Spacing="4">
+        <Image Source="{Binding ProfileLogo, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=240}" Height="70" MaxWidth="200" Stretch="Uniform" HorizontalAlignment="Left" />
         <TextBlock Text="{Binding ProfileTitle}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
         <ItemsControl ItemsSource="{Binding Facts}">
           <ItemsControl.ItemTemplate>

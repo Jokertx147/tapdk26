@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
+             x:Class="TheAirline.Desktop.Views.ProfileView">
+  <Grid ColumnDefinitions="420,16,*" Margin="0,10,0,0">
+
+    <!-- profile fields -->
+    <ScrollViewer>
+      <StackPanel Spacing="8" Margin="0,0,8,0">
+        <Border Background="#262626" CornerRadius="6" Padding="12">
+          <Grid ColumnDefinitions="Auto,12,*">
+            <Border Width="120" Height="80" Background="#1c1c1c" CornerRadius="4">
+              <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=240}" Stretch="Uniform" Margin="6" />
+            </Border>
+            <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Info}" Opacity="0.7" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <TextBlock Text="Airline name" FontWeight="SemiBold" />
+        <TextBox Text="{Binding Name}" MaxLength="60" />
+
+        <TextBlock Text="CEO" FontWeight="SemiBold" />
+        <TextBox Text="{Binding CEO}" MaxLength="60" Watermark="your name" />
+
+        <TextBlock Text="Airline color" FontWeight="SemiBold" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Border Width="28" Height="28" CornerRadius="4" Background="{Binding ColorPreview}" BorderBrush="#555" BorderThickness="1" />
+          <TextBox Text="{Binding Color}" Width="140" Watermark="#1565C0" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding PickedColor}" Background="Transparent">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Border Width="22" Height="22" CornerRadius="3" Background="{Binding}" BorderBrush="#555" BorderThickness="1" ToolTip.Tip="{Binding}" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock Text="Main business" FontWeight="SemiBold" />
+        <ComboBox ItemsSource="{Binding Focuses}" SelectedItem="{Binding Focus}" MinWidth="220" />
+
+        <TextBlock Text="About the airline" FontWeight="SemiBold" />
+        <TextBox Text="{Binding Narrative}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" MaxLength="1000" Watermark="a few lines about your airline" />
+
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+          <Button Content="Save profile" Command="{Binding SaveCommand}" />
+          <Button Content="Undo changes" Command="{Binding UndoCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- logo picker -->
+    <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,*,Auto">
+      <TextBlock Text="Logo" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,6">
+        <Button Content="Use my own picture..." Click="OnPickFile" />
+        <Button Content="Back to the starting logo" Command="{Binding ResetLogoCommand}" />
+      </StackPanel>
+      <StackPanel Grid.Row="2" Spacing="4" Margin="0,0,0,6">
+        <TextBox Text="{Binding LogoFilter}" Watermark="or search the game's logos by airline code" />
+        <TextBlock Text="{Binding LogoCount}" Opacity="0.7" />
+      </StackPanel>
+      <ListBox Grid.Row="3" ItemsSource="{Binding Logos}" SelectedItem="{Binding SelectedLogo}" DoubleTapped="OnLogoDoubleTapped">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Width="110" Spacing="2">
+              <Border Height="60" Background="#1c1c1c" CornerRadius="4">
+                <Image Source="{Binding Path, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=200}" Stretch="Uniform" Margin="4" />
+              </Border>
+              <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontSize="11" Opacity="0.8" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <Button Grid.Row="4" Content="Use the selected logo" Command="{Binding UseLogoCommand}" Margin="0,8,0,0" />
+    </Grid>
+  </Grid>
+</UserControl>

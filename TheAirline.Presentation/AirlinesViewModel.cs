@@ -15,6 +15,7 @@ namespace TheAirline.Presentation
         {
             Airline = airline;
             Name = airline.Profile.Name;
+            LogoPath = TheAirline.Helpers.AirlineProfileService.GetLogo(airline);
             Code = airline.Profile.IATACode;
             Country = airline.Profile.Country?.Name ?? "";
             Fleet = airline.Fleet.Count;
@@ -35,6 +36,7 @@ namespace TheAirline.Presentation
 
         public Airline Airline { get; }
         public string Name { get; }
+        public string LogoPath { get; }
         public string Code { get; }
         public string Country { get; }
         public int Fleet { get; }
@@ -108,6 +110,7 @@ namespace TheAirline.Presentation
         public ObservableCollection<string> FleetLines { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> RouteLines { get; } = new ObservableCollection<string>();
         public bool HasProfile => _selected != null;
+        public string ProfileLogo => _selected?.LogoPath;
         public string ProfileTitle => _selected == null ? "" : _selected.Name + (_selected.IsHuman ? " (you)" : "");
 
         private static string Money(double v)
@@ -163,6 +166,7 @@ namespace TheAirline.Presentation
 
             OnPropertyChanged(nameof(HasProfile));
             OnPropertyChanged(nameof(ProfileTitle));
+            OnPropertyChanged(nameof(ProfileLogo));
         }
 
         private List<AirlineRow> _all = new List<AirlineRow>();

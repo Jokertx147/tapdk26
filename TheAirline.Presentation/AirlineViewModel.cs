@@ -119,6 +119,7 @@ namespace TheAirline.Presentation
             License = new LicenseViewModel(OnGameChanged);
             Demand = new DemandViewModel(OnGameChanged);
             Ratings = new RatingsViewModel();
+            Profile = new ProfileViewModel(OnGameChanged);
             AirportManager.DemandRequested = a =>
                 {
                     Demand.ShowAirport(a);
@@ -231,6 +232,16 @@ namespace TheAirline.Presentation
         public LicenseViewModel License { get; }
         public DemandViewModel Demand { get; }
         public RatingsViewModel Ratings { get; }
+        public ProfileViewModel Profile { get; }
+
+        private string _logoPath;
+
+        /// <summary>The airline's logo file for the top bar, or null.</summary>
+        public string LogoPath
+        {
+            get { return _logoPath; }
+            private set { SetProperty(ref _logoPath, value); }
+        }
 
         private int _airportsTab;
 
@@ -302,6 +313,7 @@ namespace TheAirline.Presentation
             License?.Reload();
             Demand?.Reload();
             Ratings?.Reload();
+            if (GameObject.GetInstance()?.HumanAirline != null) LogoPath = AirlineProfileService.GetLogo(GameObject.GetInstance().HumanAirline);
             Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();
@@ -318,7 +330,12 @@ namespace TheAirline.Presentation
         public ICommand SaveCommand { get; }
         public ICommand MainMenuCommand { get; }
 
-        public string AirlineName { get; private set; }
+        private string _airlineName;
+        public string AirlineName
+        {
+            get { return _airlineName; }
+            private set { SetProperty(ref _airlineName, value); }
+        }
 
         public string Date
         {
@@ -414,6 +431,7 @@ namespace TheAirline.Presentation
                 return;
             }
 
+            if (AirlineName != airline.Profile.Name || _logoPath == null) LogoPath = AirlineProfileService.GetLogo(airline);
             AirlineName = airline.Profile.Name;
             Date = DateFormatter.Date(game.GameTime);
             if (_financeDate != Date)

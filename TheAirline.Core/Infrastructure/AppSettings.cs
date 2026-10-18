@@ -97,7 +97,11 @@ namespace TheAirline.Infrastructure
 
         public static string GetCommonApplicationDataPath()
         {
-            var path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/theairlineproject/";
+            // Documents can be missing on Linux; then use the home folder instead of the root of the disk
+            string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (string.IsNullOrEmpty(docs)) docs = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrEmpty(docs)) docs = Path.GetTempPath();
+            var path = docs + "/theairlineproject/";
 
             if (!Directory.Exists(path))
             {

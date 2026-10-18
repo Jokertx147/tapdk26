@@ -1,4 +1,5 @@
 ﻿using System;
+using TheAirline.Helpers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -148,6 +149,12 @@ namespace TheAirline.Models.Airlines
                     l =>
                     l.FromYear <= GameObject.GetInstance().GameTime.Year
                     && l.ToYear >= GameObject.GetInstance().GameTime.Year);
+
+            if (ret == null)
+            {
+                return AirlineProfileService.GetLogo(Airlines.GetAllAirlines().Find(a => a.Profile == this))
+                       ?? $"{AppSettings.GetDataPath()}/graphics/airlinelogos/default.png";
+            }
 
             if (!File.Exists(ret.Path))
             {

@@ -6,6 +6,8 @@
     <!-- top bar: airline, date, money, controls -->
     <Border Background="#262626" CornerRadius="6" Padding="14" Margin="0,0,0,12">
       <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+        <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=160}" Height="48" MaxWidth="120" Stretch="Uniform" VerticalAlignment="Center" />
         <StackPanel Spacing="2">
           <TextBlock Text="{Binding AirlineName}" FontSize="22" FontWeight="Bold" />
           <StackPanel Orientation="Horizontal" Spacing="24">
@@ -13,6 +15,7 @@
             <TextBlock Text="{Binding Money}" FontSize="16" />
             <TextBlock Text="{Binding Status}" Opacity="0.7" VerticalAlignment="Center" />
           </StackPanel>
+        </StackPanel>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" MinWidth="70" HorizontalContentAlignment="Center" />
@@ -84,6 +87,9 @@
             </TabItem>
             <TabItem Header="Finances">
               <v:FinanceView DataContext="{Binding Finance}" />
+            </TabItem>
+            <TabItem Header="Profile">
+              <v:ProfileView DataContext="{Binding Profile}" />
             </TabItem>
             <TabItem Header="Ratings">
               <v:RatingsView DataContext="{Binding Ratings}" />
