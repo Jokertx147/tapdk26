@@ -1230,6 +1230,55 @@ static class VmTest
                 }
             }
             {
+                Console.WriteLine("PILOT PAY AND MORALE TEST");
+                var pg = TheAirline.Models.General.GameObject.GetInstance();
+                var pa = pg.HumanAirline;
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(pa, pg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 50000000);
+                var pmv = new TheAirline.Presentation.PilotsViewModel(() => { });
+                Console.WriteLine("  " + pmv.MoraleText + " | " + pmv.PayText);
+                if (pa.Pilots.Count == 0) { Console.WriteLine("  FAILED no pilots"); Environment.Exit(1); }
+                double pay100 = TheAirline.Helpers.PilotMoraleService.Payroll(pa, 100), pay130 = TheAirline.Helpers.PilotMoraleService.Payroll(pa, 130);
+                Console.WriteLine("  payroll 100%: " + pay100.ToString("N0") + " 130%: " + pay130.ToString("N0"));
+                if (pay130 <= pay100 * 1.25) { Console.WriteLine("  FAILED payroll scales"); Environment.Exit(1); }
+                pmv.PayLevel = pmv.PayLevels.First(c => c.Value == 130);
+                Console.WriteLine("  set pay: " + pmv.Status + " | percent " + pa.PilotPayPercent);
+                if (pa.PilotPayPercent != 130) { Console.WriteLine("  FAILED set pay"); Environment.Exit(1); }
+                var anyPilot = pa.Pilots[0];
+                double before = TheAirline.Helpers.AirlineHelpers.GetPilotSalary(pa, anyPilot);
+                pa.PilotPayPercent = 100;
+                double after = TheAirline.Helpers.AirlineHelpers.GetPilotSalary(pa, anyPilot);
+                Console.WriteLine("  one pilot salary 130%: " + before.ToString("N2") + " 100%: " + after.ToString("N2"));
+                if (Math.Abs(before / after - 1.3) > 0.001) { Console.WriteLine("  FAILED salary factor"); Environment.Exit(1); }
+                //low pay -> morale falls and pilots quit
+                pa.PilotPayPercent = 70;
+                foreach (var pp in pa.Pilots.ToList()) pp.Morale = 40;
+                int before0 = pa.Pilots.Count; int quits = 0;
+                for (int mth = 0; mth < 12; mth++) quits += TheAirline.Helpers.PilotMoraleService.ProcessMonth(pa).Count;
+                Console.WriteLine("  12 months at 70%: avg morale " + TheAirline.Helpers.PilotMoraleService.Average(pa).ToString("0.0") + ", pilots " + before0 + " -> " + pa.Pilots.Count + ", quit " + quits);
+                if (quits == 0 || pa.Pilots.Count != before0 - quits) { Console.WriteLine("  FAILED nobody quit"); Environment.Exit(1); }
+                //high pay -> morale rises
+                pa.PilotPayPercent = 130;
+                foreach (var pp in pa.Pilots.ToList()) pp.Morale = 40;
+                for (int mth = 0; mth < 12; mth++) TheAirline.Helpers.PilotMoraleService.ProcessMonth(pa);
+                double hi = TheAirline.Helpers.PilotMoraleService.Average(pa);
+                Console.WriteLine("  12 months at 130%: avg morale " + hi.ToString("0.0") + " (" + TheAirline.Helpers.PilotMoraleService.MoodText(hi) + ")");
+                if (hi <= 55) { Console.WriteLine("  FAILED morale should rise"); Environment.Exit(1); }
+                //bonus
+                pa.PilotPayPercent = 100; pa.LastPilotBonus = DateTime.MinValue;
+                foreach (var pp in pa.Pilots.ToList()) pp.Morale = 50;
+                pmv.Reload();
+                double pm0 = pa.Money;
+                pmv.BonusCommand.Execute(null);
+                Console.WriteLine("  bonus asks: " + pmv.PendingText);
+                pmv.ConfirmCommand.Execute(null);
+                Console.WriteLine("  bonus: " + pmv.Status + " | cost " + (pm0 - pa.Money).ToString("N0") + " | avg morale " + TheAirline.Helpers.PilotMoraleService.Average(pa).ToString("0"));
+                if (pa.Money >= pm0 || TheAirline.Helpers.PilotMoraleService.Average(pa) < 64) { Console.WriteLine("  FAILED bonus"); Environment.Exit(1); }
+                pmv.BonusCommand.Execute(null);
+                Console.WriteLine("  second bonus at once: " + pmv.Status);
+                if (pmv.HasPending) { Console.WriteLine("  FAILED bonus cooldown"); Environment.Exit(1); }
+                pa.PilotPayPercent = 100;
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

@@ -2705,6 +2705,7 @@ namespace TheAirline.Helpers
                 {
                     MaintenanceService.ProcessMonth(airline);
                     PilotSupply.TopUp(airline);
+                    PilotMoraleService.ProcessMonth(airline);
                 }
 
                 RandomEvent.CheckExpired();

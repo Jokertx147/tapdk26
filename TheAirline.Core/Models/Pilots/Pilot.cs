@@ -48,6 +48,10 @@ namespace TheAirline.Models.Pilots
         [Versioning("aircrafts", Version = 3)]
         public List<string> Aircrafts { get; set; }
 
+        /// <summary>0 to 100: how happy the pilot is at his airline.</summary>
+        [Versioning("morale")]
+        public double Morale { get; set; } = 70;
+
         [Versioning("airline")]
         public Airline Airline { get; set; }
 

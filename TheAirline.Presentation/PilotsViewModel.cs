@@ -21,6 +21,8 @@ namespace TheAirline.Presentation
             Details = string.Format(
                 "age {0}  |  {1}  |  {2}",
                 pilot.Profile.Age, pilot.Rating?.Name, string.Join(", ", pilot.Aircrafts ?? new List<string>()));
+            Mood = pilot.Airline == null ? null : string.Format("morale {0:0} ({1})", pilot.Morale, PilotMoraleService.MoodText(pilot.Morale));
+            IsUnhappy = pilot.Airline != null && pilot.Morale < 35;
             Assignment = (pilot.Airliner == null ? "not assigned" : "flies " + pilot.Airliner.Name)
                          + (pilot.Training != null ? "  |  training for the " + pilot.Training.AirlinerFamily + " until " + DateFormatter.Date(pilot.Training.EndDate) : "");
         }
@@ -34,6 +36,8 @@ namespace TheAirline.Presentation
         public string Name { get; }
         public string Details { get; }
         public string Assignment { get; }
+        public string Mood { get; }
+        public bool IsUnhappy { get; }
     }
 
     public class CrewChoice
@@ -76,6 +80,12 @@ namespace TheAirline.Presentation
             UnassignCommand = new RelayCommand(UnassignSelected);
             ConfirmCommand = new RelayCommand(() => { var a = _pending; SetPending(null, null); a?.Invoke(); });
             CancelCommand = new RelayCommand(() => SetPending(null, null));
+            PayLevels = new ObservableCollection<NamedChoice<int>>();
+            for (int pct = PilotMoraleService.MinPay; pct <= PilotMoraleService.MaxPay; pct += 10)
+            {
+                PayLevels.Add(new NamedChoice<int> { Name = pct + "%" + (pct == 100 ? " (market)" : ""), Value = pct });
+            }
+            BonusCommand = new RelayCommand(AskBonus);
             Reload();
         }
 
@@ -220,6 +230,73 @@ namespace TheAirline.Presentation
         }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
+        public ICommand BonusCommand { get; }
+
+        public ObservableCollection<NamedChoice<int>> PayLevels { get; }
+        public string PayText { get; private set; }
+        public string MoraleText { get; private set; }
+        private NamedChoice<int> _payLevel;
+
+        /// <summary>What the airline pays its pilots compared to the market. Higher pay lifts morale and costs more every month.</summary>
+        public NamedChoice<int> PayLevel
+        {
+            get { return _payLevel; }
+            set
+            {
+                if (value == null || value == _payLevel) return;
+                var airline = GameObject.GetInstance().HumanAirline;
+                _payLevel = value;
+                OnPropertyChanged(nameof(PayLevel));
+                if (airline == null || (int) Math.Round(airline.PilotPayPercent <= 0 ? 100 : airline.PilotPayPercent) == value.Value) return;
+                string m;
+                PilotMoraleService.SetPay(airline, value.Value, out m);
+                Status = m;
+                LoadPay();
+                _changed?.Invoke();
+            }
+        }
+
+        private void LoadPay()
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            if (airline == null) return;
+            int pct = (int) Math.Round(airline.PilotPayPercent <= 0 ? 100 : airline.PilotPayPercent);
+            pct = Math.Max(PilotMoraleService.MinPay, Math.Min(PilotMoraleService.MaxPay, pct / 10 * 10));
+            _payLevel = PayLevels.FirstOrDefault(c => c.Value == pct) ?? PayLevels[0];
+            OnPropertyChanged(nameof(PayLevel));
+            double now = PilotMoraleService.Payroll(airline, pct);
+            double market = PilotMoraleService.Payroll(airline, 100);
+            PayText = string.Format("Monthly pilot pay: {0} (market level: {1}). Each month morale drifts toward a target: higher pay raises it, pilots without an aircraft lose heart, long service helps.", Money(now), Money(market));
+            var pilots = airline.Pilots.ToList();
+            int low = pilots.Count(p => p.Morale < 35);
+            MoraleText = pilots.Count == 0
+                ? "You have no pilots."
+                : string.Format("Average morale {0:0} ({1}).{2}", PilotMoraleService.Average(airline), PilotMoraleService.MoodText(PilotMoraleService.Average(airline)), low > 0 ? " " + low + " pilot(s) are close to quitting." : "");
+            OnPropertyChanged(nameof(PayText));
+            OnPropertyChanged(nameof(MoraleText));
+        }
+
+        private void AskBonus()
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            if (airline == null) return;
+            int wait = PilotMoraleService.DaysToNextBonus(airline);
+            if (wait > 0)
+            {
+                Status = "A bonus was paid recently. You can pay the next one in " + wait + " days.";
+                return;
+            }
+            SetPending(
+                string.Format("Pay every pilot a one-month bonus? It costs {0} and lifts morale by 15. You can do it once every {1} days.", Money(PilotMoraleService.BonusCost(airline)), PilotMoraleService.BonusWaitDays),
+                () =>
+                {
+                    string m;
+                    PilotMoraleService.PayBonus(airline, out m);
+                    Status = m;
+                    Reload();
+                    _changed?.Invoke();
+                });
+        }
 
         /// <summary>Pilots who can be sent to training for another aircraft family: by default those without an aircraft.</summary>
         public ObservableCollection<NamedChoice<Pilot>> TrainPilots { get; }
@@ -433,6 +510,7 @@ namespace TheAirline.Presentation
             LoadAvailable();
             LoadTrainPilots();
             LoadAssignPilots();
+            LoadPay();
             OnPropertyChanged(nameof(AutoAssign));
             (HireCrewCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }

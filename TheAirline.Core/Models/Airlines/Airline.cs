@@ -200,6 +200,13 @@ namespace TheAirline.Models.Airlines
         [Versioning("autoassignpilots")]
         public bool AutoAssignPilots { get; set; }
 
+        /// <summary>What the airline pays its pilots, as a percent of the market salary (100 = market).</summary>
+        [Versioning("pilotpaypercent")]
+        public double PilotPayPercent { get; set; } = 100;
+
+        [Versioning("lastpilotbonus")]
+        public DateTime LastPilotBonus { get; set; }
+
         [Versioning("flightschools")]
         public List<FlightSchool> FlightSchools { get; set; }
 
@@ -405,6 +412,7 @@ namespace TheAirline.Models.Airlines
             {
                 Pilots.Add(pilot);
                 pilot.Airline = this;
+                pilot.Morale = Math.Max(pilot.Morale, 65);
             }
         }
 

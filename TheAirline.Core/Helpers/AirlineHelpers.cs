@@ -1036,7 +1036,7 @@ namespace TheAirline.Helpers
 
             double pilotExperienceFee = pilot.Aircrafts.Count*GeneralHelpers.GetInflationPrice(20.3);
 
-            return pilot.Rating.CostIndex*pilotBasePrice + pilotExperienceFee;
+            return (pilot.Rating.CostIndex*pilotBasePrice + pilotExperienceFee)*PilotMoraleService.PayFactor(airline);
         }
 
         private enum RouteOkStatus

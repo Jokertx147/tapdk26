@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="TheAirline.Desktop.Views.PilotsView">
   <ScrollViewer>
-  <Grid RowDefinitions="Auto,320,Auto,Auto,Auto" ColumnDefinitions="*,12,*" Margin="0,10,0,0">
+  <Grid RowDefinitions="Auto,320,Auto,Auto,Auto,Auto" ColumnDefinitions="*,12,*" Margin="0,10,0,0">
     <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
       <TextBlock Text="Pilots for" VerticalAlignment="Center" />
       <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}" MinWidth="320" />
@@ -36,6 +36,10 @@
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
               </StackPanel>
               <TextBlock Text="{Binding Assignment}" Opacity="0.7" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border IsVisible="{Binding IsUnhappy}" Background="#B03030" CornerRadius="4" Padding="6,1" VerticalAlignment="Center"><TextBlock Text="UNHAPPY" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                <TextBlock Text="{Binding Mood}" Opacity="0.7" />
+              </StackPanel>
             </StackPanel>
           </DataTemplate>
         </ListBox.ItemTemplate>
@@ -48,6 +52,19 @@
     </Grid>
 
     <Border Grid.Row="3" Grid.ColumnSpan="3" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Pay and morale" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding MoraleText}" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="Pay level" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding PayLevels}" SelectedItem="{Binding PayLevel}" MinWidth="160" />
+          <Button Content="Pay a bonus to all pilots" Command="{Binding BonusCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding PayText}" Opacity="0.7" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="4" Grid.ColumnSpan="3" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
       <StackPanel Spacing="8">
         <TextBlock Text="Assign pilots to aircraft" FontWeight="SemiBold" />
         <CheckBox Content="Assign pilots automatically (new graduates, pilots back from training, pilots without an aircraft)" IsChecked="{Binding AutoAssign}" />
@@ -63,7 +80,7 @@
       </StackPanel>
     </Border>
 
-    <Border Grid.Row="4" Grid.ColumnSpan="3" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
+    <Border Grid.Row="5" Grid.ColumnSpan="3" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
       <StackPanel Spacing="8">
         <TextBlock Text="Train a pilot for another aircraft family" FontWeight="SemiBold" />
         <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
