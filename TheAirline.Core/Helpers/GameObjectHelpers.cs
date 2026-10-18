@@ -1580,10 +1580,6 @@ namespace TheAirline.Helpers
 
                     airline.AddPilot(pilot);
                     pilot.AirlineSignedDate = GameObject.GetInstance().GameTime;
-                    if (airline.IsHuman)
-                    {
-                        FlightSchoolService.AssignIdlePilots(airline);
-                    }
 
                     if (airline.IsHuman)
                     {
@@ -1625,6 +1621,12 @@ namespace TheAirline.Helpers
                     }
 
                     pilot.Training = null;
+                }
+
+                //new graduates and pilots back from training go to aircraft that need a pilot, when the player wants it
+                if (airline.IsHuman && airline.AutoAssignPilots)
+                {
+                    FlightSchoolService.AssignIdlePilots(airline);
                 }
             } //);
             //checks for mergers

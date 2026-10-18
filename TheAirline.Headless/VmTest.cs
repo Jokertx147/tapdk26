@@ -1099,6 +1099,31 @@ static class VmTest
                 typeof(TheAirline.Helpers.GameObjectHelpers).GetMethod("DoDailyUpdate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, null);
                 Console.WriteLine("  after training: flies " + string.Join(",", graduate.Aircrafts) + " | training " + (graduate.Training == null ? "done" : "still on"));
                 if (again2 || graduate.Training != null || !graduate.Aircrafts.Contains(tf)) { Console.WriteLine("  FAILED training end"); Environment.Exit(1); }
+
+                // assigning pilots
+                var manned = hs.Fleet.First(f0 => f0.Pilots.Count > 0);
+                var q = manned.Pilots[0];
+                pvm.AutoAssign = false;
+                string ma;
+                bool un = TheAirline.Helpers.FlightSchoolService.UnassignPilot(hs, q, out ma);
+                Console.WriteLine("  unassign: " + un + " | " + ma);
+                pvm.Reload();
+                pvm.AssignPilot = pvm.AssignPilots.First(c => c.Value == q);
+                Console.WriteLine("  assign: " + pvm.AssignPilots.Count + " pilots, first: " + pvm.AssignPilots[0].Name + " | targets " + string.Join(";", pvm.AssignTargets.Select(c => c.Name)) + " | " + pvm.AssignHint);
+                if (!un || q.Airliner != null || !pvm.AssignTargets.Any(c => c.Value == manned)) { Console.WriteLine("  FAILED assign targets"); Environment.Exit(1); }
+                pvm.AssignTarget = pvm.AssignTargets.First(c => c.Value == manned);
+                pvm.AssignCommand.Execute(null);
+                Console.WriteLine("  assigned: " + pvm.Status);
+                if (q.Airliner != manned || !manned.Pilots.Contains(q)) { Console.WriteLine("  FAILED assign"); Environment.Exit(1); }
+                string mb;
+                bool wrong = TheAirline.Helpers.FlightSchoolService.AssignPilot(hs, graduate, manned, out mb);
+                Console.WriteLine("  wrong type or full: " + wrong + " | " + mb);
+                if (wrong) { Console.WriteLine("  FAILED assign guard"); Environment.Exit(1); }
+                //automatic: switching it on puts idle pilots on the aircraft that need them
+                TheAirline.Helpers.FlightSchoolService.UnassignPilot(hs, q, out ma);
+                pvm.AutoAssign = true;
+                Console.WriteLine("  automatic on: " + pvm.Status + " | " + q.Profile.Name + " -> " + (q.Airliner != null ? q.Airliner.Name : "no aircraft"));
+                if (!hs.AutoAssignPilots || q.Airliner != manned) { Console.WriteLine("  FAILED auto assign"); Environment.Exit(1); }
             }
             {
                 Console.WriteLine("AUTOSAVE TEST");

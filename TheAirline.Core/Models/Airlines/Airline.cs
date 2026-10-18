@@ -68,6 +68,7 @@ namespace TheAirline.Models.Airlines
 
             Pilots = new List<Pilot>();
             FlightSchools = new List<FlightSchool>();
+            AutoAssignPilots = true;
             Budget = new AirlineBudget();
         }
 
@@ -194,6 +195,10 @@ namespace TheAirline.Models.Airlines
 
         [Versioning("fleetvalue")]
         public long FleetValue { get; set; }
+
+        /// <summary>When on, pilots without an aircraft (new graduates, pilots back from training) are put on aircraft that need a pilot of their type.</summary>
+        [Versioning("autoassignpilots")]
+        public bool AutoAssignPilots { get; set; }
 
         [Versioning("flightschools")]
         public List<FlightSchool> FlightSchools { get; set; }

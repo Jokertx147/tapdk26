@@ -55,6 +55,8 @@ namespace TheAirline.Presentation
         private bool _includeAssigned;
         private NamedChoice<Pilot> _trainPilot;
         private NamedChoice<string> _trainFamily;
+        private NamedChoice<Pilot> _assignPilot;
+        private NamedChoice<FleetAirliner> _assignTarget;
 
         public PilotsViewModel(Action changed)
         {
@@ -68,6 +70,10 @@ namespace TheAirline.Presentation
             TrainPilots = new ObservableCollection<NamedChoice<Pilot>>();
             TrainFamilies = new ObservableCollection<NamedChoice<string>>();
             TrainCommand = new RelayCommand(AskTrain);
+            AssignPilots = new ObservableCollection<NamedChoice<Pilot>>();
+            AssignTargets = new ObservableCollection<NamedChoice<FleetAirliner>>();
+            AssignCommand = new RelayCommand(AssignSelected);
+            UnassignCommand = new RelayCommand(UnassignSelected);
             ConfirmCommand = new RelayCommand(() => { var a = _pending; SetPending(null, null); a?.Invoke(); });
             CancelCommand = new RelayCommand(() => SetPending(null, null));
             Reload();
@@ -83,6 +89,135 @@ namespace TheAirline.Presentation
         public ICommand HireCrewCommand { get; }
         public ICommand AssignIdleCommand { get; }
         public ICommand TrainCommand { get; }
+        public ICommand AssignCommand { get; }
+        public ICommand UnassignCommand { get; }
+
+        /// <summary>Your pilots, those without an aircraft first.</summary>
+        public ObservableCollection<NamedChoice<Pilot>> AssignPilots { get; }
+
+        /// <summary>The aircraft that need a pilot and match the chosen pilot's types.</summary>
+        public ObservableCollection<NamedChoice<FleetAirliner>> AssignTargets { get; }
+
+        public string AssignHint { get; private set; }
+
+        /// <summary>Pilots who finish training or flight school, or have no aircraft, are put on aircraft that need them every day.</summary>
+        public bool AutoAssign
+        {
+            get { return GameObject.GetInstance().HumanAirline?.AutoAssignPilots ?? false; }
+            set
+            {
+                var airline = GameObject.GetInstance().HumanAirline;
+                if (airline == null || airline.AutoAssignPilots == value)
+                {
+                    return;
+                }
+
+                airline.AutoAssignPilots = value;
+                OnPropertyChanged(nameof(AutoAssign));
+                if (value)
+                {
+                    int n = FlightSchoolService.AssignIdlePilots(airline);
+                    Status = "Automatic assignment is on" + (n > 0 ? ": " + n + " pilot(s) without an aircraft were put on aircraft that needed them." : ".");
+                }
+                else
+                {
+                    Status = "Automatic assignment is off. Assign pilots yourself below.";
+                }
+
+                Reload();
+                _changed?.Invoke();
+            }
+        }
+
+        public NamedChoice<Pilot> AssignPilot
+        {
+            get { return _assignPilot; }
+            set
+            {
+                if (SetProperty(ref _assignPilot, value))
+                {
+                    LoadAssignTargets();
+                }
+            }
+        }
+
+        public NamedChoice<FleetAirliner> AssignTarget
+        {
+            get { return _assignTarget; }
+            set { SetProperty(ref _assignTarget, value); }
+        }
+
+        private void LoadAssignPilots()
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            var keep = _assignPilot?.Value;
+            AssignPilots.Clear();
+            if (airline != null)
+            {
+                foreach (var p in airline.Pilots.Where(p => p.Training == null).OrderBy(p => p.Airliner != null).ThenBy(p => p.Profile.Name))
+                {
+                    AssignPilots.Add(
+                        new NamedChoice<Pilot>
+                        {
+                            Name = (p.Airliner == null ? "[no aircraft] " : "") + p.Profile.Name + "  (" + (p.Airliner == null ? "" : "flies " + p.Airliner.Name + ", ") + string.Join(", ", p.Aircrafts ?? new List<string>()) + ")",
+                            Value = p
+                        });
+                }
+            }
+
+            _assignPilot = AssignPilots.FirstOrDefault(c => c.Value == keep) ?? AssignPilots.FirstOrDefault();
+            OnPropertyChanged(nameof(AssignPilot));
+            LoadAssignTargets();
+        }
+
+        private void LoadAssignTargets()
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            var pilot = _assignPilot?.Value;
+            var keep = _assignTarget?.Value;
+            AssignTargets.Clear();
+            if (airline != null && pilot != null)
+            {
+                foreach (var f in FlightSchoolService.AssignTargets(airline, pilot))
+                {
+                    AssignTargets.Add(
+                        new NamedChoice<FleetAirliner>
+                        {
+                            Name = string.Format("{0} - {1} ({2}/{3} pilots)", f.Name, f.Airliner.Type.Name, f.Pilots.Count, f.Airliner.Type.CockpitCrew),
+                            Value = f
+                        });
+                }
+            }
+
+            _assignTarget = AssignTargets.FirstOrDefault(c => c.Value == keep) ?? AssignTargets.FirstOrDefault();
+            OnPropertyChanged(nameof(AssignTarget));
+            AssignHint = pilot == null
+                ? "You have no pilot to assign."
+                : AssignTargets.Count == 0
+                    ? "No aircraft with a free cockpit seat matches what " + pilot.Profile.Name + " can fly. Train him for another family, or buy a matching aircraft."
+                    : "Choose the aircraft for " + pilot.Profile.Name + ". A pilot who flies another aircraft moves over.";
+            OnPropertyChanged(nameof(AssignHint));
+        }
+
+        private void AssignSelected()
+        {
+            var pilot = _assignPilot?.Value;
+            var target = _assignTarget?.Value;
+            string m;
+            FlightSchoolService.AssignPilot(GameObject.GetInstance().HumanAirline, pilot, target, out m);
+            Status = m;
+            Reload();
+            _changed?.Invoke();
+        }
+
+        private void UnassignSelected()
+        {
+            string m;
+            FlightSchoolService.UnassignPilot(GameObject.GetInstance().HumanAirline, _assignPilot?.Value, out m);
+            Status = m;
+            Reload();
+            _changed?.Invoke();
+        }
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
@@ -297,6 +432,8 @@ namespace TheAirline.Presentation
 
             LoadAvailable();
             LoadTrainPilots();
+            LoadAssignPilots();
+            OnPropertyChanged(nameof(AutoAssign));
             (HireCrewCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 

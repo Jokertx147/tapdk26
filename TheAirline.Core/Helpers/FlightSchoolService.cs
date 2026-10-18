@@ -353,11 +353,70 @@ namespace TheAirline.Helpers
             return true;
         }
 
+        // ---- assigning pilots to aircraft ----
+
+        /// <summary>Aircraft that can take this pilot: the cockpit is not full and the pilot can fly the family. The aircraft he flies now is left out.</summary>
+        public static List<FleetAirliner> AssignTargets(Airline airline, Pilot pilot)
+        {
+            if (pilot == null || pilot.Aircrafts == null) return new List<FleetAirliner>();
+            return airline.Fleet
+                          .Where(f => f != pilot.Airliner && f.Pilots.Count < f.Airliner.Type.CockpitCrew && pilot.Aircrafts.Contains(f.Airliner.Type.AirlinerFamily))
+                          .OrderBy(f => f.Name).ToList();
+        }
+
+        public static bool AssignPilot(Airline airline, Pilot pilot, FleetAirliner target, out string message)
+        {
+            if (pilot == null || pilot.Airline != airline)
+            {
+                message = "Choose one of your pilots.";
+                return false;
+            }
+            if (pilot.Training != null)
+            {
+                message = pilot.Profile.Name + " is away on training until " + DateDisplay.Format(pilot.Training.EndDate) + ".";
+                return false;
+            }
+            if (target == null || !airline.Fleet.Contains(target))
+            {
+                message = "Choose one of your aircraft.";
+                return false;
+            }
+            if (pilot.Aircrafts == null || !pilot.Aircrafts.Contains(target.Airliner.Type.AirlinerFamily))
+            {
+                message = pilot.Profile.Name + " cannot fly the " + target.Airliner.Type.AirlinerFamily + ". Train him for it first.";
+                return false;
+            }
+            if (target.Pilots.Count >= target.Airliner.Type.CockpitCrew)
+            {
+                message = target.Name + " has a full cockpit crew already.";
+                return false;
+            }
+
+            string from = pilot.Airliner?.Name;
+            pilot.Airliner?.RemovePilot(pilot);
+            target.AddPilot(pilot);
+            message = pilot.Profile.Name + " now flies " + target.Name + (from != null ? " (was on " + from + ")" : "") + ".";
+            return true;
+        }
+
+        public static bool UnassignPilot(Airline airline, Pilot pilot, out string message)
+        {
+            if (pilot == null || pilot.Airline != airline || pilot.Airliner == null)
+            {
+                message = "That pilot has no aircraft.";
+                return false;
+            }
+            string name = pilot.Airliner.Name;
+            pilot.Airliner.RemovePilot(pilot);
+            message = pilot.Profile.Name + " leaves " + name + " and is without an aircraft.";
+            return true;
+        }
+
         /// <summary>Puts pilots who have no aircraft (new graduates, for example) on aircraft that need pilots and match their type.</summary>
         public static int AssignIdlePilots(Airline airline)
         {
             int n = 0;
-            foreach (var pilot in airline.Pilots.Where(p => p.Airliner == null).ToList())
+            foreach (var pilot in airline.Pilots.Where(p => p.Airliner == null && p.Training == null).ToList())
             {
                 var target = airline.Fleet.FirstOrDefault(
                     f => f.Pilots.Count < f.Airliner.Type.CockpitCrew && pilot.Aircrafts != null && pilot.Aircrafts.Contains(f.Airliner.Type.AirlinerFamily));
