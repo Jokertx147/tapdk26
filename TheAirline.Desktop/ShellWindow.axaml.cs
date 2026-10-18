@@ -8,6 +8,7 @@ namespace TheAirline.Desktop
         {
             InitializeComponent();
             UiScale.Attach(this, this.FindControl<LayoutTransformControl>("ZoomRoot"));
+            PageScroll.Attach(this);
         }
     }
 }
