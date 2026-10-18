@@ -981,6 +981,102 @@ static class VmTest
                 if (k1 != "1,000 km" || k2 != "800 km/h" || k3 != "2,500 m" || m1 != "621 mi" || m2 != "497 mph" || m3 != "8,202 ft") { Console.WriteLine("  FAILED distance"); Environment.Exit(1); }
             }
             {
+                Console.WriteLine("PILOT SUPPLY AND FLIGHT SCHOOL TEST");
+                var gs = TheAirline.Models.General.GameObject.GetInstance();
+                var hs = gs.HumanAirline;
+                // pilots never run out
+                int made = TheAirline.Helpers.PilotSupply.EnsureFamily("Zeppelin NT");
+                int madeAgain = TheAirline.Helpers.PilotSupply.EnsureFamily("Zeppelin NT");
+                TheAirline.Helpers.PilotSupply.EnsureAnyPilots();
+                int pool = TheAirline.Models.Pilots.Pilots.GetPilots().Count(p0 => p0.Airline == null);
+                Console.WriteLine("  new family: created " + made + ", again " + madeAgain + ", pool " + pool + ", for the family " + TheAirline.Helpers.PilotSupply.CountFor("Zeppelin NT"));
+                if (made != TheAirline.Helpers.PilotSupply.MinPerFamily || madeAgain != 0 || pool < TheAirline.Helpers.PilotSupply.MinPilots) { Console.WriteLine("  FAILED pilot supply"); Environment.Exit(1); }
+                foreach (var p1 in TheAirline.Models.Pilots.Pilots.GetPilots().Where(p1 => p1.Airline == null && p1.Aircrafts != null && p1.Aircrafts.Contains("Zeppelin NT")).ToList()) p1.Airline = hs; //all taken
+                int gone = TheAirline.Helpers.PilotSupply.CountFor("Zeppelin NT");
+                var refill = TheAirline.Helpers.PilotSupply.EnsureFamily("Zeppelin NT");
+                Console.WriteLine("  all taken: " + gone + " left, refilled with " + refill);
+                foreach (var p1 in TheAirline.Models.Pilots.Pilots.GetPilots().Where(p1 => p1.Airline == hs && p1.Aircrafts != null && p1.Aircrafts.Contains("Zeppelin NT") && !hs.Pilots.Contains(p1)).ToList()) p1.Airline = null;
+                if (gone != 0 || refill != TheAirline.Helpers.PilotSupply.MinPerFamily) { Console.WriteLine("  FAILED refill"); Environment.Exit(1); }
+
+                // flight school
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(hs, gs.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.AirlineExpenses, 50000000);
+                var fsv = new FlightSchoolsViewModel(() => { });
+                Console.WriteLine("  " + fsv.Summary + " | airports to build at: " + fsv.BuildAirports.Count);
+                if (fsv.CanBuild)
+                {
+                    fsv.BuildCommand.Execute(null);
+                    Console.WriteLine("  pending: " + fsv.PendingText);
+                    fsv.ConfirmCommand.Execute(null);
+                }
+                else
+                {
+                    Console.WriteLine("  (no airport can take a school, building one directly)");
+                    hs.AddFlightSchool(new TheAirline.Models.Pilots.FlightSchool(hs.Airports[0]));
+                    fsv.Reload();
+                }
+                Console.WriteLine("  built: " + fsv.Status + " | schools " + fsv.Schools.Count);
+                if (fsv.Schools.Count != 1 || fsv.Selected == null) { Console.WriteLine("  FAILED build"); Environment.Exit(1); }
+                var school = fsv.Selected.School;
+                string blocked0 = TheAirline.Helpers.FlightSchoolService.GetStudentBlocker(hs, school);
+                Console.WriteLine("  no instructors: " + blocked0);
+                if (blocked0 == null) { Console.WriteLine("  FAILED blocker"); Environment.Exit(1); }
+                Console.WriteLine("  instructors for hire: " + fsv.Market.Count);
+                for (int ii = 0; ii < 2; ii++)
+                {
+                    fsv.Market[0].Command.Execute(null);
+                    fsv.ConfirmCommand.Execute(null);
+                }
+                Console.WriteLine("  hired: " + fsv.Status + " | instructors " + fsv.Instructors.Count + " | " + fsv.Instructors[0].Text + " | " + fsv.Instructors[0].Detail);
+                string blocked1 = TheAirline.Helpers.FlightSchoolService.GetStudentBlocker(hs, school);
+                Console.WriteLine("  no aircraft: " + blocked1);
+                if (fsv.Instructors.Count != 2 || blocked1 == null) { Console.WriteLine("  FAILED hire"); Environment.Exit(1); }
+                fsv.BuyType = fsv.AircraftTypes[0];
+                double mAir = gs.HumanMoney;
+                fsv.BuyAircraftCommand.Execute(null);
+                Console.WriteLine("  pending: " + fsv.PendingText);
+                fsv.ConfirmCommand.Execute(null);
+                Console.WriteLine("  bought: " + fsv.Status + " | aircraft " + fsv.Aircraft.Count + " | " + fsv.Aircraft[0].Detail + " | money " + (gs.HumanMoney - mAir).ToString("0"));
+                if (fsv.Aircraft.Count != 1 || !(gs.HumanMoney < mAir)) { Console.WriteLine("  FAILED buy aircraft"); Environment.Exit(1); }
+                Console.WriteLine("  families: " + fsv.Families.Count + " selected " + fsv.Family + " | " + fsv.StudentHint);
+                double mStud = gs.HumanMoney;
+                for (int ii = 0; ii < 3; ii++)
+                {
+                    fsv.StartStudentCommand.Execute(null);
+                    if (fsv.HasPending) fsv.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  student " + (ii + 1) + ": " + fsv.Status);
+                }
+                Console.WriteLine("  students " + fsv.Students.Count + " | " + fsv.Students[0].Text + " | " + fsv.Students[0].Detail + " | money " + (gs.HumanMoney - mStud).ToString("0"));
+                if (fsv.Students.Count != 2 || !(gs.HumanMoney < mStud)) { Console.WriteLine("  FAILED students (the Cessna has 2 seats)"); Environment.Exit(1); }
+                string m5;
+                bool sold = TheAirline.Helpers.FlightSchoolService.SellAircraft(hs, school, school.TrainingAircrafts[0], out m5);
+                bool dism = TheAirline.Helpers.FlightSchoolService.DismissInstructor(school, school.Instructors.First(i0 => i0.Students.Count > 0), out string m6);
+                Console.WriteLine("  sell with students: " + sold + " | " + m5 + " | dismiss with students: " + dism + " | " + m6);
+                if (sold || dism) { Console.WriteLine("  FAILED guards"); Environment.Exit(1); }
+
+                // graduation
+                var grad = school.Students[0];
+                string fam = grad.AirlinerFamily;
+                grad.EndDate = gs.GameTime;
+                int pilotsBefore = hs.Pilots.Count;
+                typeof(TheAirline.Helpers.GameObjectHelpers).GetMethod("DoDailyUpdate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, null);
+                var graduate = hs.Pilots.FirstOrDefault(p2 => p2.Profile == grad.Profile);
+                Console.WriteLine("  graduation: pilots " + pilotsBefore + " -> " + hs.Pilots.Count + " | students left " + school.Students.Count + " | pilot " + (graduate != null ? graduate.Profile.Name + " flies " + string.Join(",", graduate.Aircrafts) + " on " + (graduate.Airliner != null ? graduate.Airliner.Name : "no aircraft yet") : "MISSING"));
+                if (graduate == null || !graduate.Aircrafts.Contains(fam) || school.Students.Count != 1 || grad.Instructor != null) { Console.WriteLine("  FAILED graduation"); Environment.Exit(1); }
+
+                fsv.Reload();
+                double mClose = gs.HumanMoney;
+                fsv.CloseCommand.Execute(null);
+                fsv.ConfirmCommand.Execute(null);
+                Console.WriteLine("  closed: " + fsv.Status + " | schools " + fsv.Schools.Count + " | money " + (gs.HumanMoney - mClose).ToString("0") + " | instructors back on the market: " + TheAirline.Models.Pilots.Instructors.GetUnassignedInstructors().Count(i1 => school.Instructors.Contains(i1)));
+                if (fsv.Schools.Count != 0 || !(gs.HumanMoney > mClose)) { Console.WriteLine("  FAILED close"); Environment.Exit(1); }
+
+                // the pilots tab: a family with nobody for hire is refilled
+                var pvm = new PilotsViewModel(() => { });
+                int ni = pvm.Available.Count;
+                Console.WriteLine("  pilots tab: " + ni + " pilots for hire");
+                if (ni == 0) { Console.WriteLine("  FAILED pilots for hire"); Environment.Exit(1); }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

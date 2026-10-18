@@ -116,6 +116,7 @@ namespace TheAirline.Presentation
             Maintenance = new MaintenanceViewModel(OnGameChanged);
             Insurance = new InsuranceViewModel(OnGameChanged);
             Services = new AirlineServicesViewModel(OnGameChanged);
+            FlightSchools = new FlightSchoolsViewModel(OnGameChanged);
             Contracts = new ContractsViewModel(OnGameChanged);
             Timetable = new TimetableViewModel(OnGameChanged);
             Alliances = new AlliancesViewModel(OnGameChanged);
@@ -217,6 +218,7 @@ namespace TheAirline.Presentation
         public MaintenanceViewModel Maintenance { get; }
         public InsuranceViewModel Insurance { get; }
         public AirlineServicesViewModel Services { get; }
+        public FlightSchoolsViewModel FlightSchools { get; }
         public ContractsViewModel Contracts { get; }
         public TimetableViewModel Timetable { get; }
         public AlliancesViewModel Alliances { get; }
@@ -269,6 +271,7 @@ namespace TheAirline.Presentation
             Maintenance?.Reload();
             Insurance?.Reload();
             Services?.Reload();
+            FlightSchools?.Reload();
             Contracts?.Reload();
             Timetable?.ReloadAircraft();
             _financeDate = null;

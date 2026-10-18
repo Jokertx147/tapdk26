@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
+using TheAirline.Helpers;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.General;
 using TheAirline.Models.Pilots;
@@ -50,6 +51,7 @@ namespace TheAirline.Presentation
             Targets = new ObservableCollection<CrewChoice>();
             HireCommand = new RelayCommand(HireSelected, () => _selected != null);
             HireCrewCommand = new RelayCommand(HireCrew, () => _target?.Airliner != null);
+            AssignIdleCommand = new RelayCommand(AssignIdle);
             Reload();
         }
 
@@ -61,6 +63,7 @@ namespace TheAirline.Presentation
 
         public ICommand HireCommand { get; }
         public ICommand HireCrewCommand { get; }
+        public ICommand AssignIdleCommand { get; }
 
         public CrewChoice Target
         {
@@ -132,6 +135,19 @@ namespace TheAirline.Presentation
         {
             var all = Pilots.GetUnassignedPilots();
             var family = _target?.Airliner?.Airliner.Type.AirlinerFamily;
+            //there are always pilots to hire: the market fills up when it runs short
+            if (family != null)
+            {
+                if (PilotSupply.EnsureFamily(family) > 0)
+                {
+                    all = Pilots.GetUnassignedPilots();
+                }
+            }
+            else
+            {
+                PilotSupply.EnsureAnyPilots();
+                all = Pilots.GetUnassignedPilots();
+            }
             return all.Where(p => family == null || (p.Aircrafts != null && p.Aircrafts.Contains(family)))
                       .OrderBy(p => p.Profile.Name)
                       .ToList();
@@ -163,6 +179,14 @@ namespace TheAirline.Presentation
             {
                 airliner.AddPilot(pilot);
             }
+        }
+
+        private void AssignIdle()
+        {
+            int n = FlightSchoolService.AssignIdlePilots(GameObject.GetInstance().HumanAirline);
+            Status = n > 0 ? n + " pilot(s) without an aircraft were put on aircraft that needed them." : "No idle pilot fits an aircraft that needs a pilot.";
+            Reload();
+            _changed?.Invoke();
         }
 
         private void HireSelected()

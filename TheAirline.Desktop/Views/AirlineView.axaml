@@ -256,6 +256,9 @@
             <TabItem Header="Pilots">
               <v:PilotsView DataContext="{Binding Pilots}" />
             </TabItem>
+            <TabItem Header="Flight schools">
+              <v:FlightSchoolsView DataContext="{Binding FlightSchools}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

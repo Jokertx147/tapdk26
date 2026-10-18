@@ -1579,6 +1579,11 @@ namespace TheAirline.Helpers
                     student.Instructor = null;
 
                     airline.AddPilot(pilot);
+                    pilot.AirlineSignedDate = GameObject.GetInstance().GameTime;
+                    if (airline.IsHuman)
+                    {
+                        FlightSchoolService.AssignIdlePilots(airline);
+                    }
 
                     if (airline.IsHuman)
                     {
@@ -2694,6 +2699,7 @@ namespace TheAirline.Helpers
                 if (airline == GameObject.GetInstance().HumanAirline)
                 {
                     MaintenanceService.ProcessMonth(airline);
+                    PilotSupply.TopUp(airline);
                 }
 
                 RandomEvent.CheckExpired();

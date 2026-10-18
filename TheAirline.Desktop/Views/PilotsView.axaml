@@ -6,6 +6,7 @@
       <TextBlock Text="Pilots for" VerticalAlignment="Center" />
       <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}" MinWidth="320" />
       <Button Content="Hire full crew for this aircraft" Command="{Binding HireCrewCommand}" />
+      <Button Content="Put idle pilots on aircraft" Command="{Binding AssignIdleCommand}" />
     </StackPanel>
 
     <Grid Grid.Row="1" RowDefinitions="Auto,*">

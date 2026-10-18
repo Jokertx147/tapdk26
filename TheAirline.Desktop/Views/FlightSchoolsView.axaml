@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.FlightSchoolsView">
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" MaxWidth="1000" HorizontalAlignment="Left">
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+      <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+            <Button Content="No" Command="{Binding CancelCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Build a school at" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding BuildAirports}" SelectedItem="{Binding BuildAirport}" MinWidth="320" />
+        <Button Content="Build flight school" Command="{Binding BuildCommand}" IsEnabled="{Binding CanBuild}" />
+      </StackPanel>
+
+      <TextBlock Text="Your flight schools" FontSize="16" FontWeight="SemiBold" IsVisible="{Binding HasSchools}" />
+      <ListBox ItemsSource="{Binding Schools}" SelectedItem="{Binding Selected}" IsVisible="{Binding HasSchools}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="2">
+              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Info}" Opacity="0.7" TextWrapping="Wrap" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <StackPanel Spacing="12" IsVisible="{Binding HasSchool}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding SchoolInfo}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="Close this school" Command="{Binding CloseCommand}" />
+        </Grid>
+
+        <!-- INSTRUCTORS -->
+        <Border Background="#262626" CornerRadius="6" Padding="12">
+          <Grid ColumnDefinitions="*,16,*">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Instructors at this school" FontWeight="SemiBold" />
+              <ItemsControl ItemsSource="{Binding Instructors}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Text}" />
+                        <TextBlock Text="{Binding Detail}" Opacity="0.7" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Button Grid.Column="1" Content="{Binding ActionText}" Command="{Binding Command}" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="6">
+              <TextBlock Text="Instructors for hire (best value first)" FontWeight="SemiBold" />
+              <ScrollViewer MaxHeight="260">
+                <ItemsControl ItemsSource="{Binding Market}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Text}" />
+                          <TextBlock Text="{Binding Detail}" Opacity="0.7" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="{Binding ActionText}" Command="{Binding Command}" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- TRAINING AIRCRAFT -->
+        <Border Background="#262626" CornerRadius="6" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Training aircraft" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Aircraft}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Text}" />
+                      <TextBlock Text="{Binding Detail}" Opacity="0.7" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Sell" Command="{Binding SellCommand}" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <ComboBox ItemsSource="{Binding AircraftTypes}" SelectedItem="{Binding BuyType}" MinWidth="320" />
+              <Button Content="Buy training aircraft" Command="{Binding BuyAircraftCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- STUDENTS -->
+        <Border Background="#262626" CornerRadius="6" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Students" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Students}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Text}" />
+                      <TextBlock Text="{Binding Detail}" Opacity="0.7" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Send home" Command="{Binding CancelCommand}" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="Instructor" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding FreeInstructors}" SelectedItem="{Binding StudentInstructor}" MinWidth="200" />
+              <TextBlock Text="Aircraft family" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding Families}" SelectedItem="{Binding Family}" MinWidth="200" />
+              <Button Content="Take in a student" Command="{Binding StartStudentCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding StudentHint}" Opacity="0.7" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
