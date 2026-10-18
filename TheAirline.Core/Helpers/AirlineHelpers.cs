@@ -304,7 +304,7 @@ namespace TheAirline.Helpers
         //returns all route facilities for a given airline and type
         public static List<RouteFacility> GetRouteFacilities(Airline airline, RouteFacility.FacilityType type)
         {
-            return RouteFacilities.GetFacilities(type).FindAll(f => f.Requires == null || airline.Facilities.Contains(f.Requires));
+            return RouteFacilities.GetFacilities(type).FindAll(f => f.Requires == null || airline.Facilities.Exists(a => a.Uid == f.Requires.Uid));
         }
 
         //returns the pay for a codesharing agreement - one wayed

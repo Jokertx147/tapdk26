@@ -134,7 +134,7 @@ namespace TheAirline.Presentation
 
                     var current = rc.GetFacility(type);
                     var available = AirlineHelpers.GetRouteFacilities(airline, type).OrderBy(f => f.ServiceLevel).ToList();
-                    if (current != null && !available.Contains(current))
+                    if (current != null && !available.Exists(a => a.Uid == current.Uid))
                     {
                         available.Add(current);
                     }
@@ -151,7 +151,7 @@ namespace TheAirline.Presentation
                             Type = type,
                             TypeName = NameOf(type),
                             Options = options,
-                            Selected = options.FirstOrDefault(o => o.Facility == current) ?? options[0]
+                            Selected = options.FirstOrDefault(o => current != null && o.Facility.Uid == current.Uid) ?? options[0]
                         });
                 }
 

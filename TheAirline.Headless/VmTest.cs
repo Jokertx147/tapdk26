@@ -1279,6 +1279,39 @@ static class VmTest
                 pa.PilotPayPercent = 100;
             }
             {
+                Console.WriteLine("WIFI TEST");
+                var wg = TheAirline.Models.General.GameObject.GetInstance();
+                var wa = wg.HumanAirline;
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(wa, wg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 50000000);
+                wa.Facilities.RemoveAll(x => x.Uid == "107");
+                var WiFi = TheAirline.Models.Routes.RouteFacility.FacilityType.WiFi;
+                int none = TheAirline.Helpers.AirlineHelpers.GetRouteFacilities(wa, WiFi).Count;
+                var svc = new TheAirline.Presentation.AirlineServicesViewModel(() => { });
+                var wifiItem = svc.Facilities.FirstOrDefault(x => x.Facility.Uid == "107");
+                Console.WriteLine("  year " + wg.GameTime.Year + ", route Wi-Fi options before: " + none + ", facility offered: " + (wifiItem != null));
+                if (wifiItem == null) { Console.WriteLine("  FAILED facility not offered"); Environment.Exit(1); }
+                wifiItem.Command.Execute(null);
+                svc.ConfirmCommand.Execute(null);
+                int bought = TheAirline.Helpers.AirlineHelpers.GetRouteFacilities(wa, WiFi).Count;
+                Console.WriteLine("  after buying: " + svc.Status + " | options " + bought);
+                if (bought <= none) { Console.WriteLine("  FAILED Wi-Fi not unlocked after buying"); Environment.Exit(1); }
+                //as after loading a save: the airline holds its own copy of the facility
+                var orig = wa.Facilities.First(x => x.Uid == "107");
+                wa.Facilities.Remove(orig);
+                wa.Facilities.Add(new TheAirline.Models.Airlines.AirlineFacility(TheAirline.Models.Airlines.AirlineFacility.Section, orig.Uid, orig.Price, orig.MonthlyCost, orig.FromYear, orig.ServiceLevel, orig.LuxuryLevel));
+                int copy = TheAirline.Helpers.AirlineHelpers.GetRouteFacilities(wa, WiFi).Count;
+                Console.WriteLine("  with a copy of the facility (as in a loaded save): options " + copy);
+                if (copy != bought) { Console.WriteLine("  FAILED Wi-Fi lost with a copy"); Environment.Exit(1); }
+                var wr = wa.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().FirstOrDefault();
+                if (wr != null)
+                {
+                    var rsv = new TheAirline.Presentation.RouteServiceViewModel(wr);
+                    var row = rsv.Classes.SelectMany(c => c.Rows).FirstOrDefault(r => r.Type == WiFi);
+                    Console.WriteLine("  route service Wi-Fi row: " + (row == null ? "none" : string.Join(" / ", row.Options.Select(o => o.Label))));
+                    if (row == null || row.Options.Count < 3) { Console.WriteLine("  FAILED route Wi-Fi row"); Environment.Exit(1); }
+                }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());
