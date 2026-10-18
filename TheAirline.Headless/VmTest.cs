@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -361,6 +361,18 @@ static class VmTest
                 Console.WriteLine("  one way daily 15:00: " + tt.Status + " rows=" + tt.Rows.Count);
                 tt.Rows.First().RemoveCommand.Execute(null);
                 Console.WriteLine("  remove one: " + tt.Status + " rows=" + tt.Rows.Count);
+                {
+                    var ttAir = tt.SelectedAircraft.Airliner;
+                    int before = tt.Rows.Count;
+                    tt.RemoveAllFlightsCommand.Execute(null);
+                    Console.WriteLine("  remove all asks: " + tt.RemoveAllText);
+                    tt.CancelRemoveAllCommand.Execute(null);
+                    if (tt.HasRemoveAll || tt.Rows.Count != before) { Console.WriteLine("  FAILED cancel remove all"); Environment.Exit(1); }
+                    tt.RemoveAllFlightsCommand.Execute(null);
+                    tt.ConfirmRemoveAllCommand.Execute(null);
+                    Console.WriteLine("  remove all: " + tt.Status + " rows=" + tt.Rows.Count + " routes on aircraft=" + ttAir.Routes.Count);
+                    if (tt.Rows.Count != 0 || ttAir.Routes.Count != 0) { Console.WriteLine("  FAILED remove all flights"); Environment.Exit(1); }
+                }
                 av.Refresh();
                 Console.WriteLine("  all flights list=" + av.Flights.Count + " fleet row routes=" + av.Fleet.First().Routes);
             }
@@ -1354,6 +1366,64 @@ static class VmTest
                     if (stuck) { Console.WriteLine("  FAILED should not fly"); Environment.Exit(1); }
                     ff.CurrentPosition = dep; ff.LastFlightDate = DateTime.MinValue;
                 }
+            }
+            {
+                Console.WriteLine("MANUAL FERRY TEST");
+                var mg = TheAirline.Models.General.GameObject.GetInstance();
+                var ma = mg.HumanAirline;
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(ma, mg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 50000000);
+                var mf = ma.Fleet.FirstOrDefault(x => x.Airliner.BuiltDate <= mg.GameTime);
+                if (mf != null && mf.Pilots.Count < mf.Airliner.Type.CockpitCrew) { TheAirline.Helpers.PilotSupply.EnsureFamily(mf.Airliner.Type.AirlinerFamily); TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(mf); }
+                var kiv = TheAirline.Models.Airports.Airports.GetAllAirports().FirstOrDefault(x => x.Profile.IATACode == "KIV");
+                if (mf == null || kiv == null) { Console.WriteLine("  (aircraft " + (mf != null) + " or KIV " + (kiv != null) + " missing, skipped; fleet " + ma.Fleet.Count + ", crewed " + ma.Fleet.Count(x => x.Pilots.Count >= x.Airliner.Type.CockpitCrew) + ")"); }
+                else
+                {
+                    var savedRoutes = mf.Routes; var savedStatus = mf.Status;
+                    mf.Routes = new System.Collections.Generic.List<TheAirline.Models.Routes.Route>();
+                    mf.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped;
+                    mf.CurrentPosition = kiv; mf.FerryTo = null;
+                    var home = ma.Airports.FirstOrDefault(x => x != kiv && TheAirline.Helpers.MathHelpers.GetDistance(kiv, x) > 5000) ?? mf.Homebase;
+                    var plan = TheAirline.Helpers.FerryService.Plan(mf, kiv, home);
+                    Console.WriteLine("  " + mf.Name + " (" + mf.Airliner.Type.Name + ", range " + mf.Airliner.Type.Range.ToString("N0") + ") KIV -> " + home.Profile.IATACode + " " + TheAirline.Helpers.MathHelpers.GetDistance(kiv, home).ToString("N0") + " km: plan " + (plan == null ? "none" : string.Join(" > ", plan.Select(x => x.Profile.IATACode))));
+                    var fv = new TheAirline.Presentation.FleetOverviewViewModel(() => { }, f0 => { });
+                    fv.Selected = fv.Rows.First(r => r.Aircraft == mf);
+                    Console.WriteLine("  diagnose: " + fv.Details.First(d => d.StartsWith("Position")));
+                    Console.WriteLine("  targets: " + fv.FerryTargets.Count + " | hint: " + fv.FerryHint);
+                    if (plan != null)
+                    {
+                        fv.FerryTarget = fv.FerryTargets.First(c => c.Value == home);
+                        fv.FerryCommand.Execute(null);
+                        Console.WriteLine("  asks: " + fv.PendingText);
+                        double fm2 = ma.Money;
+                        fv.ConfirmCommand.Execute(null);
+                        Console.WriteLine("  started: " + fv.Status + " | cost " + (fm2 - ma.Money).ToString("N0") + " | ferrying " + TheAirline.Helpers.FerryService.IsFerrying(mf));
+                        if (!TheAirline.Helpers.FerryService.IsFerrying(mf) || ma.Money >= fm2) { Console.WriteLine("  FAILED ferry not started"); Environment.Exit(1); }
+                        var t0 = mg.GameTime;
+                        mg.GameTime = mf.FerryUntil.AddHours(1);
+                        TheAirline.Helpers.FerryService.ProcessDaily(ma);
+                        mg.GameTime = t0;
+                        Console.WriteLine("  after arrival: at " + mf.CurrentPosition.Profile.IATACode);
+                        if (mf.CurrentPosition != home) { Console.WriteLine("  FAILED ferry arrival"); Environment.Exit(1); }
+                    }
+                    mf.Routes = savedRoutes; mf.Status = savedStatus;
+                }
+            }
+            {
+                Console.WriteLine("LICENSE TEST");
+                var lcg = TheAirline.Models.General.GameObject.GetInstance();
+                var la = lcg.HumanAirline;
+                var lall = TheAirline.Models.Airports.Airports.GetAllAirports();
+                var atl = lall.First(x => x.Profile.IATACode == "ATL"); var lhr = lall.First(x => x.Profile.IATACode == "SYD");
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(la, lcg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 100000000);
+                var keepLicense = la.License;
+                la.License = TheAirline.Models.Airlines.Airline.AirlineLicense.Regional;
+                var lvm = new TheAirline.Presentation.LicenseViewModel(() => { });
+                Console.WriteLine("  " + lvm.Current + " | " + lvm.NextText + " | ATL-SYD allowed: " + TheAirline.Helpers.AirlineHelpers.HasAirlineLicens(la, atl, lhr));
+                if (TheAirline.Helpers.AirlineHelpers.HasAirlineLicens(la, atl, lhr)) { Console.WriteLine("  FAILED regional should not fly ATL-SYD"); Environment.Exit(1); }
+                for (int step = 0; step < 2; step++) { lvm.UpgradeCommand.Execute(null); lvm.ConfirmCommand.Execute(null); Console.WriteLine("  " + lvm.Status); }
+                Console.WriteLine("  now " + lvm.Current + " | ATL-SYD allowed: " + TheAirline.Helpers.AirlineHelpers.HasAirlineLicens(la, atl, lhr) + " | can upgrade " + lvm.CanUpgrade);
+                if (!TheAirline.Helpers.AirlineHelpers.HasAirlineLicens(la, atl, lhr) || lvm.CanUpgrade || la.License != TheAirline.Models.Airlines.Airline.AirlineLicense.LongHaul) { Console.WriteLine("  FAILED long haul license"); Environment.Exit(1); }
+                la.License = keepLicense;
             }
             {
                 Console.WriteLine("AUTOSAVE TEST");

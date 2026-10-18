@@ -121,6 +121,9 @@ namespace TheAirline.Presentation
             AddRoundTripCommand = new RelayCommand(() => Add(true), () => _aircraft != null && _route != null);
             AddOneWayCommand = new RelayCommand(() => Add(false), () => _aircraft != null && _route != null);
             RemoveRouteFlightsCommand = new RelayCommand(RemoveRouteFlights, () => _aircraft != null && _route != null);
+            RemoveAllFlightsCommand = new RelayCommand(AskRemoveAll);
+            ConfirmRemoveAllCommand = new RelayCommand(RemoveAllFlights);
+            CancelRemoveAllCommand = new RelayCommand(() => RemoveAllText = null);
             RemoveSelectedCommand = new RelayCommand(
                 () => { if (_selectedBlock?.Entry != null) RemoveEntry(_selectedBlock.Entry); },
                 () => _selectedBlock?.Entry != null);
@@ -144,6 +147,43 @@ namespace TheAirline.Presentation
         public ICommand AddRoundTripCommand { get; }
         public ICommand AddOneWayCommand { get; }
         public ICommand RemoveRouteFlightsCommand { get; }
+        public ICommand RemoveAllFlightsCommand { get; }
+        public ICommand ConfirmRemoveAllCommand { get; }
+        public ICommand CancelRemoveAllCommand { get; }
+        private string _removeAllText;
+        public bool HasRemoveAll => _removeAllText != null;
+
+        public string RemoveAllText
+        {
+            get { return _removeAllText; }
+            private set { if (SetProperty(ref _removeAllText, value)) OnPropertyChanged(nameof(HasRemoveAll)); }
+        }
+
+        private void AskRemoveAll()
+        {
+            if (_aircraft == null) return;
+            var f = _aircraft.Airliner;
+            int n = f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f));
+            if (n == 0)
+            {
+                Status = f.Name + " has no flights in a timetable.";
+                return;
+            }
+            RemoveAllText = "Remove all " + n + " flight(s) of " + f.Name + " on its " + f.Routes.Count + " route(s)? The aircraft is stopped and keeps no schedule. The routes stay and can be flown by another aircraft.";
+        }
+
+        private void RemoveAllFlights()
+        {
+            RemoveAllText = null;
+            if (_aircraft == null) return;
+            var f = _aircraft.Airliner;
+            int n = f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f));
+            foreach (var route in f.Routes.ToList())
+            {
+                f.RemoveRoute(route);
+            }
+            Finish(n + " flight(s) removed from " + f.Name + ".");
+        }
         public ICommand RemoveSelectedCommand { get; }
         public ICommand DailyCommand { get; }
         public ICommand WeekdaysCommand { get; }

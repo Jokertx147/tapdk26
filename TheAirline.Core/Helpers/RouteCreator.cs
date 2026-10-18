@@ -500,7 +500,7 @@ namespace TheAirline.Helpers
                 case "3003":
                     return "Both airports need a cargo facility of yours (Airports tab > Facilities), or a Full cargo gate contract, which includes one.";
                 case "3004":
-                    return "Your airline has no license for this route.";
+                    return "Your airline has no license for this route. Buy a higher one under My Airline > License.";
                 case "3005":
                     return "There are flight restrictions between these countries.";
                 default:

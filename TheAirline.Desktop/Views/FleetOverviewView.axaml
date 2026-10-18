@@ -46,6 +46,14 @@
               <Button Content="Edit cabin" Command="{Binding CabinCommand}" IsVisible="{Binding CanCabin}" Margin="0,0,8,0" />
               <Button Content="{Binding SellText}" Command="{Binding SellCommand}" />
             </WrapPanel>
+            <Border Background="#262626" CornerRadius="6" Padding="10">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Ferry flight (empty, to another of your airports)" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <ComboBox ItemsSource="{Binding FerryTargets}" SelectedItem="{Binding FerryTarget}" HorizontalAlignment="Stretch" />
+                <TextBlock Text="{Binding FerryHint}" TextWrapping="Wrap" Opacity="0.75" />
+                <Button Content="Ferry there" Command="{Binding FerryCommand}" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
             <ItemsControl ItemsSource="{Binding Details}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>

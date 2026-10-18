@@ -23,6 +23,7 @@
       <v:WeekTimelineControl Margin="0,0,0,6" />
       <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
         <Button Content="Remove this flight" Command="{Binding RemoveSelectedCommand}" />
+        <Button Content="Remove all flights" Command="{Binding RemoveAllFlightsCommand}" />
         <TextBlock Text="{Binding SelectedBlockText}" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.85" />
       </StackPanel>
       <Grid Grid.Row="2" ColumnDefinitions="50,60,70,90,110,*" Margin="4,0,0,2" Opacity="0.7">
@@ -121,6 +122,17 @@
       </StackPanel>
     </ScrollViewer>
 
-    <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" />
+    <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="6" Margin="0,8,0,0">
+      <Border IsVisible="{Binding HasRemoveAll}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding RemoveAllText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes, remove them all" Command="{Binding ConfirmRemoveAllCommand}" />
+            <Button Content="No" Command="{Binding CancelRemoveAllCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+    </StackPanel>
   </Grid>
 </UserControl>

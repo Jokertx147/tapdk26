@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Input;
 using TheAirline.Helpers;
 using TheAirline.Models.Airliners;
+using TheAirline.Models.Airports;
 using TheAirline.Models.General;
 using TheAirline.Models.General.Finances;
 
@@ -59,6 +60,8 @@ namespace TheAirline.Presentation
             Rows = new ObservableCollection<OverviewRow>();
             Details = new ObservableCollection<string>();
             RouteLines = new ObservableCollection<OverviewRouteLine>();
+            FerryTargets = new ObservableCollection<NamedChoice<Airport>>();
+            FerryCommand = new RelayCommand(AskFerry);
             StartCommand = new RelayCommand(() => Do(f => Status = TryStart(f)));
             StopCommand = new RelayCommand(() => Do(f => { f.Status = FleetAirliner.AirlinerStatus.Stopped; Status = f.Name + " stopped."; }));
             CabinCommand = new RelayCommand(() => { if (_selected != null) _refit?.Invoke(_selected.Aircraft); });
@@ -72,6 +75,87 @@ namespace TheAirline.Presentation
         public ObservableCollection<string> Details { get; }
         public ObservableCollection<OverviewRouteLine> RouteLines { get; }
         public string[] Sorts => SortNames;
+
+        public ObservableCollection<NamedChoice<Airport>> FerryTargets { get; }
+        public ICommand FerryCommand { get; }
+        private NamedChoice<Airport> _ferryTarget;
+        public string FerryHint { get; private set; }
+
+        public NamedChoice<Airport> FerryTarget
+        {
+            get { return _ferryTarget; }
+            set { if (SetProperty(ref _ferryTarget, value)) UpdateFerryHint(); }
+        }
+
+        private void LoadFerryTargets()
+        {
+            var keep = _ferryTarget?.Value;
+            FerryTargets.Clear();
+            var airline = GameObject.GetInstance().HumanAirline;
+            var f = _selected?.Aircraft;
+            if (airline != null && f?.CurrentPosition != null)
+            {
+                var set = new List<Airport>(airline.Airports);
+                if (f.Homebase != null && !set.Contains(f.Homebase)) set.Add(f.Homebase);
+                foreach (var a in set.Where(a => a != f.CurrentPosition).OrderBy(a => MathHelpers.GetDistance(f.CurrentPosition, a)))
+                {
+                    FerryTargets.Add(new NamedChoice<Airport> { Name = a.Profile.IATACode + " " + a.Profile.Name + " (" + DistanceFormatter.Km(MathHelpers.GetDistance(f.CurrentPosition, a)) + ")", Value = a });
+                }
+            }
+            _ferryTarget = FerryTargets.FirstOrDefault(c => c.Value == keep) ?? FerryTargets.FirstOrDefault();
+            OnPropertyChanged(nameof(FerryTarget));
+            UpdateFerryHint();
+        }
+
+        private void UpdateFerryHint()
+        {
+            var f = _selected?.Aircraft;
+            string hint = null;
+            if (f != null)
+            {
+                string blocker = FerryService.GetManualBlocker(f);
+                if (blocker != null) hint = "Cannot ferry: " + blocker + ".";
+                else if (_ferryTarget != null)
+                {
+                    var plan = FerryService.Plan(f, f.CurrentPosition, _ferryTarget.Value);
+                    hint = plan == null
+                        ? "Cannot ferry there: " + FerryService.GetBlocker(f, f.CurrentPosition, _ferryTarget.Value) + "."
+                        : string.Format("{0} stop(s), {1}, about {2:0.0} hours, fuel about {3}.{4}", plan.Count, DistanceFormatter.Km(FerryService.PlanKm(f.CurrentPosition, plan)), FerryService.PlanHours(f, f.CurrentPosition, plan), Money(FerryService.PlanCost(f, f.CurrentPosition, plan)),
+                            plan.Count > 1 ? " Via " + string.Join(", ", plan.Take(plan.Count - 1).Select(a => a.Profile.IATACode)) + "." : "");
+                }
+                else hint = "You have no other airport to ferry to.";
+            }
+            FerryHint = hint;
+            OnPropertyChanged(nameof(FerryHint));
+        }
+
+        private void AskFerry()
+        {
+            var f = _selected?.Aircraft;
+            var to = _ferryTarget?.Value;
+            if (f == null || to == null) return;
+            string blocker = FerryService.GetManualBlocker(f);
+            if (blocker != null)
+            {
+                Status = "Cannot ferry " + f.Name + ": " + blocker + ".";
+                return;
+            }
+            var plan = FerryService.Plan(f, f.CurrentPosition, to);
+            if (plan == null)
+            {
+                Status = "Cannot ferry there: " + FerryService.GetBlocker(f, f.CurrentPosition, to) + ".";
+                return;
+            }
+            PendingText = string.Format("Ferry {0} from {1} to {2}? {3}", f.Name, f.CurrentPosition.Profile.IATACode, to.Profile.IATACode, FerryHint);
+            _pending = () =>
+            {
+                string m;
+                FerryService.Start(f, to, out m);
+                Status = m;
+                _changed?.Invoke();
+                Reload();
+            };
+        }
 
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
@@ -333,6 +417,7 @@ namespace TheAirline.Presentation
             {
                 var f = r.Aircraft;
                 var a = f.Airliner;
+                Details.Add("Position: " + FerryService.Diagnose(f));
                 Details.Add("Registration: " + a.TailNumber + (a.Registered != null ? " (" + a.Registered.Name + ")" : ""));
                 Details.Add("Type: " + a.Type.Manufacturer?.Name + " " + a.Type.Name);
                 Details.Add("Built: " + DateFormatter.Date(a.BuiltDate) + ", age " + a.Age + " years");
@@ -368,6 +453,7 @@ namespace TheAirline.Presentation
                 }
             }
 
+            LoadFerryTargets();
             SellText = r == null ? "Sell" : r.Aircraft.Purchased == FleetAirliner.PurchasedType.Bought ? "Sell aircraft" : "Return aircraft";
             OnPropertyChanged(nameof(SellText));
             OnPropertyChanged(nameof(HasSelection));

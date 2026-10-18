@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.LicenseView">
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+      <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+            <Button Content="No" Command="{Binding CancelCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Background="#262626" CornerRadius="6" Padding="12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Current}" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Allows}" TextWrapping="Wrap" Opacity="0.85" />
+          <TextBlock Text="{Binding NextText}" TextWrapping="Wrap" Margin="0,8,0,0" />
+          <Button Content="Buy the next license" Command="{Binding UpgradeCommand}" IsVisible="{Binding CanUpgrade}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
