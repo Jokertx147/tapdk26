@@ -110,6 +110,22 @@ namespace TheAirline.Models.Airliners
         [Versioning("automaintenance")]
         public bool AutoMaintenance { get; set; }
 
+        /// <summary>The aircraft is out on a charter flight until this date.</summary>
+        [Versioning("charteruntil")]
+        public DateTime CharterUntil { get; set; }
+
+        [Versioning("charterpay")]
+        public double CharterPay { get; set; }
+
+        [Versioning("chartercost")]
+        public double CharterCost { get; set; }
+
+        [Versioning("charterdestination")]
+        public Airport CharterDestination { get; set; }
+
+        [Versioning("chartertext")]
+        public string CharterText { get; set; }
+
         [Versioning("airliner")]
         public Airliner Airliner { get; set; }
 

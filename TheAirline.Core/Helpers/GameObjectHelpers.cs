@@ -1709,7 +1709,9 @@ namespace TheAirline.Helpers
 
                 if (a == GameObject.GetInstance().HumanAirline)
                 {
+                    CharterService.ProcessDaily(a);
                     MaintenanceService.ProcessAuto(a);
+                    CharterService.Refresh();
                 }
 
                 //checks for special contracts

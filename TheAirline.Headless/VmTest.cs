@@ -1126,6 +1126,54 @@ static class VmTest
                 if (!hs.AutoAssignPilots || q.Airliner != manned) { Console.WriteLine("  FAILED auto assign"); Environment.Exit(1); }
             }
             {
+                Console.WriteLine("CHARTER TEST");
+                var cg = TheAirline.Models.General.GameObject.GetInstance();
+                var ca = cg.HumanAirline;
+                TheAirline.Helpers.CharterService.Clear();
+                TheAirline.Helpers.CharterService.Refresh(true);
+                Console.WriteLine("  random offers: " + TheAirline.Helpers.CharterService.Offers.Count);
+                if (TheAirline.Helpers.CharterService.Offers.Count == 0) { Console.WriteLine("  FAILED no offers"); Environment.Exit(1); }
+                var cf = ca.Fleet.FirstOrDefault(x => x.Airliner.BuiltDate <= cg.GameTime && x.Airliner.Type is TheAirline.Models.Airliners.AirlinerPassengerType && x.Pilots.Count >= x.Airliner.Type.CockpitCrew && x.CurrentPosition != null);
+                if (cf == null) { Console.WriteLine("  (no crewed passenger aircraft, skipped)"); }
+                else
+                {
+                    var savedRoutes = cf.Routes;
+                    var withRoutes = savedRoutes.Count;
+                    var dest = TheAirline.Models.Airports.Airports.GetAllActiveAirports().First(x => x != cf.CurrentPosition && TheAirline.Helpers.MathHelpers.GetDistance(cf.CurrentPosition, x) > 300 && TheAirline.Helpers.MathHelpers.GetDistance(cf.CurrentPosition, x) < cf.Airliner.Type.Range * 0.8 && x.GetMaxRunwayLength() >= cf.Airliner.Type.MinRunwaylength);
+                    var offer = new TheAirline.Helpers.CharterOffer { IsCargo = false, Amount = Math.Min(20, TheAirline.Helpers.CharterService.CapacityOf(cf)), From = cf.CurrentPosition, To = dest, Distance = TheAirline.Helpers.MathHelpers.GetDistance(cf.CurrentPosition, dest), Fee = 400000, Deadline = cg.GameTime.AddDays(10), Customer = "a test" };
+                    TheAirline.Helpers.CharterService.AddOffer(offer);
+                    if (withRoutes > 0)
+                    {
+                        Console.WriteLine("  with routes: " + TheAirline.Helpers.CharterService.GetBlocker(cf, offer));
+                        if (TheAirline.Helpers.CharterService.GetBlocker(cf, offer) != "has routes") { Console.WriteLine("  FAILED routes guard"); Environment.Exit(1); }
+                        cf.Routes = new System.Collections.Generic.List<TheAirline.Models.Routes.Route>();
+                    }
+                    var quote = TheAirline.Helpers.CharterService.Quote(cf, offer);
+                    Console.WriteLine("  quote: " + quote.Days + " days, cost " + quote.Cost.ToString("N0") + ", profit " + quote.Profit.ToString("N0"));
+                    var cvm = new TheAirline.Presentation.CharterViewModel(() => { });
+                    var item = cvm.Offers.FirstOrDefault(x => x.Name == offer.Title && x.Aircraft.Count > 0);
+                    if (item != null) { var named = ca.Fleet.FirstOrDefault(x => item.Aircraft[0].Text.StartsWith(x.Name + " (")); if (named != null && named != cf) { if (withRoutes > 0) cf.Routes = savedRoutes; cf = named; savedRoutes = cf.Routes; withRoutes = savedRoutes.Count; } }
+                    Console.WriteLine("  blocker for " + cf.Name + ": " + (TheAirline.Helpers.CharterService.GetBlocker(cf, offer) ?? "none") + " | candidates " + TheAirline.Helpers.CharterService.Candidates(ca, offer).Count);
+                    Console.WriteLine("  view model offers: " + cvm.Offers.Count + ", ours listed: " + (item != null));
+                    if (item == null) { Console.WriteLine("  FAILED offer not in view model"); Environment.Exit(1); }
+                    item.Aircraft[0].SendCommand.Execute(null);
+                    Console.WriteLine("  pending: " + cvm.PendingText);
+                    cvm.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  sent: " + cvm.Status + " | active: " + string.Join(";", cvm.Active));
+                    if (!TheAirline.Helpers.CharterService.IsOnCharter(cf) || cf.Status != TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnCharter) { Console.WriteLine("  FAILED not on charter"); Environment.Exit(1); }
+                    string cmsg;
+                    bool chk = TheAirline.Helpers.MaintenanceService.PerformCheck(cf, TheAirline.Helpers.MaintenanceCheck.A, out cmsg);
+                    Console.WriteLine("  A check while away: " + chk + " | " + cmsg);
+                    if (chk) { Console.WriteLine("  FAILED check during charter"); Environment.Exit(1); }
+                    double before = ca.Money;
+                    cf.CharterUntil = cg.GameTime.AddDays(-1);
+                    var finished = TheAirline.Helpers.CharterService.ProcessDaily(ca);
+                    Console.WriteLine("  done: " + string.Join(";", finished) + " | now at " + cf.CurrentPosition.Profile.IATACode + " | money " + (ca.Money - before).ToString("N0"));
+                    if (finished.Count != 1 || cf.CurrentPosition != dest || cf.CharterDestination != null || cf.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnCharter) { Console.WriteLine("  FAILED charter end"); Environment.Exit(1); }
+                    if (withRoutes > 0) cf.Routes = savedRoutes;
+                }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

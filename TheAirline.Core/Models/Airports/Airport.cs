@@ -173,14 +173,14 @@ namespace TheAirline.Models.Airports
         public void AddAirportFacility(Airline airline, AirportFacility facility, DateTime finishedDate)
         {
             //this.Facilities.RemoveAll(f => f.Airline == airline && f.Facility.Type == facility.Type);
-            _facilities.Add(new AirlineAirportFacility(airline, this, facility, finishedDate));
+            lock (_facilities) { _facilities.Add(new AirlineAirportFacility(airline, this, facility, finishedDate)); }
         }
 
         //sets the facility for an airline
         public void AddAirportFacility(AirlineAirportFacility facility)
         {
             //this.Facilities.RemoveAll(f => f.Airline == facility.Airline && f.Facility.Type == facility.Facility.Type);
-            _facilities.Add(facility);
+            lock (_facilities) { _facilities.Add(facility); }
         }
 
         public void AddCargoDestinationStatistics(Airport destination, double cargo)
@@ -343,7 +343,7 @@ namespace TheAirline.Models.Airports
         //cleares the list of facilities for an airline
         public void ClearFacilities(Airline airline)
         {
-            _facilities.RemoveAll(f => f.Airline == airline);
+            lock (_facilities) { _facilities.RemoveAll(f => f.Airline == airline); }
         }
 
         //returns if an airline is building a facility
@@ -790,7 +790,7 @@ namespace TheAirline.Models.Airports
         //removes the facility for an airline
         public void RemoveFacility(Airline airline, AirportFacility facility)
         {
-            _facilities.RemoveAll(f => f.Airline == airline && f.Facility.Type == facility.Type);
+            lock (_facilities) { _facilities.RemoveAll(f => f.Airline == airline && f.Facility.Type == facility.Type); }
         }
 
         //clears the list of facilites

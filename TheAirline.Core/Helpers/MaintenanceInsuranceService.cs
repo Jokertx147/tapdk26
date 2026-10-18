@@ -147,6 +147,11 @@ namespace TheAirline.Helpers
             return f.CoveredUntil > GameObject.GetInstance().GameTime;
         }
 
+        public static bool IsOnCharter(FleetAirliner f)
+        {
+            return CharterService.IsOnCharter(f);
+        }
+
         /// <summary>What the spare has to be able to do: the longest route of the aircraft.</summary>
         public static double GetSpareRange(FleetAirliner f)
         {
@@ -172,7 +177,7 @@ namespace TheAirline.Helpers
             double range = GetSpareRange(f);
             int size = SizeOf(f);
             return airline.Fleet
-                .Where(s => s != f && s.Routes.Count == 0 && s.Airliner.BuiltDate <= game.GameTime && !IsGrounded(s) && !IsCovering(s) && !IsCovered(s)
+                .Where(s => s != f && s.Routes.Count == 0 && s.Airliner.BuiltDate <= game.GameTime && !IsGrounded(s) && !IsOnCharter(s) && !IsCovering(s) && !IsCovered(s)
                             && (s.Airliner.Type is AirlinerCargoType) == cargo && s.Airliner.Type.Range >= range)
                 .OrderBy(s => Math.Abs(SizeOf(s) - size))
                 .FirstOrDefault();
@@ -216,6 +221,11 @@ namespace TheAirline.Helpers
             if (IsGrounded(f))
             {
                 message = "The aircraft is already grounded until " + DateDisplay.Format(f.GroundedToDate) + ".";
+                return false;
+            }
+            if (IsOnCharter(f))
+            {
+                message = "The aircraft is out on a charter flight until " + DateDisplay.Format(f.CharterUntil) + ".";
                 return false;
             }
             FleetAirliner spare = null;
@@ -281,7 +291,7 @@ namespace TheAirline.Helpers
             var noSpare = new List<string>();
             foreach (FleetAirliner f in airline.Fleet.ToList())
             {
-                if (!f.AutoMaintenance || f.Airliner.BuiltDate > game.GameTime) continue;
+                if (!f.AutoMaintenance || f.Airliner.BuiltDate > game.GameTime || IsOnCharter(f)) continue;
 
                 foreach (MaintenanceCheck c in new[] {MaintenanceCheck.A, MaintenanceCheck.B, MaintenanceCheck.C, MaintenanceCheck.D})
                 {

@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.CharterView">
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+      <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+            <Button Content="No" Command="{Binding CancelCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="Charter flights are one-off jobs. Only an aircraft with no routes, a full crew and enough room and range can take one. It flies there, is paid when it lands, and stays at the destination." TextWrapping="Wrap" Opacity="0.75" />
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+
+      <TextBlock Text="{Binding OffersTitle}" FontSize="16" FontWeight="SemiBold" />
+      <ItemsControl ItemsSource="{Binding Offers}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="#262626" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+              <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Terms}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding NoAircraft}" IsVisible="{Binding HasNoAircraft}" TextWrapping="Wrap" Opacity="0.7" />
+                <ItemsControl ItemsSource="{Binding Aircraft}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2">
+                        <Button Content="Send" Command="{Binding SendCommand}" />
+                        <TextBlock Text="{Binding Text}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="Turn down" Command="{Binding DeclineCommand}" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Text="{Binding ActiveTitle}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+      <ItemsControl ItemsSource="{Binding Active}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,4" /></DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
