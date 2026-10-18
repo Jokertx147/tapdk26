@@ -120,6 +120,12 @@ namespace TheAirline.Presentation
             Demand = new DemandViewModel(OnGameChanged);
             Ratings = new RatingsViewModel();
             Profile = new ProfileViewModel(OnGameChanged);
+            GateContracts = new GateContractsViewModel(OnGameChanged);
+            GateContracts.OpenAirport = a =>
+                {
+                    AirportManager.SelectAirport(a);
+                    AirportsTab = 0;
+                };
             AirportManager.DemandRequested = a =>
                 {
                     Demand.ShowAirport(a);
@@ -233,6 +239,7 @@ namespace TheAirline.Presentation
         public DemandViewModel Demand { get; }
         public RatingsViewModel Ratings { get; }
         public ProfileViewModel Profile { get; }
+        public GateContractsViewModel GateContracts { get; }
 
         private string _logoPath;
 
@@ -313,6 +320,7 @@ namespace TheAirline.Presentation
             License?.Reload();
             Demand?.Reload();
             Ratings?.Reload();
+            GateContracts?.Reload();
             if (GameObject.GetInstance()?.HumanAirline != null) LogoPath = AirlineProfileService.GetLogo(GameObject.GetInstance().HumanAirline);
             Timetable?.ReloadAircraft();
             _financeDate = null;
@@ -448,6 +456,7 @@ namespace TheAirline.Presentation
                     Insurance.Reload();
                     Contracts.Reload();
                     Ratings.Reload();
+                    GateContracts.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();

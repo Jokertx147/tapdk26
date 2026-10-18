@@ -181,6 +181,32 @@ namespace TheAirline.Presentation
         public ObservableCollection<int> GateChoices { get; }
         public ObservableCollection<TerminalItem> Terminals { get; }
         public List<int> TerminalGateChoices { get; }
+
+        private int _leaseYears = 2;
+
+        /// <summary>The length of a new gate contract in years (longer is cheaper per year).</summary>
+        public int LeaseYears
+        {
+            get { return _leaseYears; }
+            set { if (SetProperty(ref _leaseYears, value)) OnPropertyChanged(nameof(PriceText)); }
+        }
+
+        public List<int> LeaseYearChoices { get; } = GateContractService.Lengths.ToList();
+
+        /// <summary>Selects an airport (used by other pages).</summary>
+        public void SelectAirport(Airport airport)
+        {
+            if (airport == null) return;
+            var row = Airports.FirstOrDefault(a => a.Airport == airport);
+            if (row == null)
+            {
+                _search = airport.Profile.IATACode;
+                OnPropertyChanged(nameof(Search));
+                ApplySearch();
+                row = Airports.FirstOrDefault(a => a.Airport == airport);
+            }
+            Selected = row;
+        }
         public ICommand BuildTerminalCommand { get; }
         public ICommand ConfirmPendingCommand { get; }
         public ICommand CancelPendingCommand { get; }
@@ -407,8 +433,8 @@ namespace TheAirline.Presentation
                     return "";
                 }
 
-                double yearly = AirportHelpers.GetYearlyContractPayment(_selected.Airport, _contractType.Type, _gates, 2);
-                return "Yearly payment for a 2 year contract: " + Money(yearly);
+                double yearly = AirportHelpers.GetYearlyContractPayment(_selected.Airport, _contractType.Type, _gates, _leaseYears);
+                return "Yearly payment for a " + _leaseYears + " year contract: " + Money(yearly) + ". Contracts renew by themselves; see Airports > Contracts.";
             }
         }
 
@@ -1072,18 +1098,19 @@ namespace TheAirline.Presentation
                 return;
             }
 
-            double yearly = AirportHelpers.GetYearlyContractPayment(airport, _contractType.Type, _gates, 2);
+            double yearly = AirportHelpers.GetYearlyContractPayment(airport, _contractType.Type, _gates, _leaseYears);
 
             if (RouteCreator.NeedsContract(airport, kind))
             {
-                // new contract (takes up to two gates, like the route creator does)
-                RouteCreator.SignContract(airport, _contractType.Type, kind);
-                Status = (_leaseCargo ? "Cargo gates" : "Gates") + " leased at " + airport.Profile.IATACode + ".";
+                // new contract with the chosen gates and length
+                string signed;
+                GateContractService.Sign(airline, airport, _contractType.Type, kind, _gates, _leaseYears, out signed);
+                Status = signed;
             }
             else
             {
                 AirportHelpers.RentGates(
-                    airport, airline, _contractType.Type, kind, _gates, 2);
+                    airport, airline, _contractType.Type, kind, _gates, _leaseYears);
                 Status = _gates + " more gate(s) leased at " + airport.Profile.IATACode + " (" + Money(yearly) + "/year).";
             }
 

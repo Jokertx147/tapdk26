@@ -267,6 +267,9 @@
             <TabItem Header="Demand">
               <v:DemandView DataContext="{Binding Demand}" />
             </TabItem>
+            <TabItem Header="Contracts">
+              <v:GateContractsView DataContext="{Binding GateContracts}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

@@ -116,6 +116,49 @@ static class VmTest
             pv.ResetLogoCommand.Execute(null); Console.WriteLine("  reset: " + me2.Profile.Logo);
             var al = av.AirlineList; Console.WriteLine("  airlines list logo: " + al.Airlines.First().LogoPath);
         }
+        Console.WriteLine("CONTRACTS TEST");
+        {
+            var gc = av.GateContracts;
+            gc.Reload();
+            Console.WriteLine("  " + gc.Summary);
+            foreach (var r in gc.Rows.Take(3)) Console.WriteLine("  " + r.Title + " | " + r.Numbers + " | " + r.Expiry);
+            if (gc.Rows.Count == 0) { Console.WriteLine("  FAILED no contracts"); Environment.Exit(1); }
+            gc.Selected = gc.Rows.First();
+            var c = gc.Selected.Contract;
+            var exp0 = c.ExpireDate; double pay0 = c.YearlyPayment;
+            gc.Years = 5; Console.WriteLine("  extend preview: " + gc.ExtendText);
+            gc.ExtendCommand.Execute(null); Console.WriteLine("  ask: " + gc.PendingText); gc.ConfirmCommand.Execute(null);
+            Console.WriteLine("  extended: " + gc.Status + " | " + exp0.ToShortDateString() + " -> " + c.ExpireDate.ToShortDateString() + " | pay " + pay0.ToString("N0") + " -> " + c.YearlyPayment.ToString("N0"));
+            if (c.ExpireDate != exp0.AddYears(5)) { Console.WriteLine("  FAILED extend"); Environment.Exit(1); }
+            gc.Selected = gc.Rows.First(r => r.Contract == c);
+            gc.AutoRenew = false; Console.WriteLine("  auto renew off: " + c.AutoRenew + " | " + gc.Status);
+            gc.Filter = "Not renewed"; Console.WriteLine("  not renewed: " + gc.Rows.Count); gc.Filter = "All";
+            gc.RenewAllCommand.Execute(null); Console.WriteLine("  renew all: " + gc.Status + " | " + c.AutoRenew);
+            gc.Selected = gc.Rows.First(r => r.Contract == c);
+            int g0 = c.NumberOfGates; int free0 = c.Airport.Terminals.GetFreeGates(c.TerminalType);
+            gc.Gates = 2; Console.WriteLine("  gates: " + gc.GatesText);
+            gc.AddGatesCommand.Execute(null); gc.ConfirmCommand.Execute(null);
+            Console.WriteLine("  add: " + gc.Status + " | gates " + g0 + " -> " + c.NumberOfGates + " | free " + free0 + " -> " + c.Airport.Terminals.GetFreeGates(c.TerminalType));
+            if (c.NumberOfGates != g0 + 2) { Console.WriteLine("  FAILED add gates"); Environment.Exit(1); }
+            gc.Selected = gc.Rows.First(r => r.Contract == c);
+            gc.Gates = 1; gc.RemoveGatesCommand.Execute(null); gc.ConfirmCommand.Execute(null);
+            Console.WriteLine("  give back: " + gc.Status + " | gates " + c.NumberOfGates);
+            gc.Selected = gc.Rows.First(r => r.Contract == c);
+            gc.EndCommand.Execute(null); Console.WriteLine("  end: " + (gc.PendingText ?? gc.Status)); gc.CancelCommand.Execute(null);
+            gc.OpenAirportCommand.Execute(null); Console.WriteLine("  open airport: tab " + av.AirportsTab + " selected " + av.AirportManager.Selected?.Airport.Profile.IATACode);
+            // manage tab: lease with chosen gates and years
+            var m = av.AirportManager;
+            var target = m.Airports.FirstOrDefault(x => x.Airport.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) > 5 && !x.Airport.AirlineContracts.Any(k => k.Airline.IsHuman));
+            if (target != null)
+            {
+                m.Selected = target; m.Gates = m.GateChoices.Contains(4) ? 4 : m.GateChoices.Last(); m.LeaseYears = 10;
+                Console.WriteLine("  lease price: " + m.PriceText);
+                m.LeaseCommand.Execute(null);
+                var nc = target.Airport.AirlineContracts.First(k => k.Airline.IsHuman);
+                Console.WriteLine("  lease: " + m.Status + " | contract gates " + nc.NumberOfGates + " years " + nc.Length);
+                if (nc.Length != 10) { Console.WriteLine("  FAILED lease length"); Environment.Exit(1); }
+            }
+        }
         Console.WriteLine("QUICK TEST OK");
         Environment.Exit(0);
     }
