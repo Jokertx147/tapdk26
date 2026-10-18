@@ -130,13 +130,13 @@ namespace TheAirline.Presentation
 
                 int year = game.GameTime.Year;
                 var pax = StatisticsTypes.GetStatisticsType("Passengers");
-                var dep = StatisticsTypes.GetStatisticsType("Departures");
+                var dep = StatisticsTypes.GetStatisticsType("Arrivals");
                 double paxAll = airport.Statistics.GetTotalValue(year, pax);
                 double paxMine = airport.Statistics.GetStatisticsValue(year, airline, pax);
                 double depAll = airport.Statistics.GetTotalValue(year, dep);
                 double depMine = airport.Statistics.GetStatisticsValue(year, airline, dep);
                 sb.AppendLine("Passengers in " + year + ": " + Num(paxAll) + " (" + Num(paxMine) + " with you)");
-                sb.AppendLine("Departures in " + year + ": " + Num(depAll) + " (" + Num(depMine) + " yours)");
+                sb.AppendLine("Arrivals in " + year + ": " + Num(depAll) + " (" + Num(depMine) + " yours)");
                 sb.AppendLine("Airlines here: " + airport.AirlineContracts.Select(c => c.Airline).Distinct().Count() + "  |  routes: " + AirportHelpers.GetAirportRoutes(airport).Count);
 
                 var mineRoutes = airline.Routes.Where(r => r.Destination1 == airport || r.Destination2 == airport).ToList();
