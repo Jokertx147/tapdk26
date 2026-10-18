@@ -1426,6 +1426,17 @@ static class VmTest
                 la.License = keepLicense;
             }
             {
+                Console.WriteLine("AIRPORT TYPE TEST");
+                var atm = new TheAirline.Presentation.AirportManagerViewModel(() => { });
+                var cgh = atm.Airports.First(x => x.Airport.Profile.Type == TheAirline.Models.Airports.AirportProfile.AirportType.Domestic);
+                atm.Selected = cgh;
+                Console.WriteLine("  before: " + atm.AirportType + " | row " + cgh.Airport.Profile.Type);
+                atm.AirportType = atm.AirportTypes.First(x => x.Value == TheAirline.Models.Airports.AirportProfile.AirportType.ShortHaulInternational);
+                var cgh2 = atm.Airports.FirstOrDefault(x => x.Airport == cgh.Airport);
+                Console.WriteLine("  after: " + cgh.Airport.Profile.Type + " | " + atm.Status + " | selected " + atm.Selected?.Airport.Profile.IATACode + " | row type " + (cgh2 as TheAirline.Presentation.AirportRow)?.Type);
+                if (cgh.Airport.Profile.Type != TheAirline.Models.Airports.AirportProfile.AirportType.ShortHaulInternational) { Console.WriteLine("  FAILED airport type"); Environment.Exit(1); }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

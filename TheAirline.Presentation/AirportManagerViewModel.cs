@@ -349,6 +349,35 @@ namespace TheAirline.Presentation
 
         public string Title { get; private set; }
         public string Info { get; private set; }
+
+        /// <summary>The airport categories: Regional, Domestic and the two international kinds.</summary>
+        public List<NamedChoice<AirportProfile.AirportType>> AirportTypes { get; } = new List<NamedChoice<AirportProfile.AirportType>>
+        {
+            new NamedChoice<AirportProfile.AirportType> { Name = "Regional", Value = AirportProfile.AirportType.Regional },
+            new NamedChoice<AirportProfile.AirportType> { Name = "Domestic", Value = AirportProfile.AirportType.Domestic },
+            new NamedChoice<AirportProfile.AirportType> { Name = "Short haul international", Value = AirportProfile.AirportType.ShortHaulInternational },
+            new NamedChoice<AirportProfile.AirportType> { Name = "Long haul international", Value = AirportProfile.AirportType.LongHaulInternational }
+        };
+
+        private NamedChoice<AirportProfile.AirportType> _airportType;
+        public bool HasSelection => _selected != null;
+
+        public NamedChoice<AirportProfile.AirportType> AirportType
+        {
+            get { return _airportType; }
+            set
+            {
+                if (value == null || _selected == null || _airportType == value) return;
+                var airport = _selected.Airport;
+                if (airport.Profile.Type == value.Value) { SetProperty(ref _airportType, value); return; }
+                airport.Profile.Type = value.Value;
+                SetProperty(ref _airportType, value);
+                ApplySearch();
+                Selected = Airports.FirstOrDefault(a => a.Airport == airport);
+                Status = airport.Profile.IATACode + " is now a " + value.Name.ToLower() + " airport.";
+                _changed();
+            }
+        }
         public string GateSummary { get; private set; }
 
         public ContractChoice ContractType
@@ -548,10 +577,14 @@ namespace TheAirline.Presentation
             var airline = Human;
             var now = GameObject.GetInstance().GameTime;
 
+            _airportType = AirportTypes.First(t => t.Value == airport.Profile.Type);
+            OnPropertyChanged(nameof(AirportType));
+            OnPropertyChanged(nameof(HasSelection));
+
             Title = airport.Profile.IATACode + "  " + airport.Profile.Name;
             Info = string.Format(
                 "{0}, {1}  |  size {2}  |  longest runway {3} m",
-                airport.Profile.Town?.Name, airport.Profile.Country?.Name, airport.Profile.Size, airport.GetMaxRunwayLength());
+                airport.Profile.Town?.Name, airport.Profile.Country?.Name, airport.Profile.Size.ToString().Replace('_', ' '), airport.GetMaxRunwayLength());
 
             int total = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Passenger);
             int free = airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
