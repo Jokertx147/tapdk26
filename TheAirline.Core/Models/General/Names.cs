@@ -80,7 +80,13 @@ namespace TheAirline.Models.General
 
         private string GetRandomElement(List<string> list)
         {
-            return list[_rnd.Next(list.Count)];
+            //the name files can hold blank lines, which must not become blank names
+            for (int i = 0; i < 20; i++)
+            {
+                string name = list[_rnd.Next(list.Count)];
+                if (!string.IsNullOrWhiteSpace(name)) return name.Trim();
+            }
+            return list.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim() ?? "";
         }
 
         //setup the names
