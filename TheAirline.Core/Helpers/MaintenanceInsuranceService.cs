@@ -149,7 +149,7 @@ namespace TheAirline.Helpers
 
         public static bool IsOnCharter(FleetAirliner f)
         {
-            return CharterService.IsOnCharter(f) || AircraftDealService.IsLeasedOut(f);
+            return CharterService.IsOnCharter(f) || AircraftDealService.IsLeasedOut(f) || FerryService.IsFerrying(f);
         }
 
         /// <summary>What the spare has to be able to do: the longest route of the aircraft.</summary>
@@ -225,7 +225,9 @@ namespace TheAirline.Helpers
             }
             if (IsOnCharter(f))
             {
-                message = AircraftDealService.IsLeasedOut(f)
+                message = FerryService.IsFerrying(f)
+                    ? "The aircraft is on a ferry flight until " + DateDisplay.Format(f.FerryUntil) + "."
+                    : AircraftDealService.IsLeasedOut(f)
                     ? "The aircraft is leased out until " + DateDisplay.Format(f.LeaseOutUntil) + "."
                     : "The aircraft is out on a charter flight until " + DateDisplay.Format(f.CharterUntil) + ".";
                 return false;

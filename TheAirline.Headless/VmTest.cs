@@ -1312,6 +1312,50 @@ static class VmTest
                 }
             }
             {
+                Console.WriteLine("AUTO FERRY TEST");
+                var fg = TheAirline.Models.General.GameObject.GetInstance();
+                var fa = fg.HumanAirline;
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(fa, fg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 50000000);
+                var ff = fa.Fleet.FirstOrDefault(x => x.Routes.Count > 0 && x.Routes.Any(r => r.TimeTable.Entries.Any(e => e.Airliner == x)));
+                if (ff == null) { Console.WriteLine("  (no aircraft with a schedule, skipped)"); }
+                else
+                {
+                    var fEntries = ff.Routes.SelectMany(r => r.TimeTable.Entries.Where(e => e.Airliner == ff)).ToList();
+                    var first = fEntries.OrderBy(e => e.Time).First();
+                    var dep = first.DepartureAirport;
+                    var all = TheAirline.Models.Airports.Airports.GetAllActiveAirports();
+                    var near = all.First(x => x != dep && TheAirline.Helpers.MathHelpers.GetDistance(x, dep) > 400 && TheAirline.Helpers.MathHelpers.GetDistance(x, dep) < ff.Airliner.Type.Range * 0.7 && x.GetMaxRunwayLength() >= ff.Airliner.Type.MinRunwaylength);
+                    ff.CurrentPosition = near; ff.LastFlightDate = DateTime.MinValue; ff.FerryTo = null;
+                    double fm = fa.Money;
+                    bool ok = TheAirline.Helpers.FerryService.BeforeFlights(ff, fEntries);
+                    Console.WriteLine("  from " + near.Profile.IATACode + " to " + dep.Profile.IATACode + ": may fly today " + ok + " | now at " + ff.CurrentPosition.Profile.IATACode + " | ferrying to " + (ff.FerryTo?.Profile.IATACode ?? "-") + " | cost " + (fm - fa.Money).ToString("N0") + " | entry at " + first.Time);
+                    if (fa.Money >= fm || (ff.CurrentPosition != dep && ff.FerryTo != dep)) { Console.WriteLine("  FAILED ferry not made"); Environment.Exit(1); }
+                    if (ff.FerryTo != null)
+                    {
+                        if (ok || !TheAirline.Helpers.FerryService.IsFerrying(ff)) { Console.WriteLine("  FAILED should be ferrying"); Environment.Exit(1); }
+                        var savedTime = fg.GameTime;
+                        fg.GameTime = ff.FerryUntil.AddHours(1);
+                        bool later = TheAirline.Helpers.FerryService.BeforeFlights(ff, fEntries);
+                        Console.WriteLine("  next day: may fly " + later + ", at " + ff.CurrentPosition.Profile.IATACode);
+                        fg.GameTime = savedTime;
+                        if (!later || ff.CurrentPosition != dep) { Console.WriteLine("  FAILED ferry arrival"); Environment.Exit(1); }
+                    }
+                    //flew yesterday: no ferry
+                    ff.CurrentPosition = near; ff.LastFlightDate = fg.GameTime.Date.AddDays(-1); ff.FerryTo = null; ff.FerryUntil = DateTime.MinValue;
+                    fm = fa.Money;
+                    bool carry = TheAirline.Helpers.FerryService.BeforeFlights(ff, fEntries);
+                    Console.WriteLine("  flew yesterday: may fly " + carry + ", still at " + ff.CurrentPosition.Profile.IATACode + ", cost " + (fm - fa.Money).ToString("N0"));
+                    if (!carry || ff.CurrentPosition != near || fa.Money != fm) { Console.WriteLine("  FAILED old behaviour"); Environment.Exit(1); }
+                    //too far for the aircraft
+                    var far = all.OrderByDescending(x => TheAirline.Helpers.MathHelpers.GetDistance(x, dep)).First();
+                    ff.CurrentPosition = far; ff.LastFlightDate = DateTime.MinValue;
+                    bool stuck = TheAirline.Helpers.FerryService.BeforeFlights(ff, fEntries);
+                    Console.WriteLine("  too far (" + far.Profile.IATACode + ", " + TheAirline.Helpers.MathHelpers.GetDistance(far, dep).ToString("N0") + " km, range " + ff.Airliner.Type.Range.ToString("N0") + "): may fly " + stuck + " | " + TheAirline.Helpers.FerryService.GetBlocker(ff, far, dep));
+                    if (stuck) { Console.WriteLine("  FAILED should not fly"); Environment.Exit(1); }
+                    ff.CurrentPosition = dep; ff.LastFlightDate = DateTime.MinValue;
+                }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

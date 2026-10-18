@@ -35,6 +35,7 @@ namespace TheAirline.Helpers
             if (f.Status != FleetAirliner.AirlinerStatus.Stopped) return "it is not stopped";
             if (CharterService.IsOnCharter(f)) return "it is out on a charter";
             if (IsLeasedOut(f)) return "it is already leased out";
+            if (FerryService.IsFerrying(f)) return "it is on a ferry flight";
             if (IsListed(f)) return "it is already listed for sale";
             if (MaintenanceService.IsGrounded(f)) return "it is grounded";
             if (MaintenanceService.IsCovering(f) || MaintenanceService.IsCovered(f)) return "it is tied up in a maintenance cover";

@@ -146,6 +146,17 @@ namespace TheAirline.Models.Airliners
         [Versioning("salesince")]
         public DateTime SaleSince { get; set; }
 
+        /// <summary>An automatic ferry flight is under way to this airport until FerryUntil.</summary>
+        [Versioning("ferryto")]
+        public Airport FerryTo { get; set; }
+
+        [Versioning("ferryuntil")]
+        public DateTime FerryUntil { get; set; }
+
+        /// <summary>The last day this aircraft flew a scheduled flight.</summary>
+        [Versioning("lastflightdate")]
+        public DateTime LastFlightDate { get; set; }
+
         [Versioning("airliner")]
         public Airliner Airliner { get; set; }
 

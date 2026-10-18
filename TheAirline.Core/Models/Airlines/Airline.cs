@@ -200,6 +200,10 @@ namespace TheAirline.Models.Airlines
         [Versioning("autoassignpilots")]
         public bool AutoAssignPilots { get; set; }
 
+        /// <summary>When on, an idle aircraft that is scheduled to fly from another airport gets a ferry flight there first (it costs fuel and takes time).</summary>
+        [Versioning("autoferry")]
+        public bool AutoFerry { get; set; } = true;
+
         /// <summary>What the airline pays its pilots, as a percent of the market salary (100 = market).</summary>
         [Versioning("pilotpaypercent")]
         public double PilotPayPercent { get; set; } = 100;

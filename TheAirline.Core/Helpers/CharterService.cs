@@ -149,6 +149,7 @@ namespace TheAirline.Helpers
             if (f.Routes.Count > 0) return "has routes";
             if (IsOnCharter(f)) return "already on a charter";
             if (AircraftDealService.IsLeasedOut(f)) return "leased out";
+            if (FerryService.IsFerrying(f)) return "on a ferry flight";
             if (MaintenanceService.IsGrounded(f)) return "grounded";
             if (MaintenanceService.IsCovering(f) || MaintenanceService.IsCovered(f)) return "tied up in a maintenance cover";
             if ((f.Airliner.Type is AirlinerCargoType) != o.IsCargo) return o.IsCargo ? "not a cargo aircraft" : "not a passenger aircraft";

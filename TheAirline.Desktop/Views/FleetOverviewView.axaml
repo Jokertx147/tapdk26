@@ -7,6 +7,7 @@
       <TextBox Text="{Binding Search}" Watermark="search name, type or airport" Width="230" />
       <TextBlock Text="Sort by" VerticalAlignment="Center" />
       <ComboBox ItemsSource="{Binding Sorts}" SelectedItem="{Binding SortBy}" MinWidth="130" />
+      <CheckBox Content="Auto ferry" IsChecked="{Binding AutoFerry}" ToolTip.Tip="An idle aircraft scheduled to fly from another airport ferries there first (costs fuel, takes time)" />
       <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Opacity="0.7" />
     </StackPanel>
 

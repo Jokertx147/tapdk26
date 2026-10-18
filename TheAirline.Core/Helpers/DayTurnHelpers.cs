@@ -63,7 +63,8 @@ namespace TheAirline.Helpers
                                     == GeneralHelpers.GetSeason(GameObject.GetInstance().GameTime)))
                             .OrderBy(e => e.Time);
 
-                if (GameObject.GetInstance().GameTime > airliner.GroundedToDate || GameObject.GetInstance().GameTime <= airliner.CoveredUntil)
+                bool ferryOk = !airline.IsHuman || !airline.AutoFerry || FerryService.BeforeFlights(airliner, dayEntries.ToList());
+                if (ferryOk && (GameObject.GetInstance().GameTime > airliner.GroundedToDate || GameObject.GetInstance().GameTime <= airliner.CoveredUntil))
                 {
                     foreach (RouteTimeTableEntry entry in dayEntries)
                     {
@@ -121,6 +122,7 @@ namespace TheAirline.Helpers
         private static void SimulateFlight(RouteTimeTableEntry entry)
         {
             FleetAirliner airliner = entry.Airliner;
+            airliner.LastFlightDate = GameObject.GetInstance().GameTime.Date;
 
             if (entry.TimeTable.Route.HasStopovers || airliner.CurrentFlight is StopoverFlight)
             {

@@ -118,6 +118,20 @@ namespace TheAirline.Presentation
         public bool CanCabin => _selected != null && _selected.Aircraft.Status == FleetAirliner.AirlinerStatus.Stopped
                                 && _selected.Aircraft.Airliner.Type is AirlinerPassengerType;
         public bool CanSell => _selected != null;
+
+        /// <summary>An idle aircraft scheduled to fly from another airport gets a ferry flight there first (fuel cost, takes time).</summary>
+        public bool AutoFerry
+        {
+            get { return GameObject.GetInstance().HumanAirline?.AutoFerry ?? true; }
+            set
+            {
+                var airline = GameObject.GetInstance().HumanAirline;
+                if (airline == null || airline.AutoFerry == value) return;
+                airline.AutoFerry = value;
+                OnPropertyChanged(nameof(AutoFerry));
+                Status = value ? "Automatic ferry flights are on." : "Automatic ferry flights are off: aircraft just start from the first airport of their schedule.";
+            }
+        }
         public string SellText { get; private set; } = "Sell";
 
         public OverviewRow Selected
@@ -294,7 +308,7 @@ namespace TheAirline.Presentation
                 Name = f.Name,
                 Type = a.Type.Name,
                 Cabin = a.CabinConfiguration,
-                Status = a.BuiltDate > game.GameTime ? "Delivery " + DateFormatter.Date(a.BuiltDate) : AircraftDealService.IsLeasedOut(f) ? "Leased to " + f.LeaseOutTo.Profile.IATACode : AircraftDealService.IsListed(f) ? "For sale" : CharterService.IsOnCharter(f) ? "On charter" : f.Status.ToString(),
+                Status = a.BuiltDate > game.GameTime ? "Delivery " + DateFormatter.Date(a.BuiltDate) : FerryService.IsFerrying(f) ? "Ferry to " + f.FerryTo.Profile.IATACode : AircraftDealService.IsLeasedOut(f) ? "Leased to " + f.LeaseOutTo.Profile.IATACode : AircraftDealService.IsListed(f) ? "For sale" : CharterService.IsOnCharter(f) ? "On charter" : f.Status.ToString(),
                 Homebase = f.Homebase?.Profile.IATACode,
                 Ownership = ownership,
                 Age = a.Age + " y",
