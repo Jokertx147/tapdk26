@@ -1078,6 +1078,27 @@ static class VmTest
                 int ni = pvm.Available.Count;
                 Console.WriteLine("  pilots tab: " + ni + " pilots for hire");
                 if (ni == 0) { Console.WriteLine("  FAILED pilots for hire"); Environment.Exit(1); }
+
+                // type training for a pilot without an aircraft
+                pvm.Reload();
+                Console.WriteLine("  your pilots: " + pvm.Hired.Count + ", marked without aircraft: " + pvm.Hired.Count(h => h.IsIdle));
+                if (!pvm.Hired.Any(h => h.IsIdle && h.Pilot == graduate)) { Console.WriteLine("  FAILED idle marker"); Environment.Exit(1); }
+                pvm.TrainPilot = pvm.TrainPilots.First(c => c.Value == graduate);
+                Console.WriteLine("  train: " + pvm.TrainPilots.Count + " pilot(s) without aircraft, " + pvm.TrainFamilies.Count + " families, first: " + pvm.TrainFamilies[0].Name + " | " + pvm.TrainHint);
+                string tf = pvm.TrainFamilies[0].Value;
+                double mTrain = gs.HumanMoney;
+                pvm.TrainCommand.Execute(null);
+                Console.WriteLine("  pending: " + pvm.PendingText);
+                pvm.ConfirmCommand.Execute(null);
+                Console.WriteLine("  trained: " + pvm.Status + " | money " + (gs.HumanMoney - mTrain).ToString("0") + " | " + pvm.Hired.First(h => h.Pilot == graduate).Assignment);
+                if (graduate.Training == null || graduate.Training.AirlinerFamily != tf || !(gs.HumanMoney < mTrain) || pvm.TrainPilots.Any(c => c.Value == graduate)) { Console.WriteLine("  FAILED training start"); Environment.Exit(1); }
+                string mt;
+                bool again2 = TheAirline.Helpers.FlightSchoolService.TrainPilot(hs, graduate, tf, out mt);
+                Console.WriteLine("  twice: " + again2 + " | " + mt);
+                graduate.Training.EndDate = gs.GameTime;
+                typeof(TheAirline.Helpers.GameObjectHelpers).GetMethod("DoDailyUpdate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, null);
+                Console.WriteLine("  after training: flies " + string.Join(",", graduate.Aircrafts) + " | training " + (graduate.Training == null ? "done" : "still on"));
+                if (again2 || graduate.Training != null || !graduate.Aircrafts.Contains(tf)) { Console.WriteLine("  FAILED training end"); Environment.Exit(1); }
             }
             {
                 Console.WriteLine("AUTOSAVE TEST");

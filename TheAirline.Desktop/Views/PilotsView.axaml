@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="TheAirline.Desktop.Views.PilotsView">
-  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,12,*" Margin="0,10,0,0">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,12,*" Margin="0,10,0,0">
     <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
       <TextBlock Text="Pilots for" VerticalAlignment="Center" />
       <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}" MinWidth="320" />
@@ -29,8 +29,12 @@
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="2">
-              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding Assignment}" Opacity="0.7" />
+              <StackPanel Orientation="Horizontal">
+                <Border IsVisible="{Binding IsIdle}" Background="#C26A00" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="NO AIRCRAFT" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                <Border IsVisible="{Binding IsTraining}" Background="#1F6FB5" CornerRadius="4" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="TRAINING" FontSize="11" FontWeight="Bold" Foreground="White" /></Border>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+              </StackPanel>
+              <TextBlock Text="{Binding Assignment}" Opacity="0.7" TextWrapping="Wrap" />
             </StackPanel>
           </DataTemplate>
         </ListBox.ItemTemplate>
@@ -41,5 +45,29 @@
       <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <Button Grid.Column="1" Content="Hire selected pilot" Command="{Binding HireCommand}" />
     </Grid>
+
+    <Border Grid.Row="3" Grid.ColumnSpan="3" Background="#262626" CornerRadius="6" Padding="12" Margin="0,10,0,0">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Train a pilot for another aircraft family" FontWeight="SemiBold" />
+        <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+              <Button Content="No" Command="{Binding CancelCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="Pilot" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding TrainPilots}" SelectedItem="{Binding TrainPilot}" MinWidth="320" />
+          <TextBlock Text="Train for" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding TrainFamilies}" SelectedItem="{Binding TrainFamily}" MinWidth="320" />
+          <Button Content="Train pilot" Command="{Binding TrainCommand}" />
+        </StackPanel>
+        <CheckBox Content="Also pilots who fly an aircraft (a substitute pilot is paid)" IsChecked="{Binding IncludeAssigned}" />
+        <TextBlock Text="{Binding TrainHint}" Opacity="0.7" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
   </Grid>
 </UserControl>

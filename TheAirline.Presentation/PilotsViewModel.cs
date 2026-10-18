@@ -15,14 +15,22 @@ namespace TheAirline.Presentation
         public PilotItem(Pilot pilot)
         {
             Pilot = pilot;
+            IsIdle = pilot.Airline != null && pilot.Airliner == null;
+            IsTraining = pilot.Training != null;
             Name = pilot.Profile.Name;
             Details = string.Format(
                 "age {0}  |  {1}  |  {2}",
                 pilot.Profile.Age, pilot.Rating?.Name, string.Join(", ", pilot.Aircrafts ?? new List<string>()));
-            Assignment = pilot.Airliner == null ? "not assigned" : "flies " + pilot.Airliner.Name;
+            Assignment = (pilot.Airliner == null ? "not assigned" : "flies " + pilot.Airliner.Name)
+                         + (pilot.Training != null ? "  |  training for the " + pilot.Training.AirlinerFamily + " until " + DateFormatter.Date(pilot.Training.EndDate) : "");
         }
 
         public Pilot Pilot { get; }
+
+        /// <summary>One of your pilots who has no aircraft.</summary>
+        public bool IsIdle { get; }
+
+        public bool IsTraining { get; }
         public string Name { get; }
         public string Details { get; }
         public string Assignment { get; }
@@ -42,6 +50,11 @@ namespace TheAirline.Presentation
         private CrewChoice _target;
         private PilotItem _selected;
         private string _status;
+        private string _pendingText;
+        private Action _pending;
+        private bool _includeAssigned;
+        private NamedChoice<Pilot> _trainPilot;
+        private NamedChoice<string> _trainFamily;
 
         public PilotsViewModel(Action changed)
         {
@@ -52,6 +65,11 @@ namespace TheAirline.Presentation
             HireCommand = new RelayCommand(HireSelected, () => _selected != null);
             HireCrewCommand = new RelayCommand(HireCrew, () => _target?.Airliner != null);
             AssignIdleCommand = new RelayCommand(AssignIdle);
+            TrainPilots = new ObservableCollection<NamedChoice<Pilot>>();
+            TrainFamilies = new ObservableCollection<NamedChoice<string>>();
+            TrainCommand = new RelayCommand(AskTrain);
+            ConfirmCommand = new RelayCommand(() => { var a = _pending; SetPending(null, null); a?.Invoke(); });
+            CancelCommand = new RelayCommand(() => SetPending(null, null));
             Reload();
         }
 
@@ -64,6 +82,156 @@ namespace TheAirline.Presentation
         public ICommand HireCommand { get; }
         public ICommand HireCrewCommand { get; }
         public ICommand AssignIdleCommand { get; }
+        public ICommand TrainCommand { get; }
+        public ICommand ConfirmCommand { get; }
+        public ICommand CancelCommand { get; }
+
+        /// <summary>Pilots who can be sent to training for another aircraft family: by default those without an aircraft.</summary>
+        public ObservableCollection<NamedChoice<Pilot>> TrainPilots { get; }
+
+        /// <summary>The aircraft families the chosen pilot cannot fly yet, with the days and the price.</summary>
+        public ObservableCollection<NamedChoice<string>> TrainFamilies { get; }
+
+        public bool HasPending => _pending != null;
+        public string TrainHint { get; private set; }
+
+        public string PendingText
+        {
+            get { return _pendingText; }
+            private set { SetProperty(ref _pendingText, value); }
+        }
+
+        /// <summary>Also show pilots who fly an aircraft. A substitute pilot is paid while they are away.</summary>
+        public bool IncludeAssigned
+        {
+            get { return _includeAssigned; }
+            set
+            {
+                if (SetProperty(ref _includeAssigned, value))
+                {
+                    LoadTrainPilots();
+                }
+            }
+        }
+
+        public NamedChoice<Pilot> TrainPilot
+        {
+            get { return _trainPilot; }
+            set
+            {
+                if (SetProperty(ref _trainPilot, value))
+                {
+                    LoadTrainFamilies();
+                }
+            }
+        }
+
+        public NamedChoice<string> TrainFamily
+        {
+            get { return _trainFamily; }
+            set
+            {
+                if (SetProperty(ref _trainFamily, value))
+                {
+                    UpdateTrainHint();
+                }
+            }
+        }
+
+        private void SetPending(string text, Action action)
+        {
+            _pending = action;
+            PendingText = text;
+            OnPropertyChanged(nameof(HasPending));
+        }
+
+        private static string Money(double v)
+        {
+            return v.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+        }
+
+        private void LoadTrainPilots()
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            var keep = _trainPilot?.Value;
+            TrainPilots.Clear();
+            if (airline != null)
+            {
+                foreach (var p in airline.Pilots.Where(p => p.Training == null && (_includeAssigned || p.Airliner == null)).OrderBy(p => p.Profile.Name))
+                {
+                    TrainPilots.Add(
+                        new NamedChoice<Pilot>
+                        {
+                            Name = p.Profile.Name + "  (" + (p.Airliner == null ? "no aircraft" : "flies " + p.Airliner.Name) + ", " + string.Join(", ", p.Aircrafts ?? new List<string>()) + ")",
+                            Value = p
+                        });
+                }
+            }
+
+            _trainPilot = TrainPilots.FirstOrDefault(c => c.Value == keep) ?? TrainPilots.FirstOrDefault();
+            OnPropertyChanged(nameof(TrainPilot));
+            LoadTrainFamilies();
+        }
+
+        private void LoadTrainFamilies()
+        {
+            var pilot = _trainPilot?.Value;
+            var keep = _trainFamily?.Value;
+            TrainFamilies.Clear();
+            if (pilot != null)
+            {
+                var fleetFamilies = GameObject.GetInstance().HumanAirline.Fleet.Select(f => f.Airliner.Type.AirlinerFamily).ToList();
+                // the families of your own fleet come first
+                foreach (var f in FlightSchoolService.TrainingFamilies(pilot).OrderByDescending(f => fleetFamilies.Contains(f)).ThenBy(f => f))
+                {
+                    int days = AirlineHelpers.GetTrainingDays(pilot, f);
+                    TrainFamilies.Add(
+                        new NamedChoice<string>
+                        {
+                            Name = f + (fleetFamilies.Contains(f) ? " (in your fleet)" : "") + "  -  " + days + " days, " + Money(FlightSchoolService.GetTrainingCost(pilot, f)),
+                            Value = f
+                        });
+                }
+            }
+
+            _trainFamily = TrainFamilies.FirstOrDefault(c => c.Value == keep) ?? TrainFamilies.FirstOrDefault();
+            OnPropertyChanged(nameof(TrainFamily));
+            UpdateTrainHint();
+        }
+
+        private void UpdateTrainHint()
+        {
+            var pilot = _trainPilot?.Value;
+            TrainHint = pilot == null
+                ? (_includeAssigned ? "You have no pilot who can be trained." : "None of your pilots is without an aircraft. Tick the box to also train pilots who fly one.")
+                : "Training takes 2 days for a family of a manufacturer the pilot knows and 14 days otherwise. A training facility for the family (under Facilities) brings the price down to one day."
+                  + (pilot.Airliner != null ? " " + pilot.Airliner.Name + " gets a substitute pilot meanwhile, which is paid extra." : "");
+            OnPropertyChanged(nameof(TrainHint));
+        }
+
+        private void AskTrain()
+        {
+            var pilot = _trainPilot?.Value;
+            var family = _trainFamily?.Value;
+            if (pilot == null || family == null)
+            {
+                Status = "Choose a pilot and an aircraft family.";
+                return;
+            }
+
+            SetPending(
+                "Send " + pilot.Profile.Name + " to train for the " + family + " for " + Money(FlightSchoolService.GetTrainingCost(pilot, family)) + "? It takes "
+                + AirlineHelpers.GetTrainingDays(pilot, family) + " days.",
+                () =>
+                {
+                    string m;
+                    FlightSchoolService.TrainPilot(GameObject.GetInstance().HumanAirline, pilot, family, out m);
+                    Status = m;
+                    Reload();
+                    _changed?.Invoke();
+                });
+        }
+
 
         public CrewChoice Target
         {
@@ -128,6 +296,7 @@ namespace TheAirline.Presentation
             }
 
             LoadAvailable();
+            LoadTrainPilots();
             (HireCrewCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 

@@ -295,6 +295,64 @@ namespace TheAirline.Helpers
             return true;
         }
 
+        // ---- type training of pilots you have hired ----
+
+        /// <summary>A day of a substitute pilot, while a pilot who flies an aircraft is away on training.</summary>
+        public const double SubstituteDayPrice = 500;
+
+        public static List<string> TrainingFamilies(Pilot pilot)
+        {
+            return Families().Where(f => pilot.Aircrafts == null || !pilot.Aircrafts.Contains(f)).ToList();
+        }
+
+        public static double GetSubstitutePrice(Pilot pilot, string family)
+        {
+            return pilot.Airliner == null ? 0 : GeneralHelpers.GetInflationPrice(AirlineHelpers.GetTrainingDays(pilot, family)*SubstituteDayPrice);
+        }
+
+        public static double GetTrainingCost(Pilot pilot, string family)
+        {
+            return AirlineHelpers.GetTrainingPrice(pilot, family) + GetSubstitutePrice(pilot, family);
+        }
+
+        /// <summary>Sends a pilot of the airline to training for another aircraft family. The pilot can fly it when the training ends.</summary>
+        public static bool TrainPilot(Airline airline, Pilot pilot, string family, out string message)
+        {
+            if (pilot == null || pilot.Airline != airline)
+            {
+                message = "Choose one of your pilots.";
+                return false;
+            }
+            if (pilot.Training != null)
+            {
+                message = pilot.Profile.Name + " is already training for the " + pilot.Training.AirlinerFamily + ".";
+                return false;
+            }
+            if (string.IsNullOrEmpty(family) || (pilot.Aircrafts != null && pilot.Aircrafts.Contains(family)))
+            {
+                message = "Choose an aircraft family " + pilot.Profile.Name + " cannot fly yet.";
+                return false;
+            }
+
+            double training = AirlineHelpers.GetTrainingPrice(pilot, family);
+            double substitute = GetSubstitutePrice(pilot, family);
+            int days = AirlineHelpers.GetTrainingDays(pilot, family);
+            if (airline.Money < training + substitute)
+            {
+                message = "Not enough money: the training costs " + Money(training + substitute) + ".";
+                return false;
+            }
+
+            if (substitute > 0)
+            {
+                AirlineHelpers.AddAirlineInvoice(airline, Game.GameTime, Invoice.InvoiceType.AirlineExpenses, -substitute);
+            }
+            AirlineHelpers.SendForTraining(airline, pilot, family, days, training);
+            message = pilot.Profile.Name + " is training for the " + family + " for " + days + " days, until " + DateDisplay.Format(pilot.Training.EndDate) + ". It costs "
+                      + Money(training) + (substitute > 0 ? " plus " + Money(substitute) + " for a substitute pilot on " + pilot.Airliner.Name : "") + ".";
+            return true;
+        }
+
         /// <summary>Puts pilots who have no aircraft (new graduates, for example) on aircraft that need pilots and match their type.</summary>
         public static int AssignIdlePilots(Airline airline)
         {
