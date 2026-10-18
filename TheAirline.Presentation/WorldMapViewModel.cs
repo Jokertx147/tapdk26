@@ -6,6 +6,7 @@ using TheAirline.Models.Airliners;
 using TheAirline.Models.Airlines;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
+using TheAirline.Models.General.Statistics;
 using TheAirline.Models.Routes;
 
 namespace TheAirline.Presentation
@@ -17,6 +18,7 @@ namespace TheAirline.Presentation
         public double V { get; set; }
         public string Label { get; set; }
         public bool IsHub { get; set; }
+        public Airport Airport { get; set; }
     }
 
     /// <summary>A line on the map, split in pieces where it crosses the edge of the picture.</summary>
@@ -89,6 +91,93 @@ namespace TheAirline.Presentation
         {
             get { return _caption; }
             private set { SetProperty(ref _caption, value); }
+        }
+
+        private static string Num(double v)
+        {
+            return v.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>The text of the tooltip over an airport: where it is, how big, the gates and the traffic, and what you fly from it.</summary>
+        public string AirportTip(MapPlace place)
+        {
+            var airport = place?.Airport;
+            var game = GameObject.GetInstance();
+            var airline = game?.HumanAirline;
+            if (airport == null || airline == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var p = airport.Profile;
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine(p.IATACode + " / " + p.ICAOCode + "  " + p.Name + (place.IsHub ? "  (your hub)" : ""));
+                sb.AppendLine(p.Town?.Name + ", " + p.Country?.Name);
+                sb.AppendLine("Size " + p.Size.ToString().Replace('_', ' ') + "  |  longest runway " + DistanceFormatter.Metres(airport.GetMaxRunwayLength()));
+
+                int total = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Passenger);
+                int free = airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
+                int mine = airport.GetAirlineContracts(airline).Where(c => c.TerminalType == Terminal.TerminalType.Passenger).Sum(c => c.NumberOfGates);
+                string gates = "Gates " + total + " (" + free + " free, " + mine + " yours)";
+                int cargo = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Cargo);
+                if (cargo > 0)
+                {
+                    gates += "  |  cargo gates " + cargo + " (" + airport.Terminals.GetFreeGates(Terminal.TerminalType.Cargo) + " free)";
+                }
+                sb.AppendLine(gates);
+
+                int year = game.GameTime.Year;
+                var pax = StatisticsTypes.GetStatisticsType("Passengers");
+                var dep = StatisticsTypes.GetStatisticsType("Departures");
+                double paxAll = airport.Statistics.GetTotalValue(year, pax);
+                double paxMine = airport.Statistics.GetStatisticsValue(year, airline, pax);
+                double depAll = airport.Statistics.GetTotalValue(year, dep);
+                double depMine = airport.Statistics.GetStatisticsValue(year, airline, dep);
+                sb.AppendLine("Passengers in " + year + ": " + Num(paxAll) + " (" + Num(paxMine) + " with you)");
+                sb.AppendLine("Departures in " + year + ": " + Num(depAll) + " (" + Num(depMine) + " yours)");
+                sb.AppendLine("Airlines here: " + airport.AirlineContracts.Select(c => c.Airline).Distinct().Count() + "  |  routes: " + AirportHelpers.GetAirportRoutes(airport).Count);
+
+                var mineRoutes = airline.Routes.Where(r => r.Destination1 == airport || r.Destination2 == airport).ToList();
+                if (mineRoutes.Count == 0)
+                {
+                    sb.Append("You fly no route from here.");
+                }
+                else
+                {
+                    var dests = mineRoutes.Select(r => (r.Destination1 == airport ? r.Destination2 : r.Destination1).Profile.IATACode).Distinct().ToList();
+                    sb.Append("Your routes: " + mineRoutes.Count + " to " + string.Join(", ", dests.Take(8)) + (dests.Count > 8 ? " and " + (dests.Count - 8) + " more" : ""));
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception)
+            {
+                return place.Label;
+            }
+        }
+
+        /// <summary>The text of the tooltip over an aircraft.</summary>
+        public string AircraftTip(MapAircraft a)
+        {
+            if (a == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var f = a.Aircraft;
+                return a.Name + Environment.NewLine + a.Info + Environment.NewLine
+                       + string.Format(
+                           "Condition {0:0}%  |  pilots {1}/{2}  |  {3} route(s)", f.Airliner.Condition, f.Pilots.Count, f.Airliner.Type.CockpitCrew, f.Routes.Count)
+                       + Environment.NewLine + "Speed " + DistanceFormatter.Speed(f.Airliner.Type.CruisingSpeed) + "  |  range " + DistanceFormatter.Km(f.Airliner.Type.Range);
+            }
+            catch (Exception)
+            {
+                return a.Name + Environment.NewLine + a.Info;
+            }
         }
 
         public static double MercatorV(double latitude)
@@ -281,7 +370,7 @@ namespace TheAirline.Presentation
                 if (a?.Profile?.Coordinates == null) continue;
                 double lat, lon;
                 Coords(a, out lat, out lon);
-                places.Add(new MapPlace { U = MercatorU(lon), V = MercatorV(lat), Label = a.Profile.IATACode, IsHub = hubs.Contains(a) });
+                places.Add(new MapPlace { U = MercatorU(lon), V = MercatorV(lat), Label = a.Profile.IATACode, IsHub = hubs.Contains(a), Airport = a });
             }
 
             var lines = new List<MapLine>();

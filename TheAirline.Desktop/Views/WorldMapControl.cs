@@ -27,6 +27,7 @@ namespace TheAirline.Desktop.Views
         private bool _fitted;
         private Point _down, _last;
         private bool _dragging, _moved;
+        private string _hoverKey;
 
         private static readonly IBrush Sea = new SolidColorBrush(Color.Parse("#b5d0d0"));
         private static readonly Pen RoutePen = new Pen(new SolidColorBrush(Color.FromArgb(150, 20, 90, 200)), 1.4);
@@ -268,7 +269,13 @@ namespace TheAirline.Desktop.Views
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
-            if (!_dragging) return;
+            if (!_dragging)
+            {
+                UpdateTip(e.GetPosition(this));
+                return;
+            }
+
+            if (_hoverKey != null) { _hoverKey = null; ToolTip.SetTip(this, null); }
             Point p = e.GetPosition(this);
             if (Math.Abs(p.X - _down.X) + Math.Abs(p.Y - _down.Y) > 4) _moved = true;
             if (_moved)
@@ -300,6 +307,40 @@ namespace TheAirline.Desktop.Views
             }
         }
 
+        /// <summary>Shows the tooltip of the aircraft or airport under the pointer (aircraft first), and a hand cursor over them.</summary>
+        private void UpdateTip(Point p)
+        {
+            string key = null, text = null;
+            if (_vm != null)
+            {
+                if (_vm.ShowAircraft)
+                {
+                    var plane = _vm.Aircraft.ToList().Select(a => new { a, d = Distance(ToScreen(a.U, a.V), p) }).Where(x => x.d < 12).OrderBy(x => x.d).FirstOrDefault();
+                    if (plane != null)
+                    {
+                        key = "a:" + plane.a.Aircraft.Name + plane.a.Info;
+                        if (key != _hoverKey) text = _vm.AircraftTip(plane.a);
+                    }
+                }
+
+                if (key == null && _vm.ShowAirports)
+                {
+                    var place = _vm.Places.ToList().Select(a => new { a, d = Distance(ToScreen(a.U, a.V), p) }).Where(x => x.d < (x.a.IsHub ? 9 : 7)).OrderBy(x => x.d).FirstOrDefault();
+                    if (place != null)
+                    {
+                        key = "p:" + place.a.Label + _vm.Caption;
+                        if (key != _hoverKey) text = _vm.AirportTip(place.a);
+                    }
+                }
+            }
+
+            if (key == _hoverKey) return;
+            _hoverKey = key;
+            Cursor = key != null ? new Cursor(StandardCursorType.Hand) : Cursor.Default;
+            ToolTip.SetShowDelay(this, 150);
+            ToolTip.SetTip(this, key == null ? null : text);
+        }
+
         private static double Distance(Point a, Point b)
         {
             return Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
@@ -308,6 +349,8 @@ namespace TheAirline.Desktop.Views
         protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
         {
             base.OnPointerWheelChanged(e);
+            _hoverKey = null;
+            ToolTip.SetTip(this, null);
             Point p = e.GetPosition(this);
             double u = _cx + (p.X - Bounds.Width / 2) / _scale, v = _cy + (p.Y - Bounds.Height / 2) / _scale;
             _scale *= e.Delta.Y > 0 ? 1.25 : 0.8;

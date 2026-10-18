@@ -665,6 +665,9 @@ static class VmTest
                 foreach (var pl in map.Places.Take(5)) Console.WriteLine("  place " + pl.Label + " u=" + pl.U.ToString("0.000") + " v=" + pl.V.ToString("0.000") + " hub=" + pl.IsHub);
                 Console.WriteLine("  bad pieces: " + map.Lines.Sum(l => l.Pieces.Count(p => p.Any(q => q[0] < 0 || q[0] > 1 || q[1] < 0 || q[1] > 1))));
                 if (map.Aircraft.Count > 0) { map.Selected = map.Aircraft[0]; Console.WriteLine("  selected: " + map.SelectedText); }
+                foreach (var pl in map.Places.Take(2)) Console.WriteLine("  tooltip " + pl.Label + ":\n    " + (map.AirportTip(pl) ?? "NULL").Replace("\n", "\n    "));
+                if (map.Aircraft.Count > 0) Console.WriteLine("  tooltip aircraft:\n    " + (map.AircraftTip(map.Aircraft[0]) ?? "NULL").Replace("\n", "\n    "));
+                if (map.Places.Count > 0 && (map.AirportTip(map.Places[0]) ?? "").Split('\n').Length < 6) { Console.WriteLine("  FAILED tooltip"); Environment.Exit(1); }
             }
             {
                 Console.WriteLine("MAINTENANCE AND INSURANCE TEST");
