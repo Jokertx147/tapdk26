@@ -4152,18 +4152,6 @@
       <runway name="05/23" length="2074" surface="Asphalt" />
     </runways>
   </airport>
-  <airport name="Paros Airport" icao="LGPA" iata="PAS" type="Domestic" season="AllYear">
-    <town town="Paros Island" country="118" GMT="03:00:00" DST="02:00:00" />
-    <coordinates>
-      <latitude value="037°00'37''N" />
-      <longitude value="025°07'41''E" />
-    </coordinates>
-    <size value="Smallest" pax="35" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Milos Airport" icao="LGML" iata="MLO" type="Domestic" season="AllYear">
     <town town="Milos Island" country="118" GMT="03:00:00" DST="02:00:00" />
     <coordinates>

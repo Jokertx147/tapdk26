@@ -3062,18 +3062,6 @@
       <runway name="18/36" length="3200" surface="Asphalt" />
     </runways>
   </airport>
-  <airport name="Gabala International Airport" icao="UBBQ" iata="GBB" type="ShortHaulInternational" season="AllYear">
-    <town town="Gabala" country="235" GMT="04:00:00" DST="04:00:00" />
-    <coordinates>
-      <latitude value="040°49'36''N" />
-      <longitude value="047°42'44''E" />
-    </coordinates>
-    <size value="Smallest" pax="86" cargo="Smallest" cargovolume="0" />
-    <terminals>
-      <terminal name="Terminal A" gates="4" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Ganja Airport" icao="UBBG" iata="KVD" type="LongHaulInternational" season="AllYear">
     <town town="Ganja" country="235" GMT="04:00:00" DST="04:00:00" />
     <coordinates>
@@ -3102,19 +3090,6 @@
       <runway name="14L/32R" length="3300" surface="Asphalt" />
       <runway name="14R/32L" length="3300" surface="Concrete" />
     </runways>
-  </airport>
-  <airport name="Zaqatala International Airport" icao="UBBY" iata="ZTU" type="ShortHaulInternational"
-           season="AllYear">
-    <town town="Zaqatala" country="235" GMT="04:00:00" DST="04:00:00" />
-    <coordinates>
-      <latitude value="041°33'43''N" />
-      <longitude value="046°40'01''E" />
-    </coordinates>
-    <size value="Verysmall" pax="151" cargo="Smallest" cargovolume="0" />
-    <terminals>
-      <terminal name="Terminal A" gates="4" />
-    </terminals>
-    <runways />
   </airport>
   <!--Armenia (UD**)-->
   <airport name="Zvartnots International Airport" icao="UDYZ" iata="EVN" type="LongHaulInternational"
@@ -6097,18 +6072,6 @@
     </runways>
   </airport>
   <!--Laos (VL**)-->
-  <airport name="Luang Namtha Airport" icao="VLLN" iata="LXG" type="Domestic" season="AllYear">
-    <town town="Luang Namtha" country="279" GMT="07:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="020°58'01''N" />
-      <longitude value="101°24'00''E" />
-    </coordinates>
-    <size value="Smallest" pax="15" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Luang Phabang International Airport" icao="VLLB" iata="LPQ" type="Domestic" season="AllYear">
     <town town="Luang Phabang" country="279" GMT="07:00:00" DST="00:00:00" />
     <coordinates>
@@ -6122,18 +6085,6 @@
     <runways>
       <runway name="06/24" length="2200" surface="Asphalt" />
     </runways>
-  </airport>
-  <airport name="Oudomsay Airport" icao="VLOS" iata="ODY" type="Domestic" season="AllYear">
-    <town town="Oudomsay" country="279" GMT="07:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="020°40'57''N" />
-      <longitude value="101°59'38''E" />
-    </coordinates>
-    <size value="Smallest" pax="25" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
   </airport>
   <airport name="Pakse International Airport" icao="VLPS" iata="PKZ" type="Regional" season="AllYear">
     <town town="Pakse" country="279" GMT="07:00:00" DST="00:00:00" />

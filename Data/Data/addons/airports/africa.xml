@@ -435,18 +435,6 @@
       <runway name="17/35" length="2999" surface="Asphalt" />
     </runways>
   </airport>
-  <airport name="Asaba International Airport" icao="DNAS" iata="ABB" type="Regional" season="AllYear">
-    <town town="Asaba" country="145" GMT="01:00:00" DST="01:00:00" />
-    <coordinates>
-      <latitude value="006°12'11''N" />
-      <longitude value="006°39'32''E" />
-    </coordinates>
-    <size value="Smallest" pax="22" cargo="Smallest" cargovolume="0" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Akure Airport" icao="DNAK" iata="AKR" type="Domestic" season="AllYear">
     <town town="Akure" country="145" GMT="01:00:00" DST="01:00:00" />
     <coordinates>
@@ -474,18 +462,6 @@
     <runways>
       <runway name="05/23" length="2399" surface="Asphalt" />
     </runways>
-  </airport>
-  <airport name="Gombe Lawanti International Airport" icao="DNGO" iata="GMO" type="Regional" season="AllYear">
-    <town town="Gombe" country="145" GMT="01:00:00" DST="01:00:00" />
-    <coordinates>
-      <latitude value="010°17'53''N" />
-      <longitude value="010°53'47''E" />
-    </coordinates>
-    <size value="Smallest" pax="21" cargo="Smallest" cargovolume="0" />
-    <terminals>
-      <terminal name="Terminal A" gates="4" />
-    </terminals>
-    <runways />
   </airport>
   <airport name="Ibadan Airport" icao="DNIB" iata="IBA" type="Domestic" season="AllYear">
     <town town="Ibadan" country="145" GMT="01:00:00" DST="01:00:00" />
@@ -570,18 +546,6 @@
     <runways>
       <runway name="17/35" length="2700" surface="Asphalt" />
     </runways>
-  </airport>
-  <airport name="Warri Airport" icao="DNSU" iata="QRW" type="Domestic" season="AllYear">
-    <town town="Warri" country="145" GMT="01:00:00" DST="01:00:00" />
-    <coordinates>
-      <latitude value="005°35'45''N" />
-      <longitude value="005°49'04''E" />
-    </coordinates>
-    <size value="Smallest" pax="57" cargo="Smallest" cargovolume="0" />
-    <terminals>
-      <terminal name="Terminal A" gates="3" />
-    </terminals>
-    <runways />
   </airport>
   <airport name="Zaria Airport" icao="DNZA" iata="ZAR" type="Domestic" season="AllYear">
     <town town="Zaria" country="145" GMT="01:00:00" DST="01:00:00" />
@@ -3177,30 +3141,6 @@
       <runway name="05/23" length="4140" surface="Asphalt" />
     </runways>
   </airport>
-  <airport name="Bosaso Airport" icao="HCMF" iata="BSA" type="Regional" season="AllYear">
-    <town town="Bosaso" country="262" GMT="03:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="011°16'31''N" />
-      <longitude value="049°08'57''E" />
-    </coordinates>
-    <size value="Smallest" pax="15" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
-  <airport name="Galcaio Airport" icao="HCMR" iata="GLK" type="Regional" season="AllYear">
-    <town town="Galcaio" country="262" GMT="03:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="006°46'50''N" />
-      <longitude value="047°27'16''E" />
-    </coordinates>
-    <size value="Smallest" pax="10" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Aden Adde International Airport" icao="HCMM" iata="MGQ" type="Regional" season="AllYear">
     <town town="Mogadishu" country="262" GMT="03:00:00" DST="00:00:00" />
     <coordinates>
@@ -3605,18 +3545,6 @@
     </runways>
   </airport>
   <!--Sierra Leone (GF**)-->
-  <airport name="Hastings Airport" icao="GFHA" iata="HGS" type="Domestic" season="AllYear">
-    <town town="Freetown" country="270" GMT="00:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="008°23'49''N" />
-      <longitude value="013°07'44''W" />
-    </coordinates>
-    <size value="Smallest" pax="3" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
   <airport name="Lungi International Airport" icao="GFLL" iata="FNA" type="ShortHaulInternational" season="AllYear">
     <town town="Freetown" country="270" GMT="00:00:00" DST="00:00:00" />
     <coordinates>
@@ -3630,42 +3558,6 @@
     <runways>
       <runway name="12/30" length="3200" surface="Asphalt" />
     </runways>
-  </airport>
-  <airport name="Bo Airport" icao="GFBO" iata="KBS" type="Domestic" season="AllYear">
-    <town town="Bo" country="270" GMT="00:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="007°56'39''N" />
-      <longitude value="011°45'39''W" />
-    </coordinates>
-    <size value="Smallest" pax="8" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
-  <airport name="Kenema Airport" icao="GFKE" iata="KEN" type="Domestic" season="AllYear">
-    <town town="Kenema" country="270" GMT="00:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="007°53'28''N" />
-      <longitude value="011°10'35''W" />
-    </coordinates>
-    <size value="Smallest" pax="8" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
-  </airport>
-  <airport name="Yengema Airport" icao="GFYE" iata="WYE" type="Domestic" season="AllYear">
-    <town town="Yengema" country="270" GMT="00:00:00" DST="00:00:00" />
-    <coordinates>
-      <latitude value="008°36'37''N" />
-      <longitude value="011°02'43''W" />
-    </coordinates>
-    <size value="Smallest" pax="6" />
-    <terminals>
-      <terminal name="Terminal A" gates="2" />
-    </terminals>
-    <runways />
   </airport>
   <!--Eritrea (HH**)-->
   <airport name="Asmara International Airport" icao="HHAS" iata="ASM" type="LongHaulInternational" season="AllYear">
