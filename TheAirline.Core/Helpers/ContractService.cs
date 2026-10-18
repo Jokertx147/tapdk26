@@ -27,7 +27,7 @@ namespace TheAirline.Helpers
             DateTime date = type.IsFixedDate ? type.Period.From : GameObject.GetInstance().GameTime.AddDays(DaysToFulfil);
             var sc = new SpecialContract(type, date, airline);
             airline.SpecialContracts.Add(sc);
-            GameObject.GetInstance().Contracts.Remove(type);
+            GameObject.GetInstance().Contracts.RemoveAll(c => c == type);
 
             foreach (Route r in airline.Routes.ToList())
             {
@@ -39,7 +39,7 @@ namespace TheAirline.Helpers
 
         public static void Decline(SpecialContractType type)
         {
-            GameObject.GetInstance().Contracts.Remove(type);
+            GameObject.GetInstance().Contracts.RemoveAll(c => c == type);
         }
 
         public static bool Matches(SpecialContractRoute scr, Route route)

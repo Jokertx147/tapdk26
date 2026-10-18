@@ -922,7 +922,7 @@ static class VmTest
                 var ctype = TheAirline.Models.General.SpecialContractTypes.GetTypes().FirstOrDefault(t => !t.IsFixedDate);
                 if (ctype == null) { Console.WriteLine("  FAILED no contract type loaded"); Environment.Exit(1); }
                 ctype.LastDate = gx.GameTime;
-                gx.Contracts.Add(ctype);
+                if (!gx.Contracts.Contains(ctype)) gx.Contracts.Add(ctype);
                 var cvm = new ContractsViewModel(() => { });
                 Console.WriteLine("  " + cvm.OffersTitle + " | " + cvm.Offers[0].Name + " | " + cvm.Offers[0].Terms);
                 foreach (var l in cvm.Offers[0].Lines) Console.WriteLine("    " + l);
