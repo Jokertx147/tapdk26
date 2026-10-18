@@ -97,6 +97,9 @@
             <TabItem Header="Facilities">
               <v:ServicesView DataContext="{Binding Services}" />
             </TabItem>
+            <TabItem Header="Aircraft deals">
+              <v:AircraftDealsView DataContext="{Binding Deals}" />
+            </TabItem>
             <TabItem Header="Charters">
               <v:CharterView DataContext="{Binding Charter}" />
             </TabItem>

@@ -126,6 +126,26 @@ namespace TheAirline.Models.Airliners
         [Versioning("chartertext")]
         public string CharterText { get; set; }
 
+        /// <summary>The airline this aircraft is leased out to, until LeaseOutUntil.</summary>
+        [Versioning("leaseoutto")]
+        public Airline LeaseOutTo { get; set; }
+
+        [Versioning("leaseoutuntil")]
+        public DateTime LeaseOutUntil { get; set; }
+
+        [Versioning("leaseoutrent")]
+        public double LeaseOutRent { get; set; }
+
+        [Versioning("leaseoutstart")]
+        public DateTime LeaseOutStart { get; set; }
+
+        /// <summary>Asking price when the aircraft is listed for sale (0 when not listed).</summary>
+        [Versioning("saleask")]
+        public double SaleAsk { get; set; }
+
+        [Versioning("salesince")]
+        public DateTime SaleSince { get; set; }
+
         [Versioning("airliner")]
         public Airliner Airliner { get; set; }
 

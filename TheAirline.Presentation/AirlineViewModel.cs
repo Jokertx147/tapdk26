@@ -115,6 +115,7 @@ namespace TheAirline.Presentation
             Loans = new LoansViewModel(OnGameChanged);
             Maintenance = new MaintenanceViewModel(OnGameChanged);
             Charter = new CharterViewModel(OnGameChanged);
+            Deals = new AircraftDealsViewModel(OnGameChanged);
             Insurance = new InsuranceViewModel(OnGameChanged);
             Services = new AirlineServicesViewModel(OnGameChanged);
             FlightSchools = new FlightSchoolsViewModel(OnGameChanged);
@@ -218,6 +219,7 @@ namespace TheAirline.Presentation
         public LoansViewModel Loans { get; }
         public MaintenanceViewModel Maintenance { get; }
         public CharterViewModel Charter { get; }
+        public AircraftDealsViewModel Deals { get; }
         public InsuranceViewModel Insurance { get; }
         public AirlineServicesViewModel Services { get; }
         public FlightSchoolsViewModel FlightSchools { get; }
@@ -276,6 +278,7 @@ namespace TheAirline.Presentation
             FlightSchools?.Reload();
             Contracts?.Reload();
             Charter?.Reload();
+            Deals?.Reload();
             Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();
@@ -405,6 +408,7 @@ namespace TheAirline.Presentation
                     Contracts.Reload();
                 }
                 Charter.Reload();
+                Deals.Reload();
             }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));
             IsRunning = !GameObjectWorker.GetInstance().IsPaused;

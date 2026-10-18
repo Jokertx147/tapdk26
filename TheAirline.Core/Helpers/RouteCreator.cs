@@ -85,7 +85,7 @@ namespace TheAirline.Helpers
                                      ? f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo
                                      : (f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
                                         || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed))
-                             .Where(f => f.Routes.Count == 0)
+                             .Where(f => f.Routes.Count == 0 && !AircraftDealService.IsLeasedOut(f))
                              .Where(f => f.Airliner.Type.Range >= distance && f.Airliner.Type.MinRunwaylength <= runway)
                              .OrderBy(f => f.Name)
                              .ToList();

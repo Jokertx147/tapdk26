@@ -1174,6 +1174,62 @@ static class VmTest
                 }
             }
             {
+                Console.WriteLine("AIRCRAFT DEALS TEST");
+                var dg = TheAirline.Models.General.GameObject.GetInstance();
+                var da = dg.HumanAirline;
+                var df = da.Fleet.FirstOrDefault(x => x.Purchased == TheAirline.Models.Airliners.FleetAirliner.PurchasedType.Bought && x.Airliner.BuiltDate <= dg.GameTime && x.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
+                if (df == null) { Console.WriteLine("  (no stopped owned aircraft, skipped)"); }
+                else
+                {
+                    var dRoutes = df.Routes; df.Routes = new System.Collections.Generic.List<TheAirline.Models.Routes.Route>();
+                    var dvm = new TheAirline.Presentation.AircraftDealsViewModel(() => { });
+                    Console.WriteLine("  available: " + dvm.Available.Count + " | " + dvm.AvailableTitle);
+                    var ditem = dvm.Available.FirstOrDefault(x => x.Name.StartsWith(df.Name + " ("));
+                    if (ditem == null) { Console.WriteLine("  FAILED aircraft not offered"); Environment.Exit(1); }
+                    Console.WriteLine("  " + ditem.Info + " | " + ditem.LeaseButtons[0].Text + " | " + ditem.SaleButtons[0].Text);
+                    ditem.LeaseButtons[0].Command.Execute(null);
+                    Console.WriteLine("  pending: " + dvm.PendingText);
+                    double dm0 = da.Money;
+                    dvm.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  lease: " + dvm.Status + " | leased rows " + dvm.LeasedOut.Count);
+                    if (!TheAirline.Helpers.AircraftDealService.IsLeasedOut(df) || dvm.LeasedOut.Count != 1) { Console.WriteLine("  FAILED lease out"); Environment.Exit(1); }
+                    string dmsg;
+                    if (TheAirline.Helpers.MaintenanceService.PerformCheck(df, TheAirline.Helpers.MaintenanceCheck.A, out dmsg)) { Console.WriteLine("  FAILED check while leased out"); Environment.Exit(1); }
+                    Console.WriteLine("  check while away: " + dmsg);
+                    if (TheAirline.Helpers.CharterService.GetBlocker(df, new TheAirline.Helpers.CharterOffer { From = df.CurrentPosition, To = df.CurrentPosition }) != "leased out") { Console.WriteLine("  FAILED charter guard"); Environment.Exit(1); }
+                    //rent on the 1st
+                    var saveTime = dg.GameTime; var day1 = new DateTime(dg.GameTime.Year, dg.GameTime.Month, 1).AddMonths(1);
+                    dg.GameTime = day1;
+                    double before = da.Money;
+                    TheAirline.Helpers.AircraftDealService.ProcessDaily(da);
+                    Console.WriteLine("  rent on the 1st: " + (da.Money - before).ToString("N0") + " expected " + df.LeaseOutRent.ToString("N0"));
+                    if (Math.Abs((da.Money - before) - df.LeaseOutRent) > 1) { Console.WriteLine("  FAILED rent"); Environment.Exit(1); }
+                    var rentBefore = df.LeaseOutRent;
+                    double cond0 = df.Airliner.Condition;
+                    dvm.Reload();
+                    dvm.LeasedOut[0].Command.Execute(null);
+                    dvm.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  end early: " + dvm.Status + " | condition " + cond0.ToString("0.0") + " -> " + df.Airliner.Condition.ToString("0.0"));
+                    if (TheAirline.Helpers.AircraftDealService.IsLeasedOut(df) || df.LeaseOutTo != null) { Console.WriteLine("  FAILED end lease"); Environment.Exit(1); }
+                    dg.GameTime = saveTime;
+                    //sale
+                    dvm.Reload();
+                    ditem = dvm.Available.First(x => x.Name.StartsWith(df.Name + " ("));
+                    ditem.SaleButtons[0].Command.Execute(null);
+                    dvm.ConfirmCommand.Execute(null);
+                    Console.WriteLine("  list: " + dvm.Status + " | listed rows " + dvm.Listed.Count + " | " + (dvm.Listed.Count > 0 ? dvm.Listed[0].Text : ""));
+                    if (!TheAirline.Helpers.AircraftDealService.IsListed(df)) { Console.WriteLine("  FAILED list"); Environment.Exit(1); }
+                    dvm.Listed[0].Command.Execute(null);
+                    if (TheAirline.Helpers.AircraftDealService.IsListed(df)) { Console.WriteLine("  FAILED withdraw"); Environment.Exit(1); }
+                    string lm; TheAirline.Helpers.AircraftDealService.List(df, 0.9, out lm);
+                    double sm = da.Money; int sold = 0;
+                    for (int d = 0; d < 400 && da.Fleet.Contains(df); d++) { TheAirline.Helpers.AircraftDealService.ProcessDaily(da); sold++; }
+                    Console.WriteLine("  sold after " + sold + " tries: in fleet " + da.Fleet.Contains(df) + " | money " + (da.Money - sm).ToString("N0"));
+                    if (da.Fleet.Contains(df) || da.Money <= sm) { Console.WriteLine("  FAILED sale"); Environment.Exit(1); }
+                    if (!da.Fleet.Contains(df)) { /* gone */ }
+                }
+            }
+            {
                 Console.WriteLine("AUTOSAVE TEST");
                 GameSession.AutoSaveOnExit = true;
                 Console.WriteLine("  on=" + GameSession.AutoSaveOnExit + " inGame=" + GameSession.InGame + " name=" + GameSession.AutoSaveName());

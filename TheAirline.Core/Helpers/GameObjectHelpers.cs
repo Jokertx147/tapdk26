@@ -1710,6 +1710,7 @@ namespace TheAirline.Helpers
                 if (a == GameObject.GetInstance().HumanAirline)
                 {
                     CharterService.ProcessDaily(a);
+                    AircraftDealService.ProcessDaily(a);
                     MaintenanceService.ProcessAuto(a);
                     CharterService.Refresh();
                 }

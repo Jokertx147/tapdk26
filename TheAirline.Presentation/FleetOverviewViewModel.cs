@@ -176,6 +176,11 @@ namespace TheAirline.Presentation
         {
             if (_selected == null) return;
             var f = _selected.Aircraft;
+            if (AircraftDealService.IsLeasedOut(f))
+            {
+                Status = f.Name + " is leased out. End the lease under Aircraft deals first.";
+                return;
+            }
             if (f.Status != FleetAirliner.AirlinerStatus.Stopped)
             {
                 Status = "Stop " + f.Name + " first: a flying aircraft can't be sold.";
@@ -289,7 +294,7 @@ namespace TheAirline.Presentation
                 Name = f.Name,
                 Type = a.Type.Name,
                 Cabin = a.CabinConfiguration,
-                Status = a.BuiltDate > game.GameTime ? "Delivery " + DateFormatter.Date(a.BuiltDate) : f.Status.ToString(),
+                Status = a.BuiltDate > game.GameTime ? "Delivery " + DateFormatter.Date(a.BuiltDate) : AircraftDealService.IsLeasedOut(f) ? "Leased to " + f.LeaseOutTo.Profile.IATACode : AircraftDealService.IsListed(f) ? "For sale" : CharterService.IsOnCharter(f) ? "On charter" : f.Status.ToString(),
                 Homebase = f.Homebase?.Profile.IATACode,
                 Ownership = ownership,
                 Age = a.Age + " y",
@@ -297,7 +302,7 @@ namespace TheAirline.Presentation
                 Condition = string.Format("{0:0}%", a.Condition),
                 ConditionNumber = a.Condition,
                 Routes = f.Routes.Count,
-                IsIdle = f.Routes.Count == 0 && a.BuiltDate <= game.GameTime,
+                IsIdle = f.Routes.Count == 0 && a.BuiltDate <= game.GameTime && !AircraftDealService.IsLeasedOut(f) && !CharterService.IsOnCharter(f),
                 IsOnOrder = a.BuiltDate > game.GameTime,
                 Crew = f.Pilots.Count + "/" + a.Type.CockpitCrew,
                 Value = Money(value),
