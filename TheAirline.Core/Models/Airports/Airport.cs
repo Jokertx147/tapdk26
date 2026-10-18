@@ -441,7 +441,10 @@ namespace TheAirline.Models.Airports
                     *a.Members.SelectMany(m => m.Airline.Routes)
                       .Count(r => r.Destination1 == this || r.Destination2 == this));
 
-            return airline.Codeshares.Select(codesharing => (codesharing.Airline1 == airline ? codesharing.Airline2 : codesharing.Airline1).Routes.Count(r => r.Destination2 == this || r.Destination1 == this)).Aggregate(score, (current, codesharingRoutes) => current + 4*codesharingRoutes);
+            score = airline.Codeshares.Select(codesharing => (codesharing.Airline1 == airline ? codesharing.Airline2 : codesharing.Airline1).Routes.Count(r => r.Destination2 == this || r.Destination1 == this)).Aggregate(score, (current, codesharingRoutes) => current + 4*codesharingRoutes);
+
+            // happier customers choose the airline more often
+            return score*RatingsService.CustomerFactor(airline);
         }
 
         public List<AirlineAirportFacility> GetAirportFacilities(Airline airline)

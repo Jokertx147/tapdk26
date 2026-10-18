@@ -85,6 +85,9 @@
             <TabItem Header="Finances">
               <v:FinanceView DataContext="{Binding Finance}" />
             </TabItem>
+            <TabItem Header="Ratings">
+              <v:RatingsView DataContext="{Binding Ratings}" />
+            </TabItem>
             <TabItem Header="License">
               <v:LicenseView DataContext="{Binding License}" />
             </TabItem>

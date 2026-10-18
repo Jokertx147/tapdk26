@@ -52,6 +52,43 @@ static class VmTest
         dm.OnlyWithoutRoute = true; dm.SelectedRow = dm.Rows.First(); dm.CreateCommand.Execute(null);
         Console.WriteLine("  create panel: " + dm.HasCreate + " " + dm.Create?.Title);
         if (!dm.HasCreate) { Console.WriteLine("  FAILED create"); Environment.Exit(1); }
+        Console.WriteLine("RATINGS TEST");
+        {
+            var mk = av.Market;
+            foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null && item.Airliner.Type.TypeAirliner == TheAirline.Models.Airliners.AirlinerType.TypeOfAirliner.Passenger) break; }
+            mk.BuyCommand.Execute(null);
+            Console.WriteLine("  buy: " + mk.Status);
+            var ap = av.Airports;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (ap.IsBusy && sw.ElapsedMilliseconds < 120000) System.Threading.Thread.Sleep(200);
+            var adv = ap.Advice.FirstOrDefault(x => x.Advice.FleetCanFly);
+            if (adv != null)
+            {
+                ap.SelectedAdvice = adv;
+                var cr = ap.Create;
+                foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+                cr.CreateCommand.Execute(null);
+                Console.WriteLine("  route: " + ap.Status);
+            }
+            TheAirline.Helpers.PilotSupply.TopUp(TheAirline.Models.General.GameObject.GetInstance().HumanAirline);
+        }
+        var rv = av.Ratings;
+        rv.Reload();
+        Console.WriteLine("  " + rv.Summary + " | " + rv.Rank);
+        foreach (var r in rv.Ratings) Console.WriteLine("  " + r.Name + ": " + r.ValueText + " | " + r.Change + " | " + r.Heading + "\n    " + r.Reasons.Replace(Environment.NewLine, "\n    "));
+        foreach (var c in rv.Compare.Take(4)) Console.WriteLine("  " + c.Rank + " " + c.Airline + " " + c.Overall + " | " + c.Detail);
+        foreach (var st in rv.Stats) Console.WriteLine("  " + st.Name + ": " + st.ThisYear + " / " + st.LastYear + " " + st.Change);
+        var me = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var ai = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(x => !x.IsHuman).Select(x => x.Ratings.CustomerHappinessRating).Distinct().Count();
+        Console.WriteLine("  distinct AI customer ratings: " + ai + " | my factor " + TheAirline.Helpers.RatingsService.CustomerFactor(me));
+        if (rv.Ratings.Count != 5 || !me.Ratings.IsCalculated || ai < 2) { Console.WriteLine("  FAILED ratings"); Environment.Exit(1); }
+        // a month later with all wages cut: staff happiness should head down
+        foreach (var w in TheAirline.Models.Airlines.FeeTypes.GetTypes(TheAirline.Models.Airlines.FeeType.EFeeType.Wage)) me.Fees.SetValue(w, w.MinValue);
+        int emp0 = me.Ratings.EmployeeHappinessRating;
+        TheAirline.Helpers.RatingsService.ProcessMonth(me); rv.Reload();
+        var er = rv.Ratings.First(x => x.Name == "Employee happiness");
+        Console.WriteLine("  wages cut: staff " + emp0 + " -> " + me.Ratings.EmployeeHappinessRating + " | " + er.Change + " | " + er.Heading);
+        if (me.Ratings.EmployeeHappinessRating >= emp0) { Console.WriteLine("  FAILED wage effect"); Environment.Exit(1); }
         Console.WriteLine("QUICK TEST OK");
         Environment.Exit(0);
     }

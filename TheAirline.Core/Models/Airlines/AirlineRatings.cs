@@ -42,6 +42,26 @@ namespace TheAirline.Models.Airlines
         [Versioning("security")]
         public int SecurityRating { get; set; }
 
+        /// <summary>True once the ratings have been worked out from the airline's real record (see RatingsService).</summary>
+        [Versioning("calculated")]
+        public bool IsCalculated { get; set; }
+
+        // the ratings a month ago, to show the change
+        [Versioning("lastcustomer")]
+        public int LastCustomerHappiness { get; set; } = 50;
+
+        [Versioning("lastemployee")]
+        public int LastEmployeeHappiness { get; set; } = 50;
+
+        [Versioning("lastmaintenance")]
+        public int LastMaintenance { get; set; } = 50;
+
+        [Versioning("lastsafety")]
+        public int LastSafety { get; set; } = 50;
+
+        [Versioning("lastsecurity")]
+        public int LastSecurity { get; set; } = 50;
+
         #endregion
 
         #region Public Methods and Operators

@@ -2702,6 +2702,7 @@ namespace TheAirline.Helpers
                 {
                     InsuranceService.ProcessMonth(airline);
                 }
+                RatingsService.ProcessMonth(airline);
                 if (airline == GameObject.GetInstance().HumanAirline)
                 {
                     MaintenanceService.ProcessMonth(airline);

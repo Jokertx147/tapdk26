@@ -118,6 +118,7 @@ namespace TheAirline.Presentation
             Deals = new AircraftDealsViewModel(OnGameChanged);
             License = new LicenseViewModel(OnGameChanged);
             Demand = new DemandViewModel(OnGameChanged);
+            Ratings = new RatingsViewModel();
             AirportManager.DemandRequested = a =>
                 {
                     Demand.ShowAirport(a);
@@ -229,6 +230,7 @@ namespace TheAirline.Presentation
         public AircraftDealsViewModel Deals { get; }
         public LicenseViewModel License { get; }
         public DemandViewModel Demand { get; }
+        public RatingsViewModel Ratings { get; }
 
         private int _airportsTab;
 
@@ -299,6 +301,7 @@ namespace TheAirline.Presentation
             Deals?.Reload();
             License?.Reload();
             Demand?.Reload();
+            Ratings?.Reload();
             Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();
@@ -426,6 +429,7 @@ namespace TheAirline.Presentation
                     Maintenance.Reload();
                     Insurance.Reload();
                     Contracts.Reload();
+                    Ratings.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();
