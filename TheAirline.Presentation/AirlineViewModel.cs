@@ -117,6 +117,12 @@ namespace TheAirline.Presentation
             Charter = new CharterViewModel(OnGameChanged);
             Deals = new AircraftDealsViewModel(OnGameChanged);
             License = new LicenseViewModel(OnGameChanged);
+            Demand = new DemandViewModel(OnGameChanged);
+            AirportManager.DemandRequested = a =>
+                {
+                    Demand.ShowAirport(a);
+                    AirportsTab = 1;
+                };
             Insurance = new InsuranceViewModel(OnGameChanged);
             Services = new AirlineServicesViewModel(OnGameChanged);
             FlightSchools = new FlightSchoolsViewModel(OnGameChanged);
@@ -222,6 +228,16 @@ namespace TheAirline.Presentation
         public CharterViewModel Charter { get; }
         public AircraftDealsViewModel Deals { get; }
         public LicenseViewModel License { get; }
+        public DemandViewModel Demand { get; }
+
+        private int _airportsTab;
+
+        /// <summary>The open sub tab under Airports: 0 manage, 1 demand.</summary>
+        public int AirportsTab
+        {
+            get { return _airportsTab; }
+            set { SetProperty(ref _airportsTab, value); }
+        }
         public InsuranceViewModel Insurance { get; }
         public AirlineServicesViewModel Services { get; }
         public FlightSchoolsViewModel FlightSchools { get; }
@@ -282,6 +298,7 @@ namespace TheAirline.Presentation
             Charter?.Reload();
             Deals?.Reload();
             License?.Reload();
+            Demand?.Reload();
             Timetable?.ReloadAircraft();
             _financeDate = null;
             Refresh();

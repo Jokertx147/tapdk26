@@ -15,6 +15,47 @@ static class VmTest
         while (!done()) { if (sw.Elapsed.TotalSeconds > 120) throw new Exception("timeout: " + what); await Task.Delay(100); }
     }
 
+    // short tests of the newest pages: run with "vm quick"
+    static void QuickTests(AirlineViewModel av)
+    {
+        Console.WriteLine("AIRPORT TYPE TEST");
+        var atm = av.AirportManager;
+        var dom = atm.Airports.FirstOrDefault(x => x.Airport.Profile.Type == TheAirline.Models.Airports.AirportProfile.AirportType.Domestic) ?? atm.Airports.First();
+        atm.Selected = dom;
+        Console.WriteLine("  " + dom.Airport.Profile.IATACode + " before: " + atm.AirportType);
+        atm.AirportType = atm.AirportTypes.First(x => x.Value == TheAirline.Models.Airports.AirportProfile.AirportType.ShortHaulInternational);
+        Console.WriteLine("  after: " + dom.Airport.Profile.Type + " | " + atm.Status + " | selected " + atm.Selected?.Airport.Profile.IATACode);
+        if (dom.Airport.Profile.Type != TheAirline.Models.Airports.AirportProfile.AirportType.ShortHaulInternational) { Console.WriteLine("  FAILED airport type"); Environment.Exit(1); }
+
+        Console.WriteLine("DEMAND TEST");
+        var dm = av.Demand;
+        var atl = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+        atm.Selected = atm.Airports.FirstOrDefault(x => x.Airport == atl) ?? atm.Selected;
+        atm.ShowDemandCommand.Execute(null);
+        Console.WriteLine("  tab " + av.AirportsTab + " | airport " + dm.Selected?.Airport.Profile.IATACode + " | rows " + dm.RowCount);
+        Console.WriteLine("  " + dm.Summary.Replace(Environment.NewLine, " / "));
+        foreach (var r in dm.Rows.Take(3)) Console.WriteLine("  " + r.Name + " | " + r.Numbers + " | " + r.Notes);
+        if (dm.RowCount == 0 || av.AirportsTab != 1) { Console.WriteLine("  FAILED demand rows"); Environment.Exit(1); }
+        dm.Filter = "International"; int intl = dm.RowCount; dm.Filter = "Domestic"; int domc = dm.RowCount; dm.Filter = "All";
+        Console.WriteLine("  international " + intl + ", domestic " + domc + ", all " + dm.RowCount);
+        dm.SortBy = "Distance"; Console.WriteLine("  nearest: " + dm.Rows.First().Name);
+        dm.DestinationFilter = "LHR"; Console.WriteLine("  filter LHR: " + dm.RowCount + " " + dm.Rows.FirstOrDefault()?.Numbers); dm.DestinationFilter = "";
+        dm.SortBy = "Passengers";
+        var top = dm.Rows.First(); int before = top.Passengers;
+        dm.SelectedRow = top; dm.ScalePercent = 200; dm.ScaleSelectedCommand.Execute(null);
+        int engine = atl.GetDestinationPassengersRate(top.Destination, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+        Console.WriteLine("  scaled " + top.Destination.Profile.IATACode + ": " + before + " -> " + top.Passengers + " (game now " + engine + ") | " + dm.Status);
+        if (top.Passengers != Math.Min(65535, before * 2) || engine != top.Passengers) { Console.WriteLine("  FAILED scale"); Environment.Exit(1); }
+        dm.UndoCommand.Execute(null);
+        Console.WriteLine("  undo: " + top.Passengers + " | " + dm.Status);
+        if (top.Passengers != before) { Console.WriteLine("  FAILED undo"); Environment.Exit(1); }
+        dm.OnlyWithoutRoute = true; dm.SelectedRow = dm.Rows.First(); dm.CreateCommand.Execute(null);
+        Console.WriteLine("  create panel: " + dm.HasCreate + " " + dm.Create?.Title);
+        if (!dm.HasCreate) { Console.WriteLine("  FAILED create"); Environment.Exit(1); }
+        Console.WriteLine("QUICK TEST OK");
+        Environment.Exit(0);
+    }
+
     public static async Task Run()
     {
         try
@@ -37,6 +78,7 @@ static class VmTest
             await Wait(() => shell.Current is AirlineViewModel, "game created");
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
+            if (Environment.GetCommandLineArgs().Contains("quick")) { QuickTests(av); return; }
             // aircraft market: pick the cheapest-looking aircraft we can afford and buy it
             var mk = av.Market;
             Console.WriteLine("market: " + mk.Aircraft.Count + " aircraft");

@@ -251,7 +251,14 @@
 
         <!-- AIRPORTS -->
         <TabItem Header="Airports">
-          <v:AirportManagerView DataContext="{Binding AirportManager}" />
+          <TabControl Classes="sub" SelectedIndex="{Binding AirportsTab}">
+            <TabItem Header="Manage">
+              <v:AirportManagerView DataContext="{Binding AirportManager}" />
+            </TabItem>
+            <TabItem Header="Demand">
+              <v:DemandView DataContext="{Binding Demand}" />
+            </TabItem>
+          </TabControl>
         </TabItem>
 
         <!-- ALLIANCES -->

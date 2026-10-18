@@ -66,6 +66,7 @@
           <TextBlock Text="Airport type" VerticalAlignment="Center" />
           <ComboBox ItemsSource="{Binding AirportTypes}" SelectedItem="{Binding AirportType}" MinWidth="200" />
         </StackPanel>
+        <Button Content="Show demand from this airport" Command="{Binding ShowDemandCommand}" />
         <TextBlock Text="{Binding GateSummary}" />
 
         <TextBlock Text="Your contracts" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />

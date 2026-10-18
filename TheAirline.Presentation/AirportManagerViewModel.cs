@@ -24,7 +24,7 @@ namespace TheAirline.Presentation
             Town = p.Town?.Name;
             Country = p.Country?.Name;
             Type = System.Text.RegularExpressions.Regex.Replace(p.Type.ToString().Replace('_', ' '), "(?<=[a-z])(?=[A-Z])", " ");
-            Size = p.Size.ToString().Replace('_', ' ');
+            Size = DemandViewModel.SizeName(p.Size);
             int total = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Passenger);
             FreeGates = airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
             Gates = FreeGates + "/" + total;
@@ -350,6 +350,12 @@ namespace TheAirline.Presentation
         public string Title { get; private set; }
         public string Info { get; private set; }
 
+        /// <summary>Set by the airline page: opens the demand page for an airport.</summary>
+        public Action<Airport> DemandRequested { get; set; }
+
+        private ICommand _showDemand;
+        public ICommand ShowDemandCommand => _showDemand ?? (_showDemand = new RelayCommand(() => { if (_selected != null) DemandRequested?.Invoke(_selected.Airport); }));
+
         /// <summary>The airport categories: Regional, Domestic and the two international kinds.</summary>
         public List<NamedChoice<AirportProfile.AirportType>> AirportTypes { get; } = new List<NamedChoice<AirportProfile.AirportType>>
         {
@@ -584,7 +590,7 @@ namespace TheAirline.Presentation
             Title = airport.Profile.IATACode + "  " + airport.Profile.Name;
             Info = string.Format(
                 "{0}, {1}  |  size {2}  |  longest runway {3} m",
-                airport.Profile.Town?.Name, airport.Profile.Country?.Name, airport.Profile.Size.ToString().Replace('_', ' '), airport.GetMaxRunwayLength());
+                airport.Profile.Town?.Name, airport.Profile.Country?.Name, DemandViewModel.SizeName(airport.Profile.Size), airport.GetMaxRunwayLength());
 
             int total = airport.Terminals.GetNumberOfGates(Terminal.TerminalType.Passenger);
             int free = airport.Terminals.GetFreeGates(Terminal.TerminalType.Passenger);
