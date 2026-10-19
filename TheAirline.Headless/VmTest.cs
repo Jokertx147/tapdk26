@@ -192,6 +192,47 @@ static class VmTest
             Console.WriteLine("  end: " + cs.Status + " | still partners " + (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) + " | agreed by asking " + agreed);
             if (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) { Console.WriteLine("  FAILED end"); Environment.Exit(1); }
         }
+        Console.WriteLine("RUNWAY TEST");
+        {
+            var g = TheAirline.Models.General.GameObject.GetInstance();
+            var m = av.AirportManager;
+            var all = TheAirline.Models.Airports.Airports.GetAllAirports();
+            var me4 = g.HumanAirline;
+            // an airport nobody uses, with one runway
+            var kiv = all.FirstOrDefault(x => x.Profile.IATACode == "KIV") ?? all.First(x => !me4.Airports.Contains(x) && x.Runways.Count == 1);
+            m.SelectAirport(kiv);
+            Console.WriteLine("  " + kiv.Profile.IATACode + " runways: " + string.Join(" ; ", m.Runways.Select(r => r.Text)) + " | max " + kiv.GetMaxRunwayLength());
+            m.SelectedRunway = m.Runways.First();
+            long rwBefore = kiv.GetMaxRunwayLength();
+            m.ExtendLength = (m.SelectedRunway.Runway.Length + 600).ToString();
+            Console.WriteLine("  extend preview: " + m.ExtendText);
+            double money0 = me4.Money;
+            m.ExtendRunwayCommand.Execute(null); Console.WriteLine("  ask: " + m.PendingText); m.ConfirmPendingCommand.Execute(null);
+            Console.WriteLine("  extend: " + m.Status + " | paid " + (money0 - me4.Money).ToString("N0") + " | max now " + kiv.GetMaxRunwayLength());
+            me4.Money += 100000000;
+            m.NewRunwayLength = "4200"; m.NewRunwaySurface = TheAirline.Models.Airports.Runway.SurfaceType.Concrete; m.NewRunwayName = "10R/28L";
+            Console.WriteLine("  new preview: " + m.NewRunwayText);
+            m.BuildRunwayCommand.Execute(null); Console.WriteLine("  ask: " + m.PendingText); m.ConfirmPendingCommand.Execute(null);
+            Console.WriteLine("  build: " + m.Status + " | max now " + kiv.GetMaxRunwayLength());
+            m.NewRunwayLength = "200"; Console.WriteLine("  too short: " + m.NewRunwayText);
+            m.NewRunwayName = "10R/28L"; m.NewRunwayLength = "3000"; Console.WriteLine("  same name: " + m.NewRunwayText); m.NewRunwayName = "";
+            if (kiv.GetMaxRunwayLength() != rwBefore) { Console.WriteLine("  FAILED runway changed too early"); Environment.Exit(1); }
+            // save and load: the airport is not used by any airline, the runways must stay
+            TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("runwaytest");
+            TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("runwaytest");
+            g = TheAirline.Models.General.GameObject.GetInstance();
+            kiv = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == kiv.Profile.IATACode);
+            Console.WriteLine("  after load: " + string.Join(" ; ", kiv.Runways.Select(r => r.Name + " " + r.Length + " ext " + r.ExtendTo + " " + TheAirline.Helpers.RunwayService.Status(r))));
+            if (kiv.Runways.Count < 2 || !kiv.Runways.Any(r => r.ExtendTo > 0)) { Console.WriteLine("  FAILED runway save"); Environment.Exit(1); }
+            var ext = kiv.Runways.First(r => r.ExtendTo > 0);
+            g.GameTime = ext.ExtendDate; TheAirline.Helpers.RunwayService.ProcessDaily();
+            Console.WriteLine("  after extension: max " + kiv.GetMaxRunwayLength() + " | " + TheAirline.Helpers.RunwayService.Status(ext));
+            if (kiv.GetMaxRunwayLength() != rwBefore + 600) { Console.WriteLine("  FAILED extension"); Environment.Exit(1); }
+            var nr = kiv.Runways.First(r => r.Name == "10R/28L");
+            g.GameTime = nr.BuiltDate; TheAirline.Helpers.RunwayService.ProcessDaily();
+            Console.WriteLine("  after build: max " + kiv.GetMaxRunwayLength() + " | " + g.NewsBox.GetNews().Where(n => n.Subject.Contains("unway")).Select(n => n.Subject + ": " + n.Body).LastOrDefault());
+            if (kiv.GetMaxRunwayLength() != 4200) { Console.WriteLine("  FAILED new runway"); Environment.Exit(1); }
+        }
         Console.WriteLine("QUICK TEST OK");
         Environment.Exit(0);
     }

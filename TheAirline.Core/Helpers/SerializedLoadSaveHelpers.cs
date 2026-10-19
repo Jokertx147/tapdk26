@@ -312,7 +312,8 @@ namespace TheAirline.Helpers
                                     .Where(
                                         a =>
                                         Airlines.GetAllAirlines().Exists(al => al.Airports.Contains(a))
-                                        || a.HasAirlineFacility());
+                                        || a.HasAirlineFacility()
+                                        || a.PlayerEdited);
                         Airport[] inUse = airportsInUse as Airport[] ?? airportsInUse.ToArray();
                         so.AirportsList.AddRange(inUse);
 

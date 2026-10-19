@@ -817,6 +817,8 @@ namespace TheAirline.Helpers
 
         private static void DoDailyUpdate()
         {
+            RunwayService.ProcessDaily();
+
             //Clear stats when it on daily update
             if (Infrastructure.Settings.GetInstance().ClearStats == Intervals.Daily)
             {

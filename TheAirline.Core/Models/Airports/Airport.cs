@@ -96,6 +96,10 @@ namespace TheAirline.Models.Airports
         [Versioning("runways")]
         public List<Runway> Runways { get; set; }
 
+        /// <summary>True when the player changed the airport (type, runways), so the save keeps the whole airport.</summary>
+        [Versioning("playeredited")]
+        public bool PlayerEdited { get; set; }
+
         public AirportStatics Statics { get; set; }
 
         [Versioning("statistics")]

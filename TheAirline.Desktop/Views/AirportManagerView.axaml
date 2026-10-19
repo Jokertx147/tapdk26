@@ -133,6 +133,36 @@
         </StackPanel>
         <TextBlock Text="{Binding TerminalPriceText}" Opacity="0.8" TextWrapping="Wrap" />
 
+        <TextBlock Text="Runways" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ListBox ItemsSource="{Binding Runways}" SelectedItem="{Binding SelectedRunway}" MaxHeight="150">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock Text="Extend the selected runway (takes weeks)" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="to" VerticalAlignment="Center" />
+          <TextBox Text="{Binding ExtendLength}" Width="90" Watermark="meters" />
+          <TextBlock Text="m" VerticalAlignment="Center" />
+          <Button Content="Extend" Command="{Binding ExtendRunwayCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding ExtendText}" Opacity="0.8" TextWrapping="Wrap" />
+
+        <TextBlock Text="Build a new runway (takes about a year)" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding NewRunwayLength}" Width="90" Watermark="meters" />
+          <TextBlock Text="m" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding RunwaySurfaces}" SelectedItem="{Binding NewRunwaySurface}" MinWidth="110" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding NewRunwayName}" Width="190" Watermark="name, e.g. 09R/27L (optional)" />
+          <Button Content="Build" Command="{Binding BuildRunwayCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding NewRunwayText}" Opacity="0.8" TextWrapping="Wrap" />
+
         <Border IsVisible="{Binding HasPending}" Background="#3A2E1A" CornerRadius="4" Padding="10">
           <StackPanel Spacing="8">
             <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />

@@ -89,6 +89,20 @@ namespace TheAirline.Models.Airports
         [Versioning("type", Version = 2)]
         public RunwayType Type { get; set; }
 
+        /// <summary>The airline that paid for the runway or its last extension, or null for the airport's own.</summary>
+        [Versioning("builtby")]
+        public TheAirline.Models.Airlines.Airline BuiltBy { get; set; }
+
+        /// <summary>The length the runway is being extended to (0 when not being extended).</summary>
+        [Versioning("extendto")]
+        public long ExtendTo { get; set; }
+
+        /// <summary>When the extension is finished.</summary>
+        [Versioning("extenddate")]
+        public DateTime ExtendDate { get; set; }
+
+        public bool IsExtending => ExtendTo > Length;
+
         #endregion
 
         #region Public Methods and Operators

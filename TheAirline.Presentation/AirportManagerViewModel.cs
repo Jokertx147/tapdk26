@@ -67,6 +67,13 @@ namespace TheAirline.Presentation
         public ICommand BuyAllCommand { get; set; }
     }
 
+    /// <summary>One runway of the airport.</summary>
+    public class RunwayItem
+    {
+        public Runway Runway { get; set; }
+        public string Text { get; set; }
+    }
+
     public class TerminalItem
     {
         public Terminal Terminal { get; set; }
@@ -192,6 +199,184 @@ namespace TheAirline.Presentation
         }
 
         public List<int> LeaseYearChoices { get; } = GateContractService.Lengths.ToList();
+
+        // ---- runways ----
+
+        public ObservableCollection<RunwayItem> Runways { get; } = new ObservableCollection<RunwayItem>();
+        public List<Runway.SurfaceType> RunwaySurfaces { get; } = RunwayService.Surfaces.ToList();
+        private RunwayItem _selectedRunway;
+        private string _extendLength = "", _newRunwayLength = "3000", _newRunwayName = "";
+        private Runway.SurfaceType _newRunwaySurface = Runway.SurfaceType.Concrete;
+        private ICommand _extendRunwayCommand, _buildRunwayCommand;
+
+        public RunwayItem SelectedRunway
+        {
+            get { return _selectedRunway; }
+            set
+            {
+                if (SetProperty(ref _selectedRunway, value))
+                {
+                    if (value != null && !value.Runway.IsExtending) ExtendLength = (value.Runway.Length + 500).ToString();
+                    OnPropertyChanged(nameof(ExtendText));
+                    OnPropertyChanged(nameof(HasRunwaySelection));
+                }
+            }
+        }
+
+        public bool HasRunwaySelection => _selectedRunway != null;
+
+        /// <summary>The new total length for the selected runway, in meters.</summary>
+        public string ExtendLength
+        {
+            get { return _extendLength; }
+            set { if (SetProperty(ref _extendLength, value ?? "")) OnPropertyChanged(nameof(ExtendText)); }
+        }
+
+        public string NewRunwayLength
+        {
+            get { return _newRunwayLength; }
+            set { if (SetProperty(ref _newRunwayLength, value ?? "")) OnPropertyChanged(nameof(NewRunwayText)); }
+        }
+
+        public string NewRunwayName
+        {
+            get { return _newRunwayName; }
+            set { SetProperty(ref _newRunwayName, value ?? ""); }
+        }
+
+        public Runway.SurfaceType NewRunwaySurface
+        {
+            get { return _newRunwaySurface; }
+            set { if (SetProperty(ref _newRunwaySurface, value)) OnPropertyChanged(nameof(NewRunwayText)); }
+        }
+
+        private static long ParseMeters(string text)
+        {
+            long v;
+            return long.TryParse((text ?? "").Replace(",", "").Replace(".", "").Replace("m", "").Trim(), out v) ? v : 0;
+        }
+
+        public string ExtendText
+        {
+            get
+            {
+                if (_selected == null || _selectedRunway == null) return "Pick a runway above to extend it.";
+                var r = _selectedRunway.Runway;
+                long to = ParseMeters(_extendLength);
+                string blocker = RunwayService.GetExtendBlocker(_selected.Airport, r, to);
+                if (blocker != null) return blocker;
+                return string.Format(
+                    "{0:N0} m to {1:N0} m: {2}, about {3} days. The runway stays in use meanwhile.",
+                    r.Length, to, Money(RunwayService.ExtensionPrice(_selected.Airport, r, to)), RunwayService.ExtensionDays(to - r.Length));
+            }
+        }
+
+        public string NewRunwayText
+        {
+            get
+            {
+                if (_selected == null) return "";
+                long length = ParseMeters(_newRunwayLength);
+                string blocker = RunwayService.GetBuildBlocker(Human, _selected.Airport, length, _newRunwayName);
+                if (blocker != null) return blocker;
+                return string.Format(
+                    "{0:N0} m {1}: {2}, about {3} days to build.",
+                    length, _newRunwaySurface.ToString().ToLower(), Money(RunwayService.NewPrice(_selected.Airport, length, _newRunwaySurface)), RunwayService.NewDays(length));
+            }
+        }
+
+        public ICommand ExtendRunwayCommand => _extendRunwayCommand ?? (_extendRunwayCommand = new RelayCommand(AskExtendRunway));
+        public ICommand BuildRunwayCommand => _buildRunwayCommand ?? (_buildRunwayCommand = new RelayCommand(AskBuildRunway));
+
+        private void LoadRunways(Airport airport)
+        {
+            var keep = _selectedRunway?.Runway;
+            Runways.Clear();
+            foreach (var r in airport.Runways.OrderByDescending(x => x.Length))
+            {
+                Runways.Add(new RunwayItem
+                {
+                    Runway = r,
+                    Text = string.Format(
+                        "{0}  |  {1:N0} m  |  {2}  |  {3}{4}",
+                        r.Name, r.Length, r.Type == Runway.RunwayType.Helipad ? "helipad" : r.Surface.ToString().ToLower(),
+                        RunwayService.Status(r), r.BuiltBy != null && r.BuiltBy.IsHuman ? "  |  paid by you" : "")
+                });
+            }
+            _selectedRunway = Runways.FirstOrDefault(x => x.Runway == keep);
+            OnPropertyChanged(nameof(SelectedRunway));
+            OnPropertyChanged(nameof(HasRunwaySelection));
+            OnPropertyChanged(nameof(ExtendText));
+            OnPropertyChanged(nameof(NewRunwayText));
+        }
+
+        private void AskExtendRunway()
+        {
+            if (_selected == null || _selectedRunway == null)
+            {
+                Status = "Pick a runway first.";
+                return;
+            }
+            var airport = _selected.Airport;
+            var r = _selectedRunway.Runway;
+            long to = ParseMeters(_extendLength);
+            string blocker = RunwayService.GetExtendBlocker(airport, r, to);
+            if (blocker != null)
+            {
+                Status = blocker;
+                return;
+            }
+            double price = RunwayService.ExtensionPrice(airport, r, to);
+            if (price > Human.Money)
+            {
+                Status = "You can't afford that (" + Money(price) + ").";
+                return;
+            }
+            _pending = () =>
+                {
+                    string m;
+                    RunwayService.Extend(Human, airport, r, to, out m);
+                    LoadDetail();
+                    Status = m;
+                    _changed();
+                };
+            PendingText = string.Format("Extend {0} at {1} to {2:N0} m for {3}?", r.Name, airport.Profile.IATACode, to, Money(price));
+        }
+
+        private void AskBuildRunway()
+        {
+            if (_selected == null) return;
+            var airport = _selected.Airport;
+            long length = ParseMeters(_newRunwayLength);
+            string name = _newRunwayName;
+            var surface = _newRunwaySurface;
+            string blocker = RunwayService.GetBuildBlocker(Human, airport, length, name);
+            if (blocker != null)
+            {
+                Status = blocker;
+                return;
+            }
+            double price = RunwayService.NewPrice(airport, length, surface);
+            if (price > Human.Money)
+            {
+                Status = "You can't afford that (" + Money(price) + ").";
+                return;
+            }
+            _pending = () =>
+                {
+                    string m;
+                    RunwayService.Build(Human, airport, length, surface, name, out m);
+                    NewRunwayName = "";
+                    ApplySearch();
+                    Selected = Airports.FirstOrDefault(a => a.Airport == airport);
+                    LoadDetail();
+                    Status = m;
+                    _changed();
+                };
+            PendingText = string.Format(
+                "Build a {0:N0} m {1} runway at {2} for {3}? It takes about {4} days.",
+                length, surface.ToString().ToLower(), airport.Profile.IATACode, Money(price), RunwayService.NewDays(length));
+        }
 
         /// <summary>Selects an airport (used by other pages).</summary>
         public void SelectAirport(Airport airport)
@@ -403,6 +588,7 @@ namespace TheAirline.Presentation
                 var airport = _selected.Airport;
                 if (airport.Profile.Type == value.Value) { SetProperty(ref _airportType, value); return; }
                 airport.Profile.Type = value.Value;
+                airport.PlayerEdited = true;
                 SetProperty(ref _airportType, value);
                 ApplySearch();
                 Selected = Airports.FirstOrDefault(a => a.Airport == airport);
@@ -659,6 +845,7 @@ namespace TheAirline.Presentation
             RefreshGateChoices(airport);
 
             LoadTerminals(airport);
+            LoadRunways(airport);
             OnPropertyChanged(nameof(TerminalPriceText));
 
             // facilities can only be bought where the airline has a contract
