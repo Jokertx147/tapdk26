@@ -448,7 +448,7 @@ namespace TheAirline.Models.Airports
             score = airline.Codeshares.Select(codesharing => (codesharing.Airline1 == airline ? codesharing.Airline2 : codesharing.Airline1).Routes.Count(r => r.Destination2 == this || r.Destination1 == this)).Aggregate(score, (current, codesharingRoutes) => current + 4*codesharingRoutes);
 
             // happier customers choose the airline more often
-            return score*RatingsService.CustomerFactor(airline);
+            return score*RatingsService.CustomerFactor(airline)*AdvertisingService.AirportFactor(airline, this);
         }
 
         public List<AirlineAirportFacility> GetAirportFacilities(Airline airline)

@@ -2692,12 +2692,10 @@ namespace TheAirline.Helpers
                             Invoice.InvoiceType.AirlineExpenses,
                             -airline.GetAirlineAdvertisement(type).Price);
 
-                        if (airline.Reputation < 100)
-                        {
-                            airline.Reputation += airline.GetAirlineAdvertisement(type).ReputationLevel;
-                        }
                     }
                 }
+                // reputation moves toward what the advertising supports; campaigns are paid here
+                AdvertisingService.ProcessMonth(airline);
                 //maintenance, insurance, and ratings
 
                 if (airline.InsurancePolicies != null)

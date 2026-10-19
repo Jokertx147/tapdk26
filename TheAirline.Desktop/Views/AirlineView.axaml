@@ -91,6 +91,9 @@
             <TabItem Header="Profile">
               <v:ProfileView DataContext="{Binding Profile}" />
             </TabItem>
+            <TabItem Header="Advertising">
+              <v:AdvertisingView DataContext="{Binding Advertising}" />
+            </TabItem>
             <TabItem Header="Ratings">
               <v:RatingsView DataContext="{Binding Ratings}" />
             </TabItem>

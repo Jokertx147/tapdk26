@@ -233,6 +233,38 @@ static class VmTest
             Console.WriteLine("  after build: max " + kiv.GetMaxRunwayLength() + " | " + g.NewsBox.GetNews().Where(n => n.Subject.Contains("unway")).Select(n => n.Subject + ": " + n.Body).LastOrDefault());
             if (kiv.GetMaxRunwayLength() != 4200) { Console.WriteLine("  FAILED new runway"); Environment.Exit(1); }
         }
+        Console.WriteLine("ADVERTISING TEST");
+        {
+            var adv = av.Advertising;
+            var g2 = TheAirline.Models.General.GameObject.GetInstance();
+            var me5 = g2.HumanAirline;
+            adv.Reload();
+            Console.WriteLine("  " + adv.ReputationText + " | " + adv.CostText);
+            foreach (var ch in adv.Channels) Console.WriteLine("  " + ch.Name + ": " + ch.Selected + " | options " + string.Join(", ", ch.Levels));
+            foreach (var ch in adv.Channels) ch.Selected = ch.Levels.Last();
+            Console.WriteLine("  all global: " + adv.ReputationText + " | " + adv.CostText);
+            int rep0 = me5.Reputation; double m0 = me5.Money;
+            TheAirline.Helpers.AdvertisingService.ProcessMonth(me5);
+            Console.WriteLine("  a month later: reputation " + rep0 + " -> " + me5.Reputation);
+            if (me5.Reputation <= rep0) { Console.WriteLine("  FAILED reputation"); Environment.Exit(1); }
+            adv.CountryTarget = true; adv.Search = "United States";
+            Console.WriteLine("  targets: " + string.Join(" ; ", adv.Targets.Take(3)));
+            adv.Size = "Large"; adv.Months = 6; Console.WriteLine("  " + adv.CampaignText);
+            adv.StartCommand.Execute(null); adv.ConfirmCommand.Execute(null);
+            Console.WriteLine("  start: " + adv.Status + " | running " + adv.Campaigns.Count);
+            var atl2 = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+            var lhr2 = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "LHR");
+            Console.WriteLine("  factor ATL " + TheAirline.Helpers.AdvertisingService.AirportFactor(me5, atl2).ToString("0.000") + " | LHR " + TheAirline.Helpers.AdvertisingService.AirportFactor(me5, lhr2).ToString("0.000"));
+            if (TheAirline.Helpers.AdvertisingService.CampaignFactor(me5, atl2) < 1.3) { Console.WriteLine("  FAILED campaign"); Environment.Exit(1); }
+            adv.AirportTarget = true; adv.Search = "LHR"; adv.Size = "Small"; adv.Months = 1; Console.WriteLine("  airport: " + adv.CampaignText);
+            adv.StartCommand.Execute(null); adv.ConfirmCommand.Execute(null); Console.WriteLine("  start: " + adv.Status);
+            g2.GameTime = g2.GameTime.AddMonths(2); TheAirline.Helpers.AdvertisingService.ProcessMonth(me5); adv.Reload();
+            Console.WriteLine("  two months later: running " + adv.Campaigns.Count + " | LHR factor " + TheAirline.Helpers.AdvertisingService.CampaignFactor(me5, lhr2));
+            adv.Campaigns[0].EndCommand.Execute(null); adv.ConfirmCommand.Execute(null); Console.WriteLine("  stop: " + adv.Status + " | running " + adv.Campaigns.Count);
+            foreach (var ch in adv.Channels) ch.Selected = ch.Levels.First();
+            int rep1 = me5.Reputation; TheAirline.Helpers.AdvertisingService.ProcessMonth(me5);
+            Console.WriteLine("  ads off: reputation " + rep1 + " -> " + me5.Reputation + " | " + adv.CostText);
+        }
         Console.WriteLine("QUICK TEST OK");
         Environment.Exit(0);
     }

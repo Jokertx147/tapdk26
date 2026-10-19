@@ -120,6 +120,7 @@ namespace TheAirline.Presentation
             Demand = new DemandViewModel(OnGameChanged);
             Ratings = new RatingsViewModel();
             Profile = new ProfileViewModel(OnGameChanged);
+            Advertising = new AdvertisingViewModel(OnGameChanged);
             GateContracts = new GateContractsViewModel(OnGameChanged);
             GateContracts.OpenAirport = a =>
                 {
@@ -240,6 +241,7 @@ namespace TheAirline.Presentation
         public DemandViewModel Demand { get; }
         public RatingsViewModel Ratings { get; }
         public ProfileViewModel Profile { get; }
+        public AdvertisingViewModel Advertising { get; }
         public GateContractsViewModel GateContracts { get; }
 
         private string _logoPath;
@@ -459,6 +461,7 @@ namespace TheAirline.Presentation
                     Contracts.Reload();
                     Ratings.Reload();
                     GateContracts.Reload();
+                    Advertising.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();

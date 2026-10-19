@@ -164,6 +164,10 @@ namespace TheAirline.Models.Airlines
         public List<CodeshareAgreement> Codeshares { get; set; }
 
         /// <summary>Codeshare offers from computer airlines that the player has not answered yet.</summary>
+        /// <summary>Advertising campaigns aimed at a country or an airport.</summary>
+        [Versioning("adcampaigns")]
+        public List<AdCampaign> AdCampaigns { get; set; } = new List<AdCampaign>();
+
         [Versioning("codeshareoffers")]
         public List<CodeshareAgreement> CodeshareOffers { get; set; } = new List<CodeshareAgreement>();
 
