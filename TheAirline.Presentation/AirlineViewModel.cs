@@ -121,6 +121,12 @@ namespace TheAirline.Presentation
             Ratings = new RatingsViewModel();
             Profile = new ProfileViewModel(OnGameChanged);
             Advertising = new AdvertisingViewModel(OnGameChanged);
+            AirportStats = new AirportStatsViewModel();
+            AirportManager.StatsRequested = a =>
+                {
+                    AirportStats.ShowAirport(a);
+                    AirportsTab = 3;
+                };
             GateContracts = new GateContractsViewModel(OnGameChanged);
             GateContracts.OpenAirport = a =>
                 {
@@ -242,6 +248,7 @@ namespace TheAirline.Presentation
         public RatingsViewModel Ratings { get; }
         public ProfileViewModel Profile { get; }
         public AdvertisingViewModel Advertising { get; }
+        public AirportStatsViewModel AirportStats { get; }
         public GateContractsViewModel GateContracts { get; }
 
         private string _logoPath;
@@ -462,6 +469,7 @@ namespace TheAirline.Presentation
                     Ratings.Reload();
                     GateContracts.Reload();
                     Advertising.Reload();
+                    AirportStats.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();

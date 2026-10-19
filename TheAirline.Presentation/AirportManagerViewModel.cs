@@ -564,6 +564,12 @@ namespace TheAirline.Presentation
         /// <summary>Set by the airline page: opens the demand page for an airport.</summary>
         public Action<Airport> DemandRequested { get; set; }
 
+        /// <summary>Set by the airline page: opens the traffic page for an airport.</summary>
+        public Action<Airport> StatsRequested { get; set; }
+
+        private ICommand _showStats;
+        public ICommand ShowStatsCommand => _showStats ?? (_showStats = new RelayCommand(() => { if (_selected != null) StatsRequested?.Invoke(_selected.Airport); }));
+
         private ICommand _showDemand;
         public ICommand ShowDemandCommand => _showDemand ?? (_showDemand = new RelayCommand(() => { if (_selected != null) DemandRequested?.Invoke(_selected.Airport); }));
 

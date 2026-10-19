@@ -1,0 +1,104 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
+             x:Class="TheAirline.Desktop.Views.AirportStatsView">
+  <Grid ColumnDefinitions="260,12,*" Margin="0,10,0,0">
+
+    <!-- airport picker -->
+    <Grid RowDefinitions="Auto,*">
+      <TextBox Text="{Binding Search}" Watermark="search airport (empty = your airports)" Margin="0,0,0,6" />
+      <ListBox Grid.Row="1" ItemsSource="{Binding Airports}" SelectedItem="{Binding Selected}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <TabControl Grid.Column="2" Classes="sub">
+      <!-- airlines and traffic -->
+      <TabItem Header="Traffic">
+        <ScrollViewer>
+          <StackPanel Spacing="8" Margin="0,6,12,0">
+            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontWeight="SemiBold" />
+
+            <TextBlock Text="Airlines here" FontSize="16" FontWeight="SemiBold" Margin="0,6,0,0" />
+            <ItemsControl ItemsSource="{Binding AirlineRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="Auto,10,*" Margin="0,3">
+                    <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=96}" Width="48" Height="26" Stretch="Uniform" />
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Numbers}" Opacity="0.7" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Where passengers from here went" FontSize="16" FontWeight="SemiBold" Margin="0,6,0,0" IsVisible="{Binding HasDestinations}" />
+            <ItemsControl ItemsSource="{Binding Destinations}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate><TextBlock Text="{Binding}" Margin="0,1" /></DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- weekly schedule -->
+      <TabItem Header="Schedule">
+        <Grid ColumnDefinitions="Auto,16,*" RowDefinitions="Auto,Auto,*" Margin="0,6,0,0">
+          <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0,0,0,6">
+            <ComboBox ItemsSource="{Binding Days}" SelectedItem="{Binding Day}" MinWidth="130" />
+            <CheckBox Content="Only my flights in the list" IsChecked="{Binding OnlyMine}" />
+          </StackPanel>
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding SchedulePeak}" Opacity="0.8" Margin="0,0,0,6" TextWrapping="Wrap" />
+
+          <!-- flights per hour: grey all airlines, blue yours -->
+          <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Hours}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="50,270,Auto" Height="18">
+                    <TextBlock Text="{Binding Hour}" Opacity="0.7" VerticalAlignment="Center" FontSize="12" />
+                    <Panel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left">
+                      <Border Width="{Binding AllWidth}" Height="12" Background="#555" CornerRadius="2" HorizontalAlignment="Left" />
+                      <Border Width="{Binding MineWidth}" Height="12" Background="#2F7FD8" CornerRadius="2" HorizontalAlignment="Left" />
+                    </Panel>
+                    <TextBlock Grid.Column="2" Text="{Binding Label}" FontSize="12" VerticalAlignment="Center" Opacity="0.8" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <ListBox Grid.Row="2" Grid.Column="2" ItemsSource="{Binding Movements}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="18,50,*">
+                  <TextBlock Text="{Binding Marker}" Foreground="#2F7FD8" />
+                  <TextBlock Grid.Column="1" Text="{Binding Time}" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="2" Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </TabItem>
+
+      <!-- gates -->
+      <TabItem Header="Gates">
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding GateLines}" Margin="0,6,12,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

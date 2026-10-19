@@ -273,6 +273,9 @@
             <TabItem Header="Contracts">
               <v:GateContractsView DataContext="{Binding GateContracts}" />
             </TabItem>
+            <TabItem Header="Traffic and gates">
+              <v:AirportStatsView DataContext="{Binding AirportStats}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

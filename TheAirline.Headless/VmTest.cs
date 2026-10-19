@@ -192,6 +192,28 @@ static class VmTest
             Console.WriteLine("  end: " + cs.Status + " | still partners " + (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) + " | agreed by asking " + agreed);
             if (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) { Console.WriteLine("  FAILED end"); Environment.Exit(1); }
         }
+        Console.WriteLine("AIRPORT STATS TEST");
+        {
+            var st = av.AirportStats;
+            var mgr = av.AirportManager;
+            var atl3 = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+            mgr.SelectAirport(atl3);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            mgr.ShowStatsCommand.Execute(null);
+            Console.WriteLine("  tab " + av.AirportsTab + " | " + st.Selected?.Airport.Profile.IATACode + " | load " + sw.ElapsedMilliseconds + " ms");
+            Console.WriteLine("  " + st.Summary.Replace(Environment.NewLine, " / "));
+            foreach (var r in st.AirlineRows.Take(4)) Console.WriteLine("  " + r.Name + " | " + r.Numbers);
+            foreach (var d in st.Destinations.Take(3)) Console.WriteLine("  dest " + d);
+            foreach (var g in st.GateLines) Console.WriteLine("  gates " + g);
+            string busiest = null; int most = -1;
+            foreach (var dn in st.Days) { st.Day = dn; int n = st.Movements.Count; if (n > most) { most = n; busiest = dn; } }
+            st.Day = busiest;
+            Console.WriteLine("  " + st.SchedulePeak);
+            foreach (var h in st.Hours.Where(h => h.Count > 0).Take(5)) Console.WriteLine("  " + h.Hour + " " + h.Label + " width " + h.AllWidth.ToString("0"));
+            foreach (var mv in st.Movements.Take(6)) Console.WriteLine("  " + mv.Marker + mv.Time + " " + mv.Text);
+            st.OnlyMine = true; Console.WriteLine("  only mine: " + st.Movements.Count);
+            if (av.AirportsTab != 3 || st.AirlineRows.Count == 0 || st.GateLines.Count == 0) { Console.WriteLine("  FAILED stats"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
