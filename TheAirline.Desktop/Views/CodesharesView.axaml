@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
+             x:Class="TheAirline.Desktop.Views.CodesharesView">
+  <Grid ColumnDefinitions="*,16,*" Margin="0,10,0,0">
+
+    <!-- your partners and offers -->
+    <ScrollViewer>
+      <StackPanel Spacing="8" Margin="0,0,8,0">
+        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" Opacity="0.75" />
+        <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+        <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+              <Button Content="No" Command="{Binding CancelCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+
+        <TextBlock Text="Offers from other airlines" FontSize="16" FontWeight="SemiBold" IsVisible="{Binding HasOffers}" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Offers}" IsVisible="{Binding HasOffers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Background="#2b3326" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                <Grid ColumnDefinitions="Auto,10,*,Auto">
+                  <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=96}" Width="48" Height="28" Stretch="Uniform" />
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Numbers}" Opacity="0.7" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button Content="Accept" Command="{Binding AcceptCommand}" />
+                    <Button Content="Decline" Command="{Binding DeclineCommand}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="Your codeshare partners" FontSize="16" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Partners}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Background="#262626" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                <Grid ColumnDefinitions="Auto,10,*,Auto">
+                  <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=96}" Width="48" Height="28" Stretch="Uniform" />
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Kind}" Opacity="0.8" />
+                    <TextBlock Text="{Binding Numbers}" Opacity="0.65" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Button Grid.Column="3" Content="End" Command="{Binding EndCommand}" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- find a partner -->
+    <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*,Auto">
+      <TextBlock Text="Find a partner" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6" />
+      <TextBox Grid.Row="1" Text="{Binding Search}" Watermark="airline name, code or country (best matches first)" Margin="0,0,0,6" />
+      <ListBox Grid.Row="2" ItemsSource="{Binding Candidates}" SelectedItem="{Binding Selected}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="Auto,10,*" Margin="2">
+              <Image Source="{Binding LogoPath, Converter={x:Static v:LogoConverter.Instance}, ConverterParameter=96}" Width="48" Height="28" Stretch="Uniform" />
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Numbers}" Opacity="0.7" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <StackPanel Grid.Row="3" Spacing="6" Margin="0,8,0,0" IsVisible="{Binding HasSelection}">
+        <TextBlock Text="{Binding Evaluation}" TextWrapping="Wrap" Opacity="0.85" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Ask for a codeshare both ways" Command="{Binding AskBothCommand}" />
+          <Button Content="Ask for one way" Command="{Binding AskOneCommand}" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

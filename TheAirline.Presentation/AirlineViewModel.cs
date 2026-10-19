@@ -138,6 +138,7 @@ namespace TheAirline.Presentation
             Timetable = new TimetableViewModel(OnGameChanged);
             Alliances = new AlliancesViewModel(OnGameChanged);
             AirlineList = new AirlinesViewModel();
+            Codeshares = new CodesharesViewModel(OnGameChanged);
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
             News = new NewsViewModel();
             Map = new WorldMapViewModel();
@@ -219,7 +220,7 @@ namespace TheAirline.Presentation
             switch (PageNames[page])
             {
                 case "Alliances": Alliances.Reload(); break;
-                case "Airlines": AirlineList.Reload(); break;
+                case "Airlines": AirlineList.Reload(); Codeshares.Reload(); break;
                 case "News": News.Reload(); break;
                 case "Options": Options.Reload(); break;
             }
@@ -265,6 +266,7 @@ namespace TheAirline.Presentation
         public TimetableViewModel Timetable { get; }
         public AlliancesViewModel Alliances { get; }
         public AirlinesViewModel AirlineList { get; }
+        public CodesharesViewModel Codeshares { get; }
         public OptionsViewModel Options { get; }
         public NewsViewModel News { get; }
         public FleetOverviewViewModel Overview { get; }
@@ -460,6 +462,8 @@ namespace TheAirline.Presentation
                 }
                 Charter.Reload();
                 Deals.Reload();
+                // a computer airline may have sent a codeshare offer
+                if (Codeshares.Offers.Count != CodeshareService.Offers(airline).Count) Codeshares.Reload();
             }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));
             IsRunning = !GameObjectWorker.GetInstance().IsPaused;

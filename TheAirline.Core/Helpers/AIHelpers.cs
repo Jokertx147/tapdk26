@@ -2123,7 +2123,8 @@ namespace TheAirline.Helpers
             //find the best airline for codesharing
             IEnumerable<Airline> airlines =
                 Airlines.GetAllAirlines()
-                        .Where(a => a != airline && (!a.IsSubsidiary || ((SubsidiaryAirline) a).Airline != airline));
+                        .Where(a => a != airline && (!a.IsSubsidiary || ((SubsidiaryAirline) a).Airline != airline)
+                                    && !airline.Codeshares.Any(c => c.Airline1 == a || c.Airline2 == a));
 
             int bestscore = 0;
             Airline bestAirline = null;
@@ -2152,20 +2153,8 @@ namespace TheAirline.Helpers
                 {
                     if (bestAirline.IsHuman)
                     {
-                        var agreement = new CodeshareAgreement(
-                            bestAirline,
-                            airline,
-                            CodeshareAgreement.CodeshareType.BothWays);
-
-                        var news = new News(
-                            News.NewsType.AllianceNews,
-                            GameObject.GetInstance().GameTime,
-                            "Codeshare Agreement",
-                            $"[LI airline={airline.Profile.IATACode}] has asked you for a codeshare agreement. Do you accept it?",
-                            true) {ActionObject = agreement};
-                        news.Action += news_Action;
-
-                        GameObject.GetInstance().NewsBox.AddNews(news);
+                        // kept as an offer the player answers on the Codeshares page (a news action is lost when saving)
+                        CodeshareService.AddOffer(bestAirline, airline);
                     }
                     else
                     {

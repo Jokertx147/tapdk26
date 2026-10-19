@@ -292,7 +292,14 @@
 
         <!-- AIRLINES -->
         <TabItem Header="Airlines">
-          <v:AirlinesView DataContext="{Binding AirlineList}" />
+          <TabControl Classes="sub">
+            <TabItem Header="All airlines">
+              <v:AirlinesView DataContext="{Binding AirlineList}" />
+            </TabItem>
+            <TabItem Header="Codeshares">
+              <v:CodesharesView DataContext="{Binding Codeshares}" />
+            </TabItem>
+          </TabControl>
         </TabItem>
 
         <!-- FLIGHTS -->

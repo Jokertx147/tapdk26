@@ -159,6 +159,39 @@ static class VmTest
                 if (nc.Length != 10) { Console.WriteLine("  FAILED lease length"); Environment.Exit(1); }
             }
         }
+        Console.WriteLine("CODESHARE TEST");
+        {
+            var cs = av.Codeshares;
+            var me3 = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+            cs.Reload();
+            Console.WriteLine("  " + cs.Summary + " | candidates " + cs.Candidates.Count + " | offers " + cs.Offers.Count);
+            foreach (var c in cs.Candidates.Take(4)) Console.WriteLine("  " + c.Name + " | " + c.Numbers);
+            bool agreed = false;
+            foreach (var c in cs.Candidates.ToList())
+            {
+                cs.Selected = cs.Candidates.First(x => x.Airline == c.Airline);
+                Console.WriteLine("  ask " + c.Airline.Profile.IATACode + ": " + cs.Evaluation.Replace(Environment.NewLine, " / "));
+                cs.AskBothCommand.Execute(null); cs.ConfirmCommand.Execute(null);
+                Console.WriteLine("    -> " + cs.Status);
+                if (me3.Codeshares.Any()) { agreed = true; break; }
+            }
+            cs.Selected = cs.Candidates.FirstOrDefault();
+            if (cs.Selected != null) { cs.AskBothCommand.Execute(null); Console.WriteLine("  ask again: " + (cs.PendingText ?? cs.Status)); cs.CancelCommand.Execute(null); }
+            // an offer from a computer airline
+            var asker = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First(x => !x.IsHuman && TheAirline.Helpers.CodeshareService.Find(me3, x) == null);
+            TheAirline.Helpers.CodeshareService.AddOffer(me3, asker);
+            cs.Reload();
+            Console.WriteLine("  offer: " + cs.Offers.FirstOrDefault()?.Name + " | " + cs.Offers.FirstOrDefault()?.Numbers);
+            if (cs.Offers.Count != 1) { Console.WriteLine("  FAILED offer"); Environment.Exit(1); }
+            cs.Offers[0].AcceptCommand.Execute(null);
+            Console.WriteLine("  accept: " + cs.Status + " | partners " + cs.Partners.Count + " | " + cs.Summary);
+            if (TheAirline.Helpers.CodeshareService.Find(me3, asker) == null || asker.Codeshares.Count(x => x.Airline1 == me3 || x.Airline2 == me3) != 1) { Console.WriteLine("  FAILED accept"); Environment.Exit(1); }
+            foreach (var p in cs.Partners) Console.WriteLine("  partner " + p.Name + " | " + p.Kind + " | " + p.Numbers);
+            var row = cs.Partners.First(x => TheAirline.Helpers.CodeshareService.Partner(x.Agreement, me3) == asker);
+            row.EndCommand.Execute(null); cs.ConfirmCommand.Execute(null);
+            Console.WriteLine("  end: " + cs.Status + " | still partners " + (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) + " | agreed by asking " + agreed);
+            if (TheAirline.Helpers.CodeshareService.Find(me3, asker) != null) { Console.WriteLine("  FAILED end"); Environment.Exit(1); }
+        }
         Console.WriteLine("QUICK TEST OK");
         Environment.Exit(0);
     }

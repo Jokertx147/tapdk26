@@ -163,6 +163,10 @@ namespace TheAirline.Models.Airlines
         [Versioning("codeshares", Version = 3)]
         public List<CodeshareAgreement> Codeshares { get; set; }
 
+        /// <summary>Codeshare offers from computer airlines that the player has not answered yet.</summary>
+        [Versioning("codeshareoffers")]
+        public List<CodeshareAgreement> CodeshareOffers { get; set; } = new List<CodeshareAgreement>();
+
         [Versioning("contract")]
         public ManufacturerContract Contract { get; set; }
 
