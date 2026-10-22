@@ -435,6 +435,9 @@ namespace TheAirline.Helpers
                 GameObject.GetInstance().GameTime.Year,
                 StatisticsTypes.GetStatisticsType("Airliner_Income"),
                 ticketsIncome - expenses - mealExpenses + feesIncome - wages);
+            FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+            FlightLog.Add(airliner, fdistance, flighttime.TotalHours, ticketsIncome, feesIncome, mealExpenses, fuelExpenses,
+                          AirportHelpers.GetLandingFee(dest, airliner.Airliner), tax, wages);
 
             airliner.Airliner.Flown += fdistance;
 

@@ -52,7 +52,7 @@ namespace TheAirline.Presentation
         public List<string> Labels { get; } = new List<string>
         {
             "Maker", "Kind", "Price new", "Seats / cargo", "Range", "Speed", "Runway needed", "Crew",
-            "Fuel per seat, 100 km", "In production", "Flight time", "Fuel per full flight", "Fuel per seat", "Can fly it?"
+            "Fuel per seat, 100 km", "In production", "Flight time", "Fuel per full flight", "Fuel per seat", "Other costs per flight", "Can fly it?"
         };
 
         public string Search
@@ -82,6 +82,17 @@ namespace TheAirline.Presentation
         }
 
         public string Status { get => _status; private set => SetProperty(ref _status, value); }
+
+        /// <summary>Handling, maintenance, en-route charges, crew, sales and overhead for one flight, 80% full at the usual fare.</summary>
+        private static double OtherCosts(AirlinerType t, double km)
+        {
+            var me = GameObject.GetInstance().HumanAirline;
+            var a = new Airliner("compare", t, "N-COMPARE", GameObject.GetInstance().GameTime) { Airline = me };
+            double hours = AircraftHistoryService.FlightTime(t, km).TotalHours;
+            double pax = AircraftHistoryService.Capacity(t)*0.8;
+            double fare = FlightCosts.UsualFare(km);
+            return FlightCosts.Calculate(a, km, hours, pax*fare).Total;
+        }
 
         private static Airport FindAirport(string code)
         {
@@ -176,6 +187,7 @@ namespace TheAirline.Presentation
                         AircraftHistoryService.FlightTime(t, km).ToString(@"h\:mm"),
                         Money(fuel),
                         cap > 0 ? Money(fuel/cap) : "",
+                        Money(OtherCosts(t, km)),
                         cannot == null ? "Yes" : "No: " + cannot
                     }
                 });

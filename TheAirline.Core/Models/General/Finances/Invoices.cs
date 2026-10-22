@@ -110,9 +110,8 @@ namespace TheAirline.Models.General.Finances
         {
             lock (MonthlyInvoices)
             {
-                MonthlyInvoice mInvoice =
-                    MonthlyInvoices.Find(m => m.Month == month && m.Year == year && m.Type == type);
-                return mInvoice?.Amount ?? 0;
+                // amounts are kept per day: add up every day of the month (it used to return the first day only)
+                return MonthlyInvoices.Where(m => m.Month == month && m.Year == year && m.Type == type).Sum(m => m.Amount);
             }
         }
 

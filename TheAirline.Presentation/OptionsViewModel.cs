@@ -125,6 +125,29 @@ namespace TheAirline.Presentation
             set { UseMiles = !value; }
         }
 
+        /// <summary>How much flights cost: Original, Realistic or Tough (kept in the save).</summary>
+        public System.Collections.Generic.List<string> CostLevels => TheAirline.Helpers.FlightCosts.LevelNames.ToList();
+
+        public string CostLevel
+        {
+            get
+            {
+                var g = TheAirline.Models.General.GameObject.GetInstance();
+                return TheAirline.Helpers.FlightCosts.LevelNames[Math.Max(0, Math.Min(2, g?.CostLevel ?? 1))];
+            }
+            set
+            {
+                int i = Array.IndexOf(TheAirline.Helpers.FlightCosts.LevelNames, value);
+                var g = TheAirline.Models.General.GameObject.GetInstance();
+                if (i < 0 || g == null || g.CostLevel == i) return;
+                g.CostLevel = i;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CostLevelText));
+            }
+        }
+
+        public string CostLevelText => TheAirline.Helpers.FlightCosts.Describe(TheAirline.Models.General.GameObject.GetInstance()?.CostLevel ?? 1);
+
         public string DistanceExample => "Example: " + DistanceFormatter.Km(1000) + ", " + DistanceFormatter.Speed(800);
 
         /// <summary>Save automatically (as "Autosave ...") when leaving the game or closing the window.</summary>
@@ -154,6 +177,8 @@ namespace TheAirline.Presentation
 
         public void Reload()
         {
+            OnPropertyChanged(nameof(CostLevel));
+            OnPropertyChanged(nameof(CostLevelText));
             string keep = _selected?.Name;
             Saves.Clear();
             try

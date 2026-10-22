@@ -73,6 +73,10 @@ namespace TheAirline.Models.General
         [Versioning("currencycountry")]
         public Country CurrencyCountry { get; set; }
 
+        /// <summary>How much flights cost (see FlightCosts): 0 original game, 1 realistic, 2 tough.</summary>
+        [Versioning("costlevel")]
+        public int CostLevel { get; set; } = 1;
+
         [Versioning("dayroundenabled")]
         public Boolean DayRoundEnabled { get; set; }
 

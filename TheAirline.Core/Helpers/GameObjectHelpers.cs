@@ -529,6 +529,8 @@ namespace TheAirline.Helpers
                 StatisticsTypes.GetStatisticsType("Airliner_Income"),
                 ticketsIncome - expenses - mealExpenses + feesIncome - wages);
 
+            FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+
             airliner.Airliner.Flown += fdistance;
 
             if (airliner.CurrentFlight.IsPassengerFlight())

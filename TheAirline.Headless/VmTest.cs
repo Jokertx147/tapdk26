@@ -15,6 +15,145 @@ static class VmTest
         while (!done()) { if (sw.Elapsed.TotalSeconds > 120) throw new Exception("timeout: " + what); await Task.Delay(100); }
     }
 
+    // per-flight economics of common types at 80% load: "vm unit"
+    static void UnitTable()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var atl = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+        Console.WriteLine("year " + g.GameTime.Year + " fuel " + g.FuelPrice.ToString("0.000") + " inflation x" + TheAirline.Helpers.GeneralHelpers.GetInflationPrice(1).ToString("0.00") + " cost level " + g.CostLevel);
+        string[] names = { "Beechcraft 1900D", "Saab 340B", "ATR 72-500", "Bombardier CRJ200", "Embraer ERJ 145", "Boeing 717-200", "Airbus A319-100", "Boeing 737-800", "Airbus A320-200", "Boeing 757-200", "Boeing 767-300ER", "Airbus A330-300", "Boeing 777-200ER", "Boeing 747-400" };
+        foreach (string n in names)
+        {
+            var t = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().FirstOrDefault(x => x.Name == n) as TheAirline.Models.Airliners.AirlinerPassengerType;
+            if (t == null) { Console.WriteLine("  (no " + n + ")"); continue; }
+            var a = new TheAirline.Models.Airliners.Airliner("TEST", t, "N-TEST", g.GameTime);
+            a.Airline = me;
+            int seats = Math.Max(1, a.GetTotalSeatCapacity());
+            foreach (double km in new[] { 400.0, 1200, 3000, 7000 })
+            {
+                if (km > t.Range) continue;
+                double hours = km / Math.Max(100, t.CruisingSpeed) + 0.5;
+                double pax = seats * 0.8;
+                double fare = Math.Max(km * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(0.0084), TheAirline.Helpers.GeneralHelpers.GetInflationPrice(18) + km * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(0.0084) / 4);
+                double tickets = pax * fare;
+                double fuelPrice = g.FuelPrice;
+                double fuel = fuelPrice * km * t.MaxSeatingCapacity * a.FuelConsumption * 0.55 + fuelPrice * km * a.FuelConsumption * pax * 0.45;
+                double landing = TheAirline.Helpers.AirportHelpers.GetLandingFee(atl, a);
+                double tax = 5 * pax;
+                double cabin = t.CabinCrew * hours * me.Fees.GetValue(TheAirline.Models.Airlines.FeeTypes.GetType("Cabin Wage"));
+                double pilotMonth = t.CockpitCrew * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(1) * 0 ;
+                var pc = TheAirline.Helpers.FlightCosts.Calculate(a, km, hours, tickets);
+                double oldCost = fuel + landing + tax + cabin;
+                double newCost = oldCost + pc.Total;
+                Console.WriteLine(string.Format("  {0,-18} {1,4} seats {2,5:N0} km | fare {3,5:N0} tickets {4,8:N0} | fuel {5,7:N0} landing {6,5:N0} tax {7,5:N0} cabin {8,4:N0} | +ground {9,5:N0} maint {10,6:N0} enroute {11,5:N0} crew {12,5:N0} sales {13,6:N0} | margin old {14,4:0}% new {15,4:0}% | CASK {16:0.000} yield {17:0.000}",
+                    n, seats, km, fare, tickets, fuel, landing, tax, cabin, pc.Ground, pc.Maintenance, pc.EnRoute, pc.Crew, pc.Distribution,
+                    (tickets - oldCost) / tickets * 100, (tickets - newCost) / tickets * 100, newCost / (seats * km), tickets / (pax * km)));
+            }
+        }
+        Environment.Exit(0);
+    }
+
+    // measures what flying costs: "vm costs"
+    static void CostProbe(AirlineViewModel av)
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        me.Money += 400000000; g.CostLevel = 1;
+        var mk = av.Market;
+        int bought = 0;
+        foreach (var item in mk.Aircraft.Where(x => x.Airliner.Type is TheAirline.Models.Airliners.AirlinerPassengerType pt && pt.MaxSeatingCapacity >= 100 && pt.MaxSeatingCapacity <= 200 && x.Airliner.Type.Range >= 2500 && !x.Airliner.Type.Name.Contains("Concorde")).OrderBy(x => x.Airliner.Age).Take(40).ToList())
+        {
+            mk.Selected = item;
+            if (mk.Homebase == null) continue;
+            mk.BuyCommand.Execute(null);
+            if (++bought >= 4) break;
+        }
+        Console.WriteLine("bought " + bought + ": " + string.Join(", ", me.Fleet.Select(f => f.Airliner.Type.Name + " " + f.Airliner.GetTotalSeatCapacity() + " seats")));
+        var ap = av.Airports;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (ap.IsBusy && sw.ElapsedMilliseconds < 120000) System.Threading.Thread.Sleep(200);
+        int made = 0;
+        foreach (var adv in ap.Advice.Where(x => x.Advice.FleetCanFly).Take(10).ToList())
+        {
+            ap.SelectedAdvice = adv;
+            var cr = ap.Create;
+            if (cr == null) continue;
+            foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+            cr.CreateCommand.Execute(null);
+            if (ap.Status != null && ap.Status.Contains("created")) made++;
+            if (made >= 4) break;
+        }
+        foreach (var f in me.Fleet.ToList())
+        {
+            if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) { TheAirline.Helpers.PilotSupply.EnsureFamily(f.Airliner.Type.AirlinerFamily); TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f); }
+            if (f.HasRoute) TheAirline.Presentation.FleetOverviewViewModel.TryStart(f);
+        }
+        Console.WriteLine("routes " + me.Routes.Count + ": " + string.Join(", ", me.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode + " " + TheAirline.Helpers.MathHelpers.GetDistance(r.Destination1, r.Destination2).ToString("N0") + "km")));
+        for (int d = 0; d < 90; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Helpers.FlightLog.Enabled = true;
+        for (int d = 0; d < 30; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var log = TheAirline.Helpers.FlightLog.Records();
+        Console.WriteLine("flights logged in 30 days: " + log.Count);
+        foreach (var grp in log.GroupBy(r => r.Airline == me ? "YOU " + r.Type : r.Type).OrderByDescending(x => x.Count()).Take(8))
+        {
+            var r = grp.ToList();
+            Console.WriteLine(string.Format("  {0,-28} n={1,5} km {2,6:N0} seats {3,4:N0} pax {4,5:0.0} | tickets {5,8:N0} fees {6,6:N0} meals {7,6:N0} | fuel {8,7:N0} landing {9,6:N0} tax {10,6:N0} cabin {11,6:N0} | per pax {12,5:N0} fare/km {13:0.000} fuel/seat-km {14:0.0000}",
+                grp.Key, r.Count, r.Average(x => x.Km), r.Average(x => x.Seats), r.Average(x => x.Passengers),
+                r.Average(x => x.Tickets), r.Average(x => x.Fees), r.Average(x => x.Meals), r.Average(x => x.Fuel), r.Average(x => x.Landing), r.Average(x => x.Tax), r.Average(x => x.CabinWages),
+                r.Sum(x => x.Tickets) / Math.Max(1, r.Sum(x => x.Passengers)), r.Sum(x => x.Tickets) / Math.Max(1, r.Sum(x => x.Passengers * x.Km)), r.Sum(x => x.Fuel) / Math.Max(1, r.Sum(x => x.Seats * x.Km))));
+        }
+        foreach (var grp in log.Where(r => r.Seats > 0).GroupBy(r => (r.Airline == me ? "YOU " : "") + r.Type).OrderByDescending(x => x.Count()).Take(6))
+        {
+            var r0 = grp.First();
+            var f0 = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Fleet).FirstOrDefault(f => f.Airliner.Type.Name == r0.Type);
+            if (f0 == null) continue;
+            double km = grp.Average(x => x.Km), h = grp.Average(x => x.Hours), t = grp.Average(x => x.Tickets);
+            var pc = TheAirline.Helpers.FlightCosts.Calculate(f0.Airliner, km, h, t);
+            double direct = grp.Average(x => x.Fuel + x.Landing + x.Tax + x.CabinWages - x.Meals);
+            double seatKm = grp.Average(x => x.Seats * x.Km);
+            Console.WriteLine(string.Format("  NEW {0,-26} ground {1,6:N0} maint {2,6:N0} enroute {3,6:N0} crew {4,5:N0} sales {5,6:N0} | old direct {6,7:N0} new total {7,7:N0} vs tickets {8,7:N0} | cost/seat-km old {9:0.000} new {10:0.000}",
+                grp.Key, pc.Ground, pc.Maintenance, pc.EnRoute, pc.Crew, pc.Distribution, direct, direct + pc.Total, t, direct / seatKm, (direct + pc.Total) / seatKm));
+        }
+        var last = g.GameTime.AddMonths(-1);
+        Console.WriteLine("month " + last.ToString("MMM yyyy") + ", fuel price " + g.FuelPrice.ToString("0.000"));
+        foreach (var a in new[] { me }.Concat(TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(x => !x.IsHuman && x.Routes.Count > 0).OrderByDescending(x => x.Fleet.Count).Take(3)))
+        {
+            Console.WriteLine("== " + a.Profile.Name + " fleet " + a.Fleet.Count + " routes " + a.Routes.Count);
+            double inc = 0, exp = 0;
+            foreach (TheAirline.Models.General.Finances.Invoice.InvoiceType t in Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType)))
+            {
+                if (t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Total) continue;
+                double v = a.GetInvoicesAmountMonth(last.Year, last.Month, t);
+                if (Math.Abs(v) < 1) continue;
+                if (v > 0) inc += v; else exp += v;
+                Console.WriteLine("   " + t.ToString().PadRight(18) + v.ToString("N0").PadLeft(16));
+            }
+            Console.WriteLine("   income " + inc.ToString("N0") + "  costs " + exp.ToString("N0") + "  margin " + (inc > 0 ? ((inc + exp) / inc * 100).ToString("0") + "%" : "-"));
+            // unit measures from the aircraft statistics of the month (approximation over the year to date)
+            double ask = 0, rpk = 0, flights = 0;
+            foreach (var f in a.Fleet.ToList())
+            {
+                foreach (var r in f.Routes.ToList())
+                {
+                    double km = TheAirline.Helpers.MathHelpers.GetDistance(r.Destination1, r.Destination2);
+                    var arr = TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Arrivals");
+                    var pax = TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers");
+                    double fl = f.Statistics.GetStatisticsValue(g.GameTime.Year, arr) / Math.Max(1, f.Routes.Count);
+                    double px = f.Statistics.GetStatisticsValue(g.GameTime.Year, pax) / Math.Max(1, f.Routes.Count);
+                    flights += fl; ask += fl * f.Airliner.GetTotalSeatCapacity() * km; rpk += px * km;
+                }
+            }
+            if (ask > 0)
+            {
+                double ytdInc = Enumerable.Range(1, g.GameTime.Month).Sum(m => a.GetInvoicesAmountMonth(g.GameTime.Year, m, TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets));
+                double ytdCost = Enumerable.Range(1, g.GameTime.Month).Sum(m => Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType)).Cast<TheAirline.Models.General.Finances.Invoice.InvoiceType>().Where(t => t != TheAirline.Models.General.Finances.Invoice.InvoiceType.Total && t != TheAirline.Models.General.Finances.Invoice.InvoiceType.Purchases && t != TheAirline.Models.General.Finances.Invoice.InvoiceType.Loans).Sum(t => Math.Min(0, a.GetInvoicesAmountMonth(g.GameTime.Year, m, t))));
+                Console.WriteLine(string.Format("   year to date: flights {0:N0}, load factor {1:0}%, ticket income per passenger-km {2:0.000}, operating cost per seat-km {3:0.000}", flights, rpk / ask * 100, ytdInc / rpk, -ytdCost / ask));
+            }
+        }
+        Environment.Exit(0);
+    }
+
     // short tests of the newest pages: run with "vm quick"
     static void QuickTests(AirlineViewModel av)
     {
@@ -306,6 +445,31 @@ static class VmTest
             sb.Selected = sb.Rows.First(r => r.Airline == t1sub);
             sb.FoldCommand.Execute(null); sb.ConfirmCommand.Execute(null); Console.WriteLine("  fold: " + sb.Status + " | subs " + me7.Subsidiaries.Count);
         }
+        Console.WriteLine("FLIGHT COSTS TEST");
+        {
+            var g9 = TheAirline.Models.General.GameObject.GetInstance();
+            var me9 = g9.HumanAirline;
+            var t9 = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+            var a9 = new TheAirline.Models.Airliners.Airliner("t9", t9, "N-T9", g9.GameTime) { Airline = me9 };
+            var opt = av.Options;
+            double tickets = 180 * 0.8 * TheAirline.Helpers.FlightCosts.UsualFare(1200);
+            var totals = new System.Collections.Generic.List<double>();
+            foreach (var lvl in opt.CostLevels)
+            {
+                opt.CostLevel = lvl;
+                var pc = TheAirline.Helpers.FlightCosts.Calculate(a9, 1200, 2.0, tickets);
+                totals.Add(pc.Total);
+                Console.WriteLine("  " + lvl + ": " + pc.Total.ToString("N0") + " (ground " + pc.Ground.ToString("N0") + ", maintenance " + pc.Maintenance.ToString("N0") + ", en-route " + pc.EnRoute.ToString("N0") + ", crew " + pc.Crew.ToString("N0") + ", sales " + pc.Distribution.ToString("N0") + ", overhead " + pc.Overhead.ToString("N0") + ") on tickets " + tickets.ToString("N0") + " | " + opt.CostLevelText);
+            }
+            opt.CostLevel = "Realistic";
+            if (totals[0] != 0 || !(totals[2] > totals[1] && totals[1] > 0)) { Console.WriteLine("  FAILED cost levels"); Environment.Exit(1); }
+            // a month's report adds up every day now
+            var inv = new TheAirline.Models.General.Finances.Invoices();
+            inv.AddInvoice(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3, 1, 100);
+            inv.AddInvoice(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3, 2, 50);
+            Console.WriteLine("  month total from two days: " + inv.GetAmount(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3));
+            if (inv.GetAmount(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3) != 150) { Console.WriteLine("  FAILED month total"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -413,6 +577,8 @@ static class VmTest
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
             if (Environment.GetCommandLineArgs().Contains("quick")) { QuickTests(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("unit")) { UnitTable(); return; }
             // aircraft market: pick the cheapest-looking aircraft we can afford and buy it
             var mk = av.Market;
             Console.WriteLine("market: " + mk.Aircraft.Count + " aircraft");

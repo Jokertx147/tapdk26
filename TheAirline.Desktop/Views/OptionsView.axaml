@@ -47,6 +47,10 @@
       </StackPanel>
       <TextBlock Text="{Binding DistanceExample}" Opacity="0.6" />
 
+      <TextBlock Text="Flight costs" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <ComboBox ItemsSource="{Binding CostLevels}" SelectedItem="{Binding CostLevel}" MinWidth="160" />
+      <TextBlock Text="{Binding CostLevelText}" Opacity="0.7" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" />
+
       <TextBlock Text="Leave" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <Button Content="Main menu" Command="{Binding MainMenuCommand}" />
