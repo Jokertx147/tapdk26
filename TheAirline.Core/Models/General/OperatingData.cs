@@ -43,8 +43,10 @@ namespace TheAirline.Models.General
         //adds a value to the data
         public void AddOperatingValue(OperatingValue value)
         {
-            if (Values.Exists(v => v.Month == value.Month && v.Type == value.Type))
-                Values.First(v => v.Month == value.Month && v.Type == value.Type).Value += value.Value;
+            // the same month of another year is a different value
+            var existing = Values.FirstOrDefault(v => v.Year == value.Year && v.Month == value.Month && v.Type == value.Type);
+            if (existing != null)
+                existing.Value += value.Value;
             else
                 Values.Add(new OperatingValue(value.Type, value.Year, value.Month, value.Value));
         }

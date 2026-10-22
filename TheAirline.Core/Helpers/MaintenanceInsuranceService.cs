@@ -251,6 +251,7 @@ namespace TheAirline.Helpers
             }
 
             AirlineHelpers.AddAirlineInvoice(f.Airliner.Airline, game.GameTime, Invoice.InvoiceType.Maintenances, -cost);
+            f.Data?.AddOperatingValue(new OperatingValue("Maintenance", game.GameTime.Year, game.GameTime.Month, -cost));
             var rnd = new Random();
             double before = f.Airliner.Condition;
             f.Airliner.Condition = Math.Min(100, f.Airliner.Condition + rnd.Next(MinGain(c), MaxGain(c) + 1));

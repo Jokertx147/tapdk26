@@ -214,6 +214,46 @@ static class VmTest
             st.OnlyMine = true; Console.WriteLine("  only mine: " + st.Movements.Count);
             if (av.AirportsTab != 3 || st.AirlineRows.Count == 0 || st.GateLines.Count == 0) { Console.WriteLine("  FAILED stats"); Environment.Exit(1); }
         }
+        Console.WriteLine("FLEET HISTORY TEST");
+        {
+            var me6 = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+            foreach (var f6 in me6.Fleet.ToList())
+            {
+                if (f6.Pilots.Count < f6.Airliner.Type.CockpitCrew) { TheAirline.Helpers.PilotSupply.EnsureFamily(f6.Airliner.Type.AirlinerFamily); TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f6); }
+                if (f6.HasRoute) Console.WriteLine("  start " + f6.Name + ": " + TheAirline.Presentation.FleetOverviewViewModel.TryStart(f6));
+            }
+            var sw6 = System.Diagnostics.Stopwatch.StartNew();
+            for (int d = 0; d < 70; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            Console.WriteLine("  70 days in " + sw6.ElapsedMilliseconds + " ms, now " + TheAirline.Models.General.GameObject.GetInstance().GameTime.ToShortDateString());
+            var fp = av.FleetPerformance;
+            fp.Reload();
+            Console.WriteLine("  " + fp.Summary);
+            foreach (var r in fp.Rows) Console.WriteLine("  " + r.Name + " | " + r.Numbers);
+            fp.Selected = fp.Rows.FirstOrDefault(r => r.Aircraft.HasRoute) ?? fp.Rows.FirstOrDefault();
+            Console.WriteLine("  " + fp.Detail.Replace(Environment.NewLine, " / "));
+            foreach (var y in fp.YearLines) Console.WriteLine("  year " + y);
+            foreach (var m in fp.Months.Take(3)) Console.WriteLine("  " + m.Month + " in " + m.Income + " out " + m.Costs + " = " + m.Profit + " | " + m.Detail);
+            if (fp.Months.Count == 0 || !fp.Months.Any(m => m.Detail.Contains("Airport fees"))) { Console.WriteLine("  FAILED history"); Environment.Exit(1); }
+            // the same month of two years must stay apart
+            var od = new TheAirline.Models.General.OperatingData();
+            od.AddOperatingValue(new TheAirline.Models.General.OperatingValue("Tickets", 2007, 3, 10));
+            od.AddOperatingValue(new TheAirline.Models.General.OperatingValue("Tickets", 2008, 3, 5));
+            Console.WriteLine("  years kept apart: " + od.Values.Count);
+            if (od.Values.Count != 2) { Console.WriteLine("  FAILED year bug"); Environment.Exit(1); }
+
+            var ct = av.CompareTypes;
+            var nav = av.NewAircraft;
+            nav.Selected = nav.Types.FirstOrDefault(t => t.Type.Name.Contains("737")) ?? nav.Types.FirstOrDefault();
+            nav.CompareCommand.Execute(null);
+            Console.WriteLine("  compare from new aircraft: tab " + av.AirlinersTab + " columns " + ct.Columns.Count);
+            ct.Search = "A320"; ct.SelectedChoice = ct.Choices.FirstOrDefault(); ct.AddCommand.Execute(null);
+            ct.Search = "747"; ct.SelectedChoice = ct.Choices.FirstOrDefault(); ct.AddCommand.Execute(null);
+            ct.Route = "ATL-LAX";
+            Console.WriteLine("  " + ct.DistanceText);
+            for (int i = 0; i < ct.Labels.Count; i++) Console.WriteLine("  " + ct.Labels[i].PadRight(22) + string.Join(" | ", ct.Columns.Select(c => c.Values[i].PadRight(24))));
+            if (ct.Columns.Count < 2) { Console.WriteLine("  FAILED compare"); Environment.Exit(1); }
+            ct.Columns[0].RemoveCommand.Execute(null); Console.WriteLine("  removed one: " + ct.Columns.Count);
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();

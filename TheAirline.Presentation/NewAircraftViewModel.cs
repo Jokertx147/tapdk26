@@ -90,6 +90,12 @@ namespace TheAirline.Presentation
         }
         public ICommand OrderCommand { get; }
 
+        /// <summary>Set by the airline page: puts a type into the comparison.</summary>
+        public Action<AirlinerType> CompareRequested { get; set; }
+
+        private ICommand _compare;
+        public ICommand CompareCommand => _compare ?? (_compare = new RelayCommand(() => { if (_selected != null) CompareRequested?.Invoke(_selected.Type); }));
+
         public NewTypeItem Selected
         {
             get { return _selected; }

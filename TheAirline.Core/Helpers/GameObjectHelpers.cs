@@ -420,6 +420,8 @@ namespace TheAirline.Helpers
                 dept.Profile.Coordinates.ConvertToGeoCoordinate());
 
             double expenses = fuelExpenses + AirportHelpers.GetLandingFee(dest, airliner.Airliner) + tax;
+            if (!double.IsNaN(expenses))
+                airliner.Data.AddOperatingValue(new OperatingValue("Airport fees and taxes", GameObject.GetInstance().GameTime.Year, GameObject.GetInstance().GameTime.Month, -(AirportHelpers.GetLandingFee(dest, airliner.Airliner) + tax)));
             if (double.IsNaN(expenses))
             {
                 expenses = 0;

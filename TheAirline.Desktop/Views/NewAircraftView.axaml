@@ -65,7 +65,10 @@
         <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Opacity="0.8" />
       </StackPanel>
-      <Button Grid.Column="1" Content="Order" Command="{Binding OrderCommand}" MinWidth="100" HorizontalContentAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <Button Content="Compare" Command="{Binding CompareCommand}" />
+        <Button Content="Order" Command="{Binding OrderCommand}" MinWidth="100" HorizontalContentAlignment="Center" />
+      </StackPanel>
     </Grid>
   </Grid>
 </UserControl>

@@ -85,6 +85,9 @@
                 </Border>
               </Grid>
             </TabItem>
+            <TabItem Header="Fleet performance">
+              <v:FleetPerformanceView DataContext="{Binding FleetPerformance}" />
+            </TabItem>
             <TabItem Header="Finances">
               <v:FinanceView DataContext="{Binding Finance}" />
             </TabItem>
@@ -251,12 +254,15 @@
 
         <!-- AIRLINERS -->
         <TabItem Header="Airliners">
-          <TabControl Classes="sub">
+          <TabControl Classes="sub" SelectedIndex="{Binding AirlinersTab}">
             <TabItem Header="New aircraft">
               <v:NewAircraftView DataContext="{Binding NewAircraft}" />
             </TabItem>
             <TabItem Header="Used aircraft">
               <v:MarketView DataContext="{Binding Market}" />
+            </TabItem>
+            <TabItem Header="Compare types">
+              <v:CompareTypesView DataContext="{Binding CompareTypes}" />
             </TabItem>
           </TabControl>
         </TabItem>

@@ -563,12 +563,28 @@ namespace TheAirline.Helpers
 
             int gates = contracts.Sum(c => c.NumberOfGates);
 
-            var routes = new List<Route>(GetAirportRoutes(airport, airline));
-
-            var entries =
-                new List<RouteTimeTableEntry>(
-                    routes.Where(r => season == Weather.Season.AllYear || season == r.Season)
-                          .SelectMany(r => r.TimeTable.Entries));
+            // a computer airline plans its routes in parallel, so the lists can change while they are read:
+            // take a copy, and read again if it changed under us
+            List<RouteTimeTableEntry> entries = null;
+            for (int attempt = 0; entries == null; attempt++)
+            {
+                try
+                {
+                    var routes = new List<Route>(GetAirportRoutes(airport, airline));
+                    entries = new List<RouteTimeTableEntry>(
+                        routes.Where(r => season == Weather.Season.AllYear || season == r.Season)
+                              .SelectMany(r => r.TimeTable.Entries.ToArray()));
+                }
+                catch (InvalidOperationException) when (attempt < 20)
+                {
+                    System.Threading.Thread.Yield();
+                }
+                catch (ArgumentException) when (attempt < 20)
+                {
+                    System.Threading.Thread.Yield();
+                }
+            }
+            entries.RemoveAll(e => e?.Airliner?.Airliner == null || e.TimeTable?.Route == null);
 
             foreach (RouteTimeTableEntry entry in entries)
             {

@@ -122,6 +122,13 @@ namespace TheAirline.Presentation
             Profile = new ProfileViewModel(OnGameChanged);
             Advertising = new AdvertisingViewModel(OnGameChanged);
             AirportStats = new AirportStatsViewModel();
+            FleetPerformance = new FleetPerformanceViewModel();
+            CompareTypes = new CompareTypesViewModel();
+            NewAircraft.CompareRequested = t =>
+                {
+                    CompareTypes.AddType(t);
+                    AirlinersTab = 2;
+                };
             AirportManager.StatsRequested = a =>
                 {
                     AirportStats.ShowAirport(a);
@@ -226,6 +233,8 @@ namespace TheAirline.Presentation
         {
             switch (PageNames[page])
             {
+                case "My Airline": FleetPerformance.Reload(); break;
+                case "Airports": AirportStats.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
                 case "Airlines": AirlineList.Reload(); Codeshares.Reload(); break;
                 case "News": News.Reload(); break;
@@ -249,6 +258,17 @@ namespace TheAirline.Presentation
         public ProfileViewModel Profile { get; }
         public AdvertisingViewModel Advertising { get; }
         public AirportStatsViewModel AirportStats { get; }
+        public FleetPerformanceViewModel FleetPerformance { get; }
+        public CompareTypesViewModel CompareTypes { get; }
+
+        private int _airlinersTab;
+
+        /// <summary>The open sub tab under Airliners: 0 new, 1 used, 2 compare.</summary>
+        public int AirlinersTab
+        {
+            get { return _airlinersTab; }
+            set { SetProperty(ref _airlinersTab, value); }
+        }
         public GateContractsViewModel GateContracts { get; }
 
         private string _logoPath;
@@ -470,6 +490,7 @@ namespace TheAirline.Presentation
                     GateContracts.Reload();
                     Advertising.Reload();
                     AirportStats.Reload();
+                    FleetPerformance.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();
