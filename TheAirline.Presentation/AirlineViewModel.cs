@@ -153,6 +153,8 @@ namespace TheAirline.Presentation
             Alliances = new AlliancesViewModel(OnGameChanged);
             AirlineList = new AirlinesViewModel();
             Codeshares = new CodesharesViewModel(OnGameChanged);
+            Shares = new SharesViewModel(OnGameChanged);
+            Subsidiaries = new SubsidiariesViewModel(OnGameChanged);
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
             News = new NewsViewModel();
             Map = new WorldMapViewModel();
@@ -236,7 +238,7 @@ namespace TheAirline.Presentation
                 case "My Airline": FleetPerformance.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
-                case "Airlines": AirlineList.Reload(); Codeshares.Reload(); break;
+                case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); break;
                 case "News": News.Reload(); break;
                 case "Options": Options.Reload(); break;
             }
@@ -296,6 +298,8 @@ namespace TheAirline.Presentation
         public AlliancesViewModel Alliances { get; }
         public AirlinesViewModel AirlineList { get; }
         public CodesharesViewModel Codeshares { get; }
+        public SharesViewModel Shares { get; }
+        public SubsidiariesViewModel Subsidiaries { get; }
         public OptionsViewModel Options { get; }
         public NewsViewModel News { get; }
         public FleetOverviewViewModel Overview { get; }

@@ -395,8 +395,8 @@ namespace TheAirline.Models.Airports
 
                 for (int i = 0; i < contractFrom.NumberOfGates; i++)
                 {
-                    Gate gate = contractFrom.Airport.Terminals.GetGates().First(g => g.Airline == airlineFrom);
-                    gate.Airline = airlineTo;
+                    Gate gate = contractFrom.Airport.Terminals.GetGates().FirstOrDefault(g => g.Airline == airlineFrom);
+                    if (gate != null) gate.Airline = airlineTo;
                 }
             }
 

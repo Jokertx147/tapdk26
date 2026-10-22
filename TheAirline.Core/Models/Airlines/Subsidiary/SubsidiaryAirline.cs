@@ -43,6 +43,13 @@ namespace TheAirline.Models.Airlines.Subsidiary
         [Versioning("airline")]
         public Airline Airline { get; set; }
 
+        /// <summary>
+        ///     True when the subsidiary is run by its own management (the computer) even though it belongs to the
+        ///     player. The player's screens show the main airline only, so a player-run subsidiary would stand still.
+        /// </summary>
+        [Versioning("automanaged")]
+        public bool AutoManaged { get; set; } = true;
+
         #endregion
 
         #region Public Methods and Operators
@@ -56,7 +63,7 @@ namespace TheAirline.Models.Airlines.Subsidiary
 
         public override bool isHuman()
         {
-            return Airline != null && Airline.isHuman();
+            return Airline != null && Airline.isHuman() && !AutoManaged;
         }
 
         public override bool IsSubsidiaryAirline()

@@ -254,6 +254,58 @@ static class VmTest
             if (ct.Columns.Count < 2) { Console.WriteLine("  FAILED compare"); Environment.Exit(1); }
             ct.Columns[0].RemoveCommand.Execute(null); Console.WriteLine("  removed one: " + ct.Columns.Count);
         }
+        Console.WriteLine("SHARES TEST");
+        {
+            var me7 = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+            me7.Money += 300000000;
+            var sh = av.Shares;
+            sh.Reload();
+            Console.WriteLine("  " + sh.MyText);
+            sh.IssueCount = 2000; Console.WriteLine("  " + sh.IssueText);
+            double m0 = me7.Money; sh.IssueCommand.Execute(null); sh.ConfirmCommand.Execute(null);
+            Console.WriteLine("  issue: " + sh.Status + " | cash +" + (me7.Money - m0).ToString("N0"));
+            sh.IssueCount = 10000; Console.WriteLine("  too many: " + sh.IssueText);
+            sh.BuybackCount = 1000; sh.BuyBackCommand.Execute(null); sh.ConfirmCommand.Execute(null); Console.WriteLine("  buy back: " + sh.Status);
+            foreach (var r in sh.Market.Take(4)) Console.WriteLine("  market " + r.Name + " | " + r.Numbers);
+            var cheap = sh.Market.OrderBy(r => TheAirline.Helpers.SharesService.Value(r.Airline)).ToList();
+            sh.Selected = cheap[0];
+            var t1 = sh.Selected.Airline;
+            sh.BuyCount = 1000; Console.WriteLine("  " + sh.SelectedText.Replace(Environment.NewLine, " / "));
+            sh.BuyCommand.Execute(null); sh.ConfirmCommand.Execute(null); Console.WriteLine("  buy: " + sh.Status);
+            Console.WriteLine("  " + sh.PortfolioText + " | " + string.Join(" ; ", sh.PortfolioRows.Select(r => r.Text)));
+            sh.SelectedHolding = sh.PortfolioRows.First(); sh.SellCount = 500; sh.SellCommand.Execute(null); sh.ConfirmCommand.Execute(null);
+            Console.WriteLine("  sell: " + sh.Status + " | own " + TheAirline.Helpers.SharesService.Owned(t1, me7));
+            if (TheAirline.Helpers.SharesService.Owned(t1, me7) != 500) { Console.WriteLine("  FAILED shares"); Environment.Exit(1); }
+
+            // takeover as subsidiary, and a merge of another airline
+            int fleetBefore = me7.Fleet.Count, routesBefore = me7.Routes.Count;
+            var t2 = cheap[1].Airline;
+            sh.Selected = sh.Market.First(r => r.Airline == t2);
+            sh.MergeCommand.Execute(null); Console.WriteLine("  ask: " + sh.PendingText); sh.ConfirmCommand.Execute(null);
+            Console.WriteLine("  merge: " + sh.Status + " | fleet " + fleetBefore + " -> " + me7.Fleet.Count + ", routes " + routesBefore + " -> " + me7.Routes.Count + " | still listed " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Contains(t2));
+            if (TheAirline.Models.Airlines.Airlines.GetAllAirlines().Contains(t2)) { Console.WriteLine("  FAILED merge"); Environment.Exit(1); }
+            sh.Selected = sh.Market.First(r => r.Airline == t1);
+            sh.SubsidiaryCommand.Execute(null); sh.ConfirmCommand.Execute(null);
+            Console.WriteLine("  as subsidiary: " + sh.Status + " | subs " + me7.Subsidiaries.Count + " | sub is human " + me7.Subsidiaries[0].IsHuman);
+
+            var sb = av.Subsidiaries;
+            sb.Reload();
+            Console.WriteLine("  " + sb.Summary + " | " + string.Join(" ; ", sb.Rows.Select(r => r.Name + " " + r.Numbers)));
+            sb.NewName = "Lone Star Express"; sb.NewCode = "LZ"; sb.NewMoney = "40000000";
+            sb.CreateCommand.Execute(null); Console.WriteLine("  ask: " + sb.PendingText); sb.ConfirmCommand.Execute(null);
+            Console.WriteLine("  create: " + sb.Status);
+            sb.NewName = "Other"; sb.NewCode = "LZ"; sb.CreateCommand.Execute(null); Console.WriteLine("  same code: " + sb.Status);
+            var lz = me7.Subsidiaries.FirstOrDefault(x => x.Profile.IATACode == "LZ");
+            if (lz == null) { Console.WriteLine("  FAILED create"); Environment.Exit(1); }
+            sb.Selected = sb.Rows.First(r => r.Airline == lz); sb.Transfer = "5000000";
+            sb.FromSubCommand.Execute(null); sb.ConfirmCommand.Execute(null); Console.WriteLine("  take out: " + sb.Status + " | sub cash " + lz.Money.ToString("N0"));
+            for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            sb.Reload();
+            foreach (var r in sb.Rows) Console.WriteLine("  after 60 days: " + r.Name + " | " + r.Numbers);
+            var t1sub = me7.Subsidiaries.First(x => x != lz);
+            sb.Selected = sb.Rows.First(r => r.Airline == t1sub);
+            sb.FoldCommand.Execute(null); sb.ConfirmCommand.Execute(null); Console.WriteLine("  fold: " + sb.Status + " | subs " + me7.Subsidiaries.Count);
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -294,6 +346,13 @@ static class VmTest
             g.GameTime = nr.BuiltDate; TheAirline.Helpers.RunwayService.ProcessDaily();
             Console.WriteLine("  after build: max " + kiv.GetMaxRunwayLength() + " | " + g.NewsBox.GetNews().Where(n => n.Subject.Contains("unway")).Select(n => n.Subject + ": " + n.Body).LastOrDefault());
             if (kiv.GetMaxRunwayLength() != 4200) { Console.WriteLine("  FAILED new runway"); Environment.Exit(1); }
+        }
+        Console.WriteLine("SHARES AFTER LOAD");
+        {
+            var g8 = TheAirline.Models.General.GameObject.GetInstance();
+            var me8 = g8.HumanAirline;
+            Console.WriteLine("  own " + TheAirline.Helpers.SharesService.Owned(me8, me8) + " of " + TheAirline.Helpers.SharesService.Total(me8) + " | subs " + string.Join(",", me8.Subsidiaries.Select(x => x.Profile.IATACode + " auto " + x.AutoManaged)));
+            if (TheAirline.Helpers.SharesService.Total(me8) <= 10000 || !me8.Subsidiaries.Any(x => x.Profile.IATACode == "LZ")) { Console.WriteLine("  FAILED shares save"); Environment.Exit(1); }
         }
         Console.WriteLine("ADVERTISING TEST");
         {

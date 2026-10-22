@@ -1254,6 +1254,12 @@ namespace TheAirline.Helpers
                     break;
             }
 
+            // an airline with no routes at all (a new subsidiary) gets going quickly whatever its style
+            if (airline.Routes.Count == 0)
+            {
+                newRouteInterval = Math.Min(newRouteInterval, 10000);
+            }
+
             bool newRoute = Rnd.Next(newRouteInterval*(airlinersInOrder + 1))/1100 == 0;
 
             if (newRoute)

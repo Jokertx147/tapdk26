@@ -285,6 +285,10 @@ namespace TheAirline.Models.Airlines
 
         public List<AirlineShare> Shares { get; set; }
 
+        /// <summary>Who owns the airline's shares (see SharesService). Unlike Shares this is kept in the save.</summary>
+        [Versioning("holdings")]
+        public List<ShareHolding> Holdings { get; set; } = new List<ShareHolding>();
+
         [Versioning("startmoney")]
         public double StartMoney { get; set; }
 

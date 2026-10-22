@@ -311,6 +311,12 @@
             <TabItem Header="Codeshares">
               <v:CodesharesView DataContext="{Binding Codeshares}" />
             </TabItem>
+            <TabItem Header="Shares">
+              <v:SharesView DataContext="{Binding Shares}" />
+            </TabItem>
+            <TabItem Header="Subsidiaries">
+              <v:SubsidiariesView DataContext="{Binding Subsidiaries}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 
