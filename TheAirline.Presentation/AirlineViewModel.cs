@@ -129,6 +129,11 @@ namespace TheAirline.Presentation
                     CompareTypes.AddType(t);
                     AirlinersTab = 2;
                 };
+            Connections = new ConnectionsViewModel((a, b) =>
+                {
+                    Airports.PlanRoute(a, b);
+                    RoutesTab = 1;
+                });
             AirportManager.StatsRequested = a =>
                 {
                     AirportStats.ShowAirport(a);
@@ -237,6 +242,7 @@ namespace TheAirline.Presentation
             {
                 case "My Airline": FleetPerformance.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
+                case "Routes": Connections.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
                 case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); break;
                 case "News": News.Reload(); break;
@@ -263,7 +269,16 @@ namespace TheAirline.Presentation
         public FleetPerformanceViewModel FleetPerformance { get; }
         public CompareTypesViewModel CompareTypes { get; }
 
-        private int _airlinersTab;
+        private int _airlinersTab, _routesTab;
+
+        /// <summary>The open sub tab under Routes: 0 my routes, 1 create route, 2 connections.</summary>
+        public int RoutesTab
+        {
+            get { return _routesTab; }
+            set { SetProperty(ref _routesTab, value); }
+        }
+
+        public ConnectionsViewModel Connections { get; }
 
         /// <summary>The open sub tab under Airliners: 0 new, 1 used, 2 compare.</summary>
         public int AirlinersTab

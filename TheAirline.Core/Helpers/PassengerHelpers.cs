@@ -3017,13 +3017,12 @@ namespace TheAirline.Helpers
 
             double demand = airportCurrent.GetDestinationPassengersRate(airportDestination, type);
 
-            double passengerDemand = (demand
-                                      + GetFlightConnectionPassengers(
-                                          airportCurrent,
-                                          airportDestination,
-                                          airliner,
-                                          type)
-                                      + GetNearbyPassengerDemand(airportCurrent, airportDestination, airliner, type))
+            // passengers changing to or from the airline's (and its partners') other routes
+            double connecting = ConnectionService.FlightDemand(airliner.Airliner.Airline, currentRoute, airportCurrent, airportDestination, type);
+            double nearby = GetNearbyPassengerDemand(airportCurrent, airportDestination, airliner, type);
+            double connectingShare = demand + connecting + nearby > 0 ? connecting/(demand + connecting + nearby) : 0;
+
+            double passengerDemand = (demand + connecting + nearby)
                                      *GetSeasonFactor(airportDestination)*GetHolidayFactor(airportDestination)
                                      *GetHolidayFactor(airportCurrent);
 
@@ -3193,6 +3192,8 @@ namespace TheAirline.Helpers
             {
                 pax = 0;
             }
+
+            ConnectionService.Record(currentRoute, pax, pax*connectingShare);
 
             return pax;
         }
@@ -3492,136 +3493,6 @@ namespace TheAirline.Helpers
             double yearDiff = Convert.ToDouble(year - GameObject.StartYear)/10;
 
             return 0.15*(yearDiff + 1);
-        }
-
-        private static double GetFlightConnectionPassengers(
-            Airport airportCurrent,
-            Airport airportDestination,
-            FleetAirliner airliner,
-            AirlinerClass.ClassType type)
-        {
-            double legDistance = MathHelpers.GetDistance(airportCurrent, airportDestination);
-
-            List<Route> routesFromDestination =
-                airliner.Airliner.Airline.Routes.FindAll(
-                    r =>
-                    !r.IsCargoRoute
-                    && ((r.Destination2 == airportDestination || r.Destination1 == airportDestination)
-                        && (r.Destination1 != airportCurrent && r.Destination2 != airportCurrent)));
-            List<Route> routesToOrigin =
-                airliner.Airliner.Airline.Routes.FindAll(
-                    r =>
-                    !r.IsCargoRoute
-                    && ((r.Destination1 == airportCurrent || r.Destination2 == airportCurrent)
-                        && (r.Destination2 != airportDestination && r.Destination1 != airportDestination)));
-
-            double demandDestination = (from PassengerRoute route in routesFromDestination
-                                        let tDest = route.Destination1 == airportDestination ? route.Destination2 : route.Destination1
-                                        let totalDistance = airportCurrent.Profile.Coordinates.ConvertToGeoCoordinate().GetDistanceTo(tDest.Profile.Coordinates.ConvertToGeoCoordinate())/1000
-                                        let directRoutes = AirportHelpers.GetNumberOfAirportsRoutes(airportCurrent, tDest)
-                                        where route.GetDistance() + legDistance < totalDistance*3 && directRoutes < 2
-                                        select airportCurrent.GetDestinationPassengersRate(tDest, type)
-                                        into demand select (demand*0.25)).Sum();
-
-            double demandOrigin = (from PassengerRoute route in routesToOrigin
-                                   let tDest = route.Destination1 == airportCurrent ? route.Destination2 : route.Destination1
-                                   let totalDistance = tDest.Profile.Coordinates.ConvertToGeoCoordinate().GetDistanceTo(airportDestination.Profile.Coordinates.ConvertToGeoCoordinate())/1000
-                                   let directRoutes = AirportHelpers.GetNumberOfAirportsRoutes(tDest, airportDestination)
-                                   where route.GetDistance() + legDistance < totalDistance*3 && directRoutes < 2
-                                   select tDest.GetDestinationPassengersRate(airportDestination, type)
-                                   into demand select (demand*0.25)).Sum();
-            //alliances & codesharings
-            if (airliner.Airliner.Airline.Alliances.Count > 0 || airliner.Airliner.Airline.Codeshares.Count > 0)
-            {
-                IEnumerable<Route> allianceRoutesFromDestination =
-                    airliner.Airliner.Airline.Alliances.SelectMany(
-                        a =>
-                        a.Members.Where(m => m.Airline != airliner.Airliner.Airline)
-                         .SelectMany(
-                             m =>
-                             m.Airline.Routes.FindAll(
-                                 r =>
-                                 ((r.Destination2 == airportDestination
-                                   || r.Destination1 == airportDestination)
-                                  && (r.Destination1 != airportCurrent
-                                      && r.Destination2 != airportCurrent)))));
-                IEnumerable<Route> allianceRoutesToOrigin =
-                    airliner.Airliner.Airline.Alliances.SelectMany(
-                        a =>
-                        a.Members.Where(m => m.Airline != airliner.Airliner.Airline)
-                         .SelectMany(
-                             m =>
-                             m.Airline.Routes.FindAll(
-                                 r =>
-                                 ((r.Destination1 == airportCurrent || r.Destination2 == airportCurrent)
-                                  && (r.Destination2 != airportDestination
-                                      && r.Destination1 != airportDestination)))));
-
-                IEnumerable<CodeshareAgreement> codeshares =
-                    airliner.Airliner.Airline.Codeshares.Where(
-                        a =>
-                        (a.Airline2 == airliner.Airliner.Airline
-                         && a.Type == CodeshareAgreement.CodeshareType.OneWay)
-                        || a.Type == CodeshareAgreement.CodeshareType.BothWays);
-
-                var codeshareAgreements = codeshares as CodeshareAgreement[] ?? codeshares.ToArray();
-                IEnumerable<Route> codesharingRoutesFromDestination =
-                    codeshareAgreements.Select(a => a.Airline1 == airliner.Airliner.Airline ? a.Airline2 : a.Airline1)
-                              .SelectMany(
-                                  a =>
-                                  a.Routes.FindAll(
-                                      r =>
-                                      ((r.Destination2 == airportDestination || r.Destination1 == airportDestination)
-                                       && (r.Destination1 != airportCurrent && r.Destination2 != airportCurrent))));
-                IEnumerable<Route> codesharingRoutesToOrigin =
-                    codeshareAgreements.Select(a => a.Airline1 == airliner.Airliner.Airline ? a.Airline2 : a.Airline1)
-                              .SelectMany(
-                                  a =>
-                                  a.Routes.FindAll(
-                                      r =>
-                                      ((r.Destination1 == airportCurrent || r.Destination2 == airportCurrent)
-                                       && (r.Destination2 != airportDestination
-                                           && r.Destination1 != airportDestination))));
-
-                allianceRoutesFromDestination = allianceRoutesFromDestination.Union(codesharingRoutesFromDestination);
-                allianceRoutesToOrigin = allianceRoutesToOrigin.Union(codesharingRoutesToOrigin);
-
-                foreach (PassengerRoute route in allianceRoutesFromDestination.Where(r => !r.IsCargoRoute))
-                {
-                    Airport tDest = route.Destination1 == airportDestination ? route.Destination2 : route.Destination1;
-
-                    double totalDistance =
-                        airportCurrent.Profile.Coordinates.ConvertToGeoCoordinate()
-                                      .GetDistanceTo(tDest.Profile.Coordinates.ConvertToGeoCoordinate())/1000;
-
-                    int directRoutes = AirportHelpers.GetNumberOfAirportsRoutes(airportCurrent, tDest);
-
-                    if (route.GetDistance() + legDistance < totalDistance*3 && directRoutes < 2)
-                    {
-                        double demand = airportCurrent.GetDestinationPassengersRate(tDest, type);
-                        demandDestination += demand;
-                    }
-                }
-
-                foreach (PassengerRoute route in allianceRoutesToOrigin.Where(r => !r.IsCargoRoute))
-                {
-                    Airport tDest = route.Destination1 == airportCurrent ? route.Destination2 : route.Destination1;
-
-                    double totalDistance =
-                        tDest.Profile.Coordinates.ConvertToGeoCoordinate()
-                             .GetDistanceTo(airportDestination.Profile.Coordinates.ConvertToGeoCoordinate())/1000;
-
-                    int directRoutes = AirportHelpers.GetNumberOfAirportsRoutes(tDest, airportDestination);
-
-                    if (route.GetDistance() + legDistance < totalDistance*3 && directRoutes < 2)
-                    {
-                        double demand = tDest.GetDestinationPassengersRate(airportDestination, type);
-                        demandOrigin += demand;
-                    }
-                }
-            }
-
-            return demandOrigin + demandDestination;
         }
 
         private static double GetHolidayFactor(Airport airport)

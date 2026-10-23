@@ -131,7 +131,7 @@
 
         <!-- ROUTES -->
         <TabItem Header="Routes">
-          <TabControl Classes="sub">
+          <TabControl Classes="sub" SelectedIndex="{Binding RoutesTab}">
           <TabItem Header="My routes">
             <Grid ColumnDefinitions="300,12,*" Margin="0,10,0,0">
               <Grid RowDefinitions="Auto,*">
@@ -258,6 +258,9 @@
           </TabItem>
           <TabItem Header="Create route">
             <v:AirportsView DataContext="{Binding Airports}" />
+          </TabItem>
+          <TabItem Header="Connections">
+            <v:ConnectionsView DataContext="{Binding Connections}" />
           </TabItem>
         </TabControl>
         </TabItem>

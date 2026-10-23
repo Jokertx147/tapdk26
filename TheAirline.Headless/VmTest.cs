@@ -414,6 +414,68 @@ static class VmTest
             if (ct.Columns.Count < 2) { Console.WriteLine("  FAILED compare"); Environment.Exit(1); }
             ct.Columns[0].RemoveCommand.Execute(null); Console.WriteLine("  removed one: " + ct.Columns.Count);
         }
+        Console.WriteLine("CONNECTIONS TEST");
+        {
+            var meK = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+            Console.WriteLine("  routes: " + string.Join(", ", meK.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode + (r.HasAirliner ? "" : " (idle)"))));
+            av.Page = Array.IndexOf(AirlineViewModel.PageNames, "Routes");
+            var cv = av.Connections;
+            Console.WriteLine("  " + cv.Summary);
+            foreach (var row in cv.Rows) Console.WriteLine("  " + row.Name + " | " + row.Numbers);
+            foreach (var row in cv.Rows.ToList())
+            {
+                cv.Selected = row;
+                Console.WriteLine("  " + row.Name + ": " + cv.RouteSummary);
+                foreach (var m in cv.Markets.Take(4)) Console.WriteLine("    " + m.Journey + " | " + m.Details);
+                // the page and the flight engine must agree
+                double engineK = 0;
+                foreach (TheAirline.Models.Airliners.AirlinerClass.ClassType t in Enum.GetValues(typeof(TheAirline.Models.Airliners.AirlinerClass.ClassType)))
+                {
+                    engineK += TheAirline.Helpers.ConnectionService.FlightDemand(meK, row.Route, row.Route.Destination1, row.Route.Destination2, t);
+                    engineK += TheAirline.Helpers.ConnectionService.FlightDemand(meK, row.Route, row.Route.Destination2, row.Route.Destination1, t);
+                }
+                double page = cv.Markets.Sum(m => m.Market.Added);
+                if (Math.Abs(engineK - page) > 0.01) { Console.WriteLine("  FAILED engine " + engineK + " page " + page); Environment.Exit(1); }
+            }
+            Console.WriteLine("  hubs: " + string.Join(", ", cv.Hubs.Select(h => h.Airport.Profile.IATACode)));
+            Console.WriteLine("  " + cv.IdeasSummary);
+            foreach (var i in cv.Ideas.Take(5)) Console.WriteLine("    " + i.Name + " | " + i.Numbers);
+            if (cv.Ideas.Count == 0) { Console.WriteLine("  FAILED ideas"); Environment.Exit(1); }
+            cv.Ideas[0].PlanCommand.Execute(null);
+            Console.WriteLine("  plan: tab " + av.RoutesTab + ", form " + (av.Airports.HasCreate ? av.Airports.Create.Title : "none"));
+            if (av.RoutesTab != 1 || !av.Airports.HasCreate) { Console.WriteLine("  FAILED plan"); Environment.Exit(1); }
+            av.Airports.Create.CancelCommand.Execute(null); av.RoutesTab = 0;
+            // a feeder with no aircraft doesn't count yet
+            var lgaK = meK.Routes[0].Destination1; // the feeder starts at one end of the route
+            var ordK = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ORD");
+            var idle = new TheAirline.Models.Routes.PassengerRoute("idleK", lgaK, ordK, TheAirline.Models.General.GameObject.GetInstance().GameTime, 100);
+            meK.AddRoute(idle);
+            cv.Reload(); cv.Selected = cv.Rows.First(x => x.Route == meK.Routes[0]);
+            Console.WriteLine("  with idle LGA-ORD: " + cv.RouteSummary + " | " + string.Join(" / ", cv.Markets.Select(m => m.Journey + ": " + m.Details)));
+            if (!cv.Markets.Any(m => !m.Counted && m.Details.Contains("no aircraft"))) { Console.WriteLine("  FAILED idle feeder"); Environment.Exit(1); }
+            meK.RemoveRoute(idle);
+            // counting rolls over each month
+            var gK = TheAirline.Models.General.GameObject.GetInstance();
+            var t0 = gK.GameTime;
+            TheAirline.Helpers.ConnectionService.Record(idle, 100, 30);
+            TheAirline.Helpers.ConnectionService.Record(idle, 50, 10);
+            gK.GameTime = t0.AddMonths(1);
+            int lc, la; TheAirline.Helpers.ConnectionService.LastMonth(idle, out lc, out la);
+            TheAirline.Helpers.ConnectionService.Record(idle, 20, 5);
+            int lc2, la2; TheAirline.Helpers.ConnectionService.LastMonth(idle, out lc2, out la2);
+            int tc, ta; TheAirline.Helpers.ConnectionService.ThisMonth(idle, out tc, out ta);
+            gK.GameTime = t0.AddMonths(3);
+            int lc3, la3; TheAirline.Helpers.ConnectionService.LastMonth(idle, out lc3, out la3);
+            gK.GameTime = t0;
+            Console.WriteLine("  counter: last " + lc + "/" + la + ", after a flight " + lc2 + "/" + la2 + ", this " + tc + "/" + ta + ", two months on " + lc3 + "/" + la3);
+            if (lc != 40 || la != 150 || lc2 != 40 || tc != 5 || ta != 20 || la3 != 0) { Console.WriteLine("  FAILED counter"); Environment.Exit(1); }
+            int conn = meK.Routes.Sum(r => r.ConnectPassengers + r.ConnectLastPassengers), all = meK.Routes.Sum(r => r.ConnectAllPassengers + r.ConnectLastAllPassengers);
+            Console.WriteLine("  counted: " + conn + " connecting of " + all);
+            if (all == 0) { Console.WriteLine("  FAILED counting"); Environment.Exit(1); }
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < 2000; i++) TheAirline.Helpers.ConnectionService.FlightDemand(meK, meK.Routes[0], meK.Routes[0].Destination1, meK.Routes[0].Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+            Console.WriteLine("  2000 flight lookups in " + sw.ElapsedMilliseconds + " ms");
+        }
         Console.WriteLine("PRICING TEST");
         {
             var g10 = TheAirline.Models.General.GameObject.GetInstance();

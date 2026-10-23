@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.ConnectionsView">
+  <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
+    <StackPanel Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" Opacity="0.75" />
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontWeight="SemiBold" />
+    </StackPanel>
+
+    <TabControl Grid.Row="1" Classes="sub">
+      <!-- connections of each route -->
+      <TabItem Header="My routes">
+        <Grid ColumnDefinitions="300,12,*" Margin="0,6,0,0">
+          <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Numbers}" Opacity="0.7" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Grid Grid.Column="2" RowDefinitions="Auto,*">
+            <TextBlock Text="{Binding RouteSummary}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <ScrollViewer Grid.Row="1">
+              <ItemsControl ItemsSource="{Binding Markets}" Margin="0,0,12,0">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border BorderThickness="0,0,0,1" BorderBrush="#33808080" Padding="0,5" Opacity="{Binding Opacity}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Journey}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Details}" Opacity="0.75" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+      <!-- where to fly next from a hub -->
+      <TabItem Header="Hub planner">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,6,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="From" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding Hubs}" SelectedItem="{Binding Hub}" MinWidth="320">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Text}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="up to" VerticalAlignment="Center" />
+            <TextBox Text="{Binding MaxDistance}" Width="90" />
+            <TextBlock Text="km" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Grid.Row="1" Text="{Binding IdeasSummary}" TextWrapping="Wrap" Margin="0,8" />
+          <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Ideas}" Margin="0,0,12,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border BorderThickness="0,0,0,1" BorderBrush="#33808080" Padding="0,5">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Numbers}" Opacity="0.75" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Button Grid.Column="1" Content="Plan this route" Command="{Binding PlanCommand}" VerticalAlignment="Center" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

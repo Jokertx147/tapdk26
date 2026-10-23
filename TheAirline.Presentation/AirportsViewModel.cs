@@ -257,6 +257,15 @@ namespace TheAirline.Presentation
             private set { SetProperty(ref _status, value); }
         }
 
+        /// <summary>Opens the new route form for two airports (used by the connections page).</summary>
+        public void PlanRoute(Airport from, Airport to)
+        {
+            CargoMode = false;
+            var item = Airports.FirstOrDefault(a => a.Airport == from);
+            if (item != null) Selected = item;
+            Create = new CreateRouteViewModel(from, to, OnCreateDone, false);
+        }
+
         private void OnCreateDone(string message)
         {
             Create = null;

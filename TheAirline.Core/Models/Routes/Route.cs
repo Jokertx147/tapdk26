@@ -96,6 +96,22 @@ namespace TheAirline.Models.Routes
 
         public bool IsCargoRoute => Type == RouteType.Cargo;
 
+        // connecting passengers (see ConnectionService): this month's counts and last month's
+        [Versioning("connmonth")]
+        public int ConnectMonth { get; set; }
+
+        [Versioning("connpax")]
+        public int ConnectPassengers { get; set; }
+
+        [Versioning("connall")]
+        public int ConnectAllPassengers { get; set; }
+
+        [Versioning("connlastpax")]
+        public int ConnectLastPassengers { get; set; }
+
+        [Versioning("connlastall")]
+        public int ConnectLastAllPassengers { get; set; }
+
         [Versioning("lastupdated")]
         public DateTime LastUpdated { get; set; }
 
