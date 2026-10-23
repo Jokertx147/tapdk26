@@ -20,10 +20,42 @@ namespace TheAirline.Presentation
         public AirlinerClass.ClassType Type { get; set; }
         public string Seats { get; set; }
 
+        /// <summary>The market fare for this class on the route.</summary>
+        public double Market { get; set; }
+
+        public string MarketText => "market " + Convert.ToString(new ValueCurrencyFormatter().Convert(Market));
+
         public string Price
         {
             get { return _price; }
-            set { SetProperty(ref _price, value); }
+            set
+            {
+                if (SetProperty(ref _price, value)) OnPropertyChanged(nameof(EffectText));
+            }
+        }
+
+        /// <summary>What the typed fare does to demand.</summary>
+        public string EffectText
+        {
+            get
+            {
+                double fare;
+                if (!double.TryParse((_price ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out fare) || Market <= 0) return "";
+                if (!PricingService.Realistic) return "";
+                double pct = fare/Market*100, demand = PricingService.DemandFactor(fare, Market, Type)*100;
+                return string.Format("{0:0}% of market, about {1:0}% of the normal demand", pct, demand);
+            }
+        }
+
+        public ICommand MarketCommand => new RelayCommand(() => Price = Market.ToString("0.00", CultureInfo.InvariantCulture));
+        public ICommand DownCommand => new RelayCommand(() => Scale(0.9));
+        public ICommand UpCommand => new RelayCommand(() => Scale(1.1));
+
+        private void Scale(double f)
+        {
+            double fare;
+            if (double.TryParse((_price ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out fare))
+                Price = (fare*f).ToString("0.00", CultureInfo.InvariantCulture);
         }
     }
 
@@ -228,10 +260,47 @@ namespace TheAirline.Presentation
                             Type = c.Type,
                             ClassName = c.Type.ToString(),
                             Seats = c.Seating.ToString(),
+                            Market = PricingService.MarketFare(pr.Destination1, pr.Destination2, c.Type),
                             Price = c.FarePrice.ToString("0.00", CultureInfo.InvariantCulture)
                         });
                 }
             }
+            UpdatePricing();
+        }
+
+        /// <summary>Last month's money on the route, how full it flies and the break-even fare.</summary>
+        public string PricingText { get; private set; }
+
+        private void UpdatePricing()
+        {
+            var pr = _route as PassengerRoute;
+            if (pr == null)
+            {
+                PricingText = "";
+                OnPropertyChanged(nameof(PricingText));
+                return;
+            }
+            var f = new ValueCurrencyFormatter();
+            var m = PricingService.LastMonth(pr);
+            double load = PricingService.RecentLoad(pr);
+            double atLoad = load > 0.05 ? load : 0.8;
+            double be = PricingService.BreakEvenFare(pr, atLoad);
+            double be80 = PricingService.BreakEvenFare(pr, 0.8);
+            var lines = new List<string>();
+            lines.Add(m.Income == 0 && m.Costs == 0
+                ? "No flights last month."
+                : string.Format("Last month: income {0}, flight costs {1}, profit {2}.", f.Convert(m.Income), f.Convert(m.Costs), f.Convert(m.Profit)));
+            if (load > 0.05) lines.Add(string.Format("Since it started the route has been {0:0}% full on average.", load*100));
+            if (be > 0)
+            {
+                lines.Add(load > 0.05
+                    ? string.Format("Economy break-even fare at {0:0}% full: {1} (at 80% full: {2}). Business pays 3 and first 6 economy fares.", atLoad*100, f.Convert(be), f.Convert(be80))
+                    : string.Format("Economy break-even fare at 80% full: {0}. Business pays 3 and first 6 economy fares.", f.Convert(be80)));
+            }
+            if (PricingService.Realistic)
+                lines.Add("Fares above the market fare lose passengers (economy most, first class least); fares below it win more. When planes are full anyway, a higher fare is usually worth it.");
+            PricingText = string.Join(Environment.NewLine, lines);
+            OnPropertyChanged(nameof(PricingText));
         }
 
         private void SaveFares()
@@ -259,6 +328,7 @@ namespace TheAirline.Presentation
             }
 
             Status = "Fares saved.";
+            UpdatePricing();
         }
 
         private void Delete()

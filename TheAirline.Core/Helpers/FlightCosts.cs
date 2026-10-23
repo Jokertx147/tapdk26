@@ -46,9 +46,7 @@ namespace TheAirline.Helpers
         /// <summary>The game's usual economy fare for a distance (as the route creator suggests it).</summary>
         public static double UsualFare(double km)
         {
-            double price = km*GeneralHelpers.GetInflationPrice(0.0084);
-            double minimum = GeneralHelpers.GetInflationPrice(18);
-            return price < minimum ? minimum + price/4 : price;
+            return PricingService.MarketFare(km);
         }
 
         /// <summary>Seats, or for cargo aircraft 1.5 "seats" per unit of cargo space (a 757 freighter is about 360).</summary>

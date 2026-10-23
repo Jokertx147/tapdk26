@@ -174,10 +174,17 @@
                   <ItemsControl ItemsSource="{Binding Fares}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,3">
-                          <TextBlock Text="{Binding ClassName}" Width="150" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding Seats}" Width="60" VerticalAlignment="Center" Opacity="0.7" />
-                          <TextBox Text="{Binding Price}" Width="120" />
+                        <StackPanel Margin="0,3" Spacing="2">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding ClassName}" Width="130" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Seats}" Width="50" VerticalAlignment="Center" Opacity="0.7" />
+                            <TextBox Text="{Binding Price}" Width="110" />
+                            <Button Content="-10%" Command="{Binding DownCommand}" Padding="6,2" />
+                            <Button Content="+10%" Command="{Binding UpCommand}" Padding="6,2" />
+                            <Button Content="Market" Command="{Binding MarketCommand}" Padding="6,2" />
+                            <TextBlock Text="{Binding MarketText}" VerticalAlignment="Center" Opacity="0.7" />
+                          </StackPanel>
+                          <TextBlock Text="{Binding EffectText}" Opacity="0.65" FontSize="12" Margin="188,0,0,0" />
                         </StackPanel>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -186,6 +193,7 @@
                     <Button Content="Save fares" Command="{Binding SaveFaresCommand}" />
                     <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
                   </StackPanel>
+                  <TextBlock Text="{Binding PricingText}" TextWrapping="Wrap" Opacity="0.8" IsVisible="{Binding IsPassenger}" />
 
                   <StackPanel Spacing="6" IsVisible="{Binding IsPassenger}">
                     <StackPanel Spacing="6" DataContext="{Binding Service}">

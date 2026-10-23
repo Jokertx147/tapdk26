@@ -3030,6 +3030,12 @@ namespace TheAirline.Helpers
             passengerDemand *= GameObject.GetInstance().Difficulty.PassengersLevel;
             passengerDemand *= routeScoreFactor;
 
+            // fewer passengers above the market fare, more below it
+            if (currentRoute is PassengerRoute pricedRoute)
+            {
+                passengerDemand *= PricingService.DemandFactor(pricedRoute, type);
+            }
+
             if (airliner.Airliner.Airline.MarketFocus == AirlineFocus.Global && distance > 3000
                 && airportCurrent.Profile.Country != airportDestination.Profile.Country)
             {
@@ -3144,7 +3150,12 @@ namespace TheAirline.Helpers
 
             double routeRatioPercent = 1;
 
-            if (rations.ContainsKey(currentRoute))
+            if (PricingService.Realistic)
+            {
+                // the cheaper, better airline gets more of the passengers on a shared route
+                routeRatioPercent = PricingService.CompetitionFactor(currentRoute, routes, type);
+            }
+            else if (rations.ContainsKey(currentRoute))
             {
                 routeRatioPercent = Math.Max(1, rations[currentRoute]/Math.Max(1, totalRatio));
             }
@@ -3209,18 +3220,8 @@ namespace TheAirline.Helpers
         //returns the suggested passenger price for a route
         public static double GetPassengerPrice(Airport dest1, Airport dest2)
         {
-            double dist = MathHelpers.GetDistance(dest1, dest2);
-
-            double ticketPrice = dist*GeneralHelpers.GetInflationPrice(0.0084);
-
-            double minimumTicketPrice = GeneralHelpers.GetInflationPrice(18);
-
-            if (ticketPrice < minimumTicketPrice)
-            {
-                ticketPrice = minimumTicketPrice + (ticketPrice/4);
-            }
-
-            return ticketPrice;
+            // the market fare (see PricingService; the original curve when the original costs are chosen)
+            return PricingService.MarketFare(MathHelpers.GetDistance(dest1, dest2));
         }
 
         public static double GetPassengerPrice(Airport dest1, Airport dest2, AirlinerClass.ClassType type)

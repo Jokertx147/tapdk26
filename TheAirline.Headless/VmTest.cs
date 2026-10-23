@@ -35,7 +35,7 @@ static class VmTest
                 if (km > t.Range) continue;
                 double hours = km / Math.Max(100, t.CruisingSpeed) + 0.5;
                 double pax = seats * 0.8;
-                double fare = Math.Max(km * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(0.0084), TheAirline.Helpers.GeneralHelpers.GetInflationPrice(18) + km * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(0.0084) / 4);
+                double fare = TheAirline.Helpers.PricingService.MarketFare(km);
                 double tickets = pax * fare;
                 double fuelPrice = g.FuelPrice;
                 double fuel = fuelPrice * km * t.MaxSeatingCapacity * a.FuelConsumption * 0.55 + fuelPrice * km * a.FuelConsumption * pax * 0.45;
@@ -90,8 +90,19 @@ static class VmTest
             if (f.HasRoute) TheAirline.Presentation.FleetOverviewViewModel.TryStart(f);
         }
         Console.WriteLine("routes " + me.Routes.Count + ": " + string.Join(", ", me.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode + " " + TheAirline.Helpers.MathHelpers.GetDistance(r.Destination1, r.Destination2).ToString("N0") + "km")));
-        for (int d = 0; d < 90; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         TheAirline.Helpers.FlightLog.Enabled = true;
+        foreach (int lvl in new[] { 0, 1, 0, 1 })
+        {
+            g.CostLevel = lvl;
+            TheAirline.Helpers.FlightLog.Clear();
+            for (int d = 0; d < 15; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            var mine = TheAirline.Helpers.FlightLog.Records().Where(r => r.Airline == me && r.Seats > 0).ToList();
+            foreach (var grp in mine.GroupBy(r => r.Km.ToString("0")))
+                Console.WriteLine(string.Format("  A/B level {0}: {1} km, {2} flights, {3:0}% full, tickets per flight {4:N0}", lvl, grp.Key, grp.Count(), grp.Sum(r => r.Passengers) * 100.0 / Math.Max(1, grp.Sum(r => r.Seats)), grp.Average(r => r.Tickets)));
+        }
+        g.CostLevel = 1;
+        TheAirline.Helpers.FlightLog.Clear();
         for (int d = 0; d < 30; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         var log = TheAirline.Helpers.FlightLog.Records();
         Console.WriteLine("flights logged in 30 days: " + log.Count);
@@ -114,6 +125,16 @@ static class VmTest
             double seatKm = grp.Average(x => x.Seats * x.Km);
             Console.WriteLine(string.Format("  NEW {0,-26} ground {1,6:N0} maint {2,6:N0} enroute {3,6:N0} crew {4,5:N0} sales {5,6:N0} | old direct {6,7:N0} new total {7,7:N0} vs tickets {8,7:N0} | cost/seat-km old {9:0.000} new {10:0.000}",
                 grp.Key, pc.Ground, pc.Maintenance, pc.EnRoute, pc.Crew, pc.Distribution, direct, direct + pc.Total, t, direct / seatKm, (direct + pc.Total) / seatKm));
+        }
+        foreach (var r in me.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>())
+        {
+            var same = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(x => x.Routes).Where(x => x.HasAirliner && ((x.Destination1 == r.Destination1 && x.Destination2 == r.Destination2) || (x.Destination1 == r.Destination2 && x.Destination2 == r.Destination1))).ToList();
+            var eco = TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass;
+            double dem = r.Destination1.GetDestinationPassengersRate(r.Destination2, eco);
+            Console.WriteLine(string.Format("  ROUTE {0}-{1}: fare {2:N0} market {3:N0} demand factor {4:0.00} competition {5:0.00} ({6} routes: {7}) | flights/week {8} | base demand {9} | score factor {10:0.00} | fill {11:0%}",
+                r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode, r.GetFarePrice(eco), TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, eco),
+                TheAirline.Helpers.PricingService.DemandFactor(r, eco), TheAirline.Helpers.PricingService.CompetitionFactor(r, same, eco), same.Count, string.Join(",", same.Select(x => x.Airline.Profile.IATACode + " " + ((x as TheAirline.Models.Routes.PassengerRoute)?.GetFarePrice(eco) ?? 0).ToString("N0"))),
+                same.Sum(x => x.TimeTable.Entries.Count), dem, TheAirline.Helpers.RouteHelpers.GetRouteTotalScore(r) / 5, TheAirline.Helpers.PricingService.RecentLoad(r)));
         }
         var last = g.GameTime.AddMonths(-1);
         Console.WriteLine("month " + last.ToString("MMM yyyy") + ", fuel price " + g.FuelPrice.ToString("0.000"));
@@ -392,6 +413,27 @@ static class VmTest
             for (int i = 0; i < ct.Labels.Count; i++) Console.WriteLine("  " + ct.Labels[i].PadRight(22) + string.Join(" | ", ct.Columns.Select(c => c.Values[i].PadRight(24))));
             if (ct.Columns.Count < 2) { Console.WriteLine("  FAILED compare"); Environment.Exit(1); }
             ct.Columns[0].RemoveCommand.Execute(null); Console.WriteLine("  removed one: " + ct.Columns.Count);
+        }
+        Console.WriteLine("PRICING TEST");
+        {
+            var g10 = TheAirline.Models.General.GameObject.GetInstance();
+            var me10 = g10.HumanAirline;
+            foreach (double km in new[] { 400.0, 1200, 3000, 7000 }) Console.WriteLine("  market fare " + km + " km: " + TheAirline.Helpers.PricingService.MarketFare(km).ToString("N0"));
+            foreach (double r in new[] { 0.7, 1.0, 1.3, 2.0, 5.0 })
+                Console.WriteLine("  fare x" + r + ": economy " + TheAirline.Helpers.PricingService.DemandFactor(r * 100, 100, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass).ToString("0.00") + ", business " + TheAirline.Helpers.PricingService.DemandFactor(r * 100, 100, TheAirline.Models.Airliners.AirlinerClass.ClassType.BusinessClass).ToString("0.00") + ", first " + TheAirline.Helpers.PricingService.DemandFactor(r * 100, 100, TheAirline.Models.Airliners.AirlinerClass.ClassType.FirstClass).ToString("0.00"));
+            var route = me10.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().First();
+            var rd = new TheAirline.Presentation.RouteDetailViewModel(route, () => { });
+            Console.WriteLine("  route " + rd.Code + ":");
+            Console.WriteLine("    " + rd.PricingText.Replace(Environment.NewLine, Environment.NewLine + "    "));
+            foreach (var fi in rd.Fares) Console.WriteLine("    " + fi.ClassName + " " + fi.Price + " | " + fi.MarketText + " | " + fi.EffectText);
+            var eco = rd.Fares.First();
+            eco.UpCommand.Execute(null); Console.WriteLine("    +10%: " + eco.Price + " | " + eco.EffectText);
+            eco.MarketCommand.Execute(null); Console.WriteLine("    market: " + eco.Price + " | " + eco.EffectText);
+            eco.Price = (eco.Market * 3).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture); Console.WriteLine("    x3: " + eco.EffectText);
+            if (TheAirline.Helpers.PricingService.DemandFactor(300, 100, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass) > 0.3) { Console.WriteLine("  FAILED elasticity"); Environment.Exit(1); }
+            g10.CostLevel = 0;
+            Console.WriteLine("  original costs: fare 1200 km " + TheAirline.Helpers.PricingService.MarketFare(1200).ToString("N0") + ", demand at x3 " + TheAirline.Helpers.PricingService.DemandFactor(300, 100, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass));
+            g10.CostLevel = 1;
         }
         Console.WriteLine("SHARES TEST");
         {

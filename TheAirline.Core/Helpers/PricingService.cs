@@ -1,0 +1,154 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using TheAirline.Models.Airliners;
+using TheAirline.Models.Airports;
+using TheAirline.Models.General;
+using TheAirline.Models.General.Finances;
+using TheAirline.Models.Routes;
+
+namespace TheAirline.Helpers
+{
+    /// <summary>
+    ///     Fares and how passengers react to them. The market fare follows distance with a falling rate per km
+    ///     (about $105 for 400 km, $160 for 1,200 km, $250 for 3,000 km and $415 for 7,000 km in 2007). With
+    ///     realistic costs on, demand falls when a fare is above the market fare and rises when it is below
+    ///     (business and first class mind less), and on shared routes the cheaper, better airline gets more of the
+    ///     passengers. With the original costs the game's original fares and price behaviour are kept.
+    /// </summary>
+    public static class PricingService
+    {
+        public static bool Realistic => FlightCosts.Enabled;
+
+        /// <summary>The market economy fare for a distance, in today's money.</summary>
+        public static double MarketFare(double km)
+        {
+            if (!Realistic)
+            {
+                double price = km*GeneralHelpers.GetInflationPrice(0.0084);
+                double minimum = GeneralHelpers.GetInflationPrice(18);
+                return price < minimum ? minimum + price/4 : price;
+            }
+            double baseYear = 11
+                              + 0.0105*Math.Min(km, 1000)
+                              + 0.007*Math.Max(0, Math.Min(km, 3000) - 1000)
+                              + 0.006*Math.Max(0, Math.Min(km, 7000) - 3000)
+                              + 0.005*Math.Max(0, km - 7000);
+            return GeneralHelpers.GetInflationPrice(baseYear);
+        }
+
+        public static double MarketFare(Airport a, Airport b, AirlinerClass.ClassType type)
+        {
+            return MarketFare(MathHelpers.GetDistance(a, b))*GeneralHelpers.ClassToPriceFactor(type);
+        }
+
+        /// <summary>How much passengers mind the price: economy most, first class least.</summary>
+        public static double Elasticity(AirlinerClass.ClassType type)
+        {
+            switch (type)
+            {
+                case AirlinerClass.ClassType.FirstClass: return 0.5;
+                case AirlinerClass.ClassType.BusinessClass: return 0.8;
+                default: return 1.3;
+            }
+        }
+
+        /// <summary>The share of the normal demand at a fare: 1 at the market fare, less above it, more below it.</summary>
+        public static double DemandFactor(double fare, double market, AirlinerClass.ClassType type)
+        {
+            if (!Realistic || market <= 0) return 1;
+            if (fare <= 0) return 2;
+            return Math.Max(0.03, Math.Min(2.0, Math.Pow(fare/market, -Elasticity(type))));
+        }
+
+        public static double DemandFactor(PassengerRoute route, AirlinerClass.ClassType type)
+        {
+            var c = route.GetRouteAirlinerClass(type);
+            if (c == null) return 1;
+            return DemandFactor(c.FarePrice, MarketFare(route.Destination1, route.Destination2, type), type);
+        }
+
+        /// <summary>
+        ///     On a route several airlines fly: this route's attractiveness (service per dollar) against the average of
+        ///     all of them, between 0.65 and 1.5. With one airline it is 1.
+        /// </summary>
+        public static double CompetitionFactor(Route current, List<Route> routes, AirlinerClass.ClassType type)
+        {
+            var mine = Attractiveness(current, type);
+            var all = routes.Distinct().Select(r => Attractiveness(r, type)).Where(v => v > 0).ToList();
+            if (mine <= 0 || all.Count < 2) return 1;
+            // a gentle effect: twice as attractive gives about 1.4 times the share
+            return Math.Max(0.65, Math.Min(1.5, Math.Sqrt(mine/all.Average())));
+        }
+
+        private static double Attractiveness(Route r, AirlinerClass.ClassType type)
+        {
+            var pr = r as PassengerRoute;
+            var c = pr?.GetRouteAirlinerClass(type);
+            if (c == null || c.FarePrice <= 0) return 0;
+            double service = Math.Sqrt(10 + Math.Max(0, pr.GetServiceLevel(type)));
+            double reputation = AdvertisingService.ReputationFactor(r.Airline)*RatingsService.CustomerFactor(r.Airline);
+            return service*reputation/c.FarePrice;
+        }
+
+        // ---- the numbers for the route page ----
+
+        public class RouteMonth
+        {
+            public double Income, Costs;
+            public double Profit => Income + Costs;
+        }
+
+        public static RouteMonth LastMonth(Route route)
+        {
+            var last = GameObject.GetInstance().GameTime.AddMonths(-1);
+            var inv = route.Invoices;
+            var m = new RouteMonth();
+            foreach (Invoice.InvoiceType t in Enum.GetValues(typeof (Invoice.InvoiceType)))
+            {
+                if (t == Invoice.InvoiceType.Total) continue;
+                double v = inv.GetAmount(t, last.Year, last.Month);
+                if (v > 0) m.Income += v;
+                else m.Costs += v;
+            }
+            return m;
+        }
+
+        /// <summary>
+        ///     The economy fare at which a flight with the route's aircraft, at the given share of seats filled, covers
+        ///     its flight costs (fuel, fees, crew, maintenance, handling, sales and overhead; not salaries or rents).
+        /// </summary>
+        public static double BreakEvenFare(PassengerRoute route, double load)
+        {
+            var f = route.GetAirliners().FirstOrDefault();
+            if (f?.Airliner == null) return 0;
+            var a = f.Airliner;
+            double km = MathHelpers.GetDistance(route.Destination1, route.Destination2);
+            double hours = km/Math.Max(100, a.Type.CruisingSpeed) + 0.5;
+            int seats = Math.Max(1, a.GetTotalSeatCapacity());
+            double pax = seats*Math.Max(0.1, load);
+            double fuelPrice = AirportHelpers.GetFuelPrice(route.Destination1);
+            int maxSeats = a.Type is AirlinerPassengerType pt ? pt.MaxSeatingCapacity : seats;
+            double fuel = fuelPrice*km*maxSeats*a.FuelConsumption*0.55 + fuelPrice*km*a.FuelConsumption*pax*0.45;
+            double fees = AirportHelpers.GetLandingFee(route.Destination2, a) + 5*pax;
+            double cabin = (a.Type is AirlinerPassengerType p2 ? p2.CabinCrew : 0)*hours*route.Airline.Fees.GetValue(Models.Airlines.FeeTypes.GetType("Cabin Wage"));
+            // the share-of-sales costs grow with the fare: solve fare*pax = fixed + fare*pax*share
+            var parts = FlightCosts.Calculate(a, km, hours, 0);
+            double fixedCost = fuel + fees + cabin + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew;
+            double share = FlightCosts.Enabled ? (FlightCosts.DistributionShare(route.Airline) + 0.07)*(FlightCosts.Level >= 2 ? 1.4 : 1) : 0;
+            // business and first seats pay more: count them as several economy seats
+            double weight = route.Classes.Sum(c => a.GetAirlinerClass(c.Type) == null ? 0 : a.GetAirlinerClass(c.Type).SeatingCapacity*GeneralHelpers.ClassToPriceFactor(c.Type));
+            double economyEquivalents = weight > 0 ? weight*Math.Max(0.1, load) : pax;
+            return fixedCost/Math.Max(1, economyEquivalents*(1 - share));
+        }
+
+        /// <summary>The share of seats the route filled in the last flights it flew (0 when unknown).</summary>
+        public static double RecentLoad(PassengerRoute route)
+        {
+            double v;
+            try { v = route.GetFillingDegree(); }
+            catch (Exception) { v = 0; }
+            return double.IsNaN(v) || double.IsInfinity(v) ? 0 : Math.Max(0, Math.Min(1, v));
+        }
+    }
+}
