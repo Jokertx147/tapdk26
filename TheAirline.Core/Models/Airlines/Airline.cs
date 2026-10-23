@@ -253,8 +253,20 @@ namespace TheAirline.Models.Airlines
         [Versioning("mentality")]
         public AirlineMentality Mentality { get; set; }
 
+        private double _money;
+
         [Versioning("money")]
-        public double Money { get; set; }
+        public double Money
+        {
+            get { return _money; }
+            set
+            {
+                _money = value;
+                // the player's money follows the human airline's
+                var game = GameObject.PeekInstance();
+                if (game != null && ReferenceEquals(game.HumanAirline, this)) game.RaiseHumanMoneyChanged();
+            }
+        }
 
         [Versioning("overallscore")]
         public int OverallScore { get; set; }

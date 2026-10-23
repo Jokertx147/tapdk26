@@ -487,7 +487,6 @@ namespace TheAirline.Helpers
             if (airliner.SchedAMaintenance == GameObject.GetInstance().GameTime.Date)
             {
                 double expense = (airliner.Airliner.GetValue()*0.01) + 2000;
-                GameObject.GetInstance().AddHumanMoney((long) -expense);
                 var maintCheck = new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 AirlineHelpers.AddAirlineInvoice(airliner.Airliner.Airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 airliner.Airliner.Condition += Rnd.Next(3, 10);
@@ -500,7 +499,6 @@ namespace TheAirline.Helpers
             if (airliner.SchedBMaintenance == GameObject.GetInstance().GameTime.Date)
             {
                 double expense = (airliner.Airliner.GetValue()*0.02) + 4500;
-                GameObject.GetInstance().AddHumanMoney((long) -expense);
                 var maintCheck = new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 AirlineHelpers.AddAirlineInvoice(airliner.Airliner.Airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 airliner.Airliner.Condition += Rnd.Next(12, 20);
@@ -514,7 +512,6 @@ namespace TheAirline.Helpers
             {
                 double expense = (airliner.Airliner.GetValue()*0.025) + 156000;
                 airliner.OOSDate = airliner.SchedCMaintenance.AddDays(airliner.Airliner.Condition + 20);
-                GameObject.GetInstance().AddHumanMoney((long) -expense);
                 var maintCheck = new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 AirlineHelpers.AddAirlineInvoice(airliner.Airliner.Airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 airliner.Airliner.Condition += Rnd.Next(20, 30);
@@ -535,7 +532,6 @@ namespace TheAirline.Helpers
             {
                 double expense = (airliner.Airliner.GetValue()*0.03) + 1200000;
                 airliner.OOSDate = airliner.SchedDMaintenance.AddDays(airliner.Airliner.Condition + 50);
-                GameObject.GetInstance().AddHumanMoney((long) -expense);
                 var maintCheck = new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 AirlineHelpers.AddAirlineInvoice(airliner.Airliner.Airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -expense);
                 airliner.Airliner.Condition += Rnd.Next(35, 50);

@@ -629,14 +629,17 @@ static class VmTest
             var o = av.Options;
             double keepA = gM.HumanAirline.Money, keepH = gM.HumanMoney;
             Console.WriteLine("  " + o.MoneyText);
-            o.AirlineMoney = "abc"; o.SetAirlineMoneyCommand.Execute(null); Console.WriteLine("  bad: " + o.MoneyStatus);
-            o.AirlineMoney = "$1,234,567"; o.SetAirlineMoneyCommand.Execute(null); Console.WriteLine("  airline: " + o.MoneyStatus + " | top bar " + av.Money);
-            if (gM.HumanAirline.Money != 1234567 || gM.HumanMoney != keepH) { Console.WriteLine("  FAILED airline money"); Environment.Exit(1); }
-            o.HumanMoneyInput = "2.5b"; o.SetHumanMoneyCommand.Execute(null); Console.WriteLine("  human: " + o.MoneyStatus);
-            if (gM.HumanMoney != 2.5e9 || gM.HumanAirline.Money != 1234567) { Console.WriteLine("  FAILED human money"); Environment.Exit(1); }
-            o.AirlineMoney = "-750k"; o.SetBothMoneyCommand.Execute(null); Console.WriteLine("  both: " + o.MoneyStatus + " | " + o.MoneyText);
-            if (gM.HumanMoney != -750000 || gM.HumanAirline.Money != -750000) { Console.WriteLine("  FAILED both"); Environment.Exit(1); }
-            gM.HumanAirline.Money = keepA; gM.HumanMoney = keepH;
+            if (keepA != keepH) { Console.WriteLine("  FAILED human money drifted"); Environment.Exit(1); }
+            int notes = 0; gM.PropertyChanged += (s, e) => { if (e.PropertyName == "HumanMoney") notes++; };
+            o.AirlineMoney = "abc"; o.SetMoneyCommand.Execute(null); Console.WriteLine("  bad: " + o.MoneyStatus);
+            o.AirlineMoney = "$1,234,567"; o.SetMoneyCommand.Execute(null); Console.WriteLine("  set: " + o.MoneyStatus + " | top bar " + av.Money + " | human " + gM.HumanMoney);
+            if (gM.HumanAirline.Money != 1234567 || gM.HumanMoney != 1234567) { Console.WriteLine("  FAILED set money"); Environment.Exit(1); }
+            o.AirlineMoney = "-750k"; o.SetMoneyCommand.Execute(null); Console.WriteLine("  set: " + o.MoneyStatus + " | " + o.MoneyText);
+            // every way of changing money moves both, once
+            gM.AddHumanMoney(1000); TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(gM.HumanAirline, gM.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Purchases, -250); gM.HumanAirline.Money += 50;
+            Console.WriteLine("  after +1000, -250 invoice, +50 direct: " + gM.HumanAirline.Money + " / " + gM.HumanMoney + " | notifications " + notes);
+            if (gM.HumanAirline.Money != -749200 || gM.HumanMoney != -749200 || notes < 5) { Console.WriteLine("  FAILED follow"); Environment.Exit(1); }
+            gM.HumanAirline.Money = keepA;
         }
         Console.WriteLine("RUNWAY TEST");
         {

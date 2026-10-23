@@ -117,14 +117,28 @@ namespace TheAirline.Models.General
         [Versioning("humanairline")]
         public Airline HumanAirline { get; private set; }
 
+        /// <summary>The player's money: always the human airline's money (kept apart only before there is one).</summary>
         public double HumanMoney
         {
-            get { return _humanMoney; }
+            get { return HumanAirline != null ? HumanAirline.Money : _humanMoney; }
             set
             {
                 _humanMoney = value;
-                NotifyPropertyChanged("HumanMoney");
+                if (HumanAirline != null)
+                {
+                    HumanAirline.Money = value; // notifies through the airline
+                }
+                else
+                {
+                    NotifyPropertyChanged("HumanMoney");
+                }
             }
+        }
+
+        /// <summary>Tells bound views (the Windows top bar) that the player's money changed.</summary>
+        public void RaiseHumanMoneyChanged()
+        {
+            NotifyPropertyChanged("HumanMoney");
         }
 
         [Versioning("mainairline")]
@@ -163,6 +177,12 @@ namespace TheAirline.Models.General
             base.GetObjectData(info, context);
         }
 
+        /// <summary>The running game, or null (unlike GetInstance, never creates one).</summary>
+        public static GameObject PeekInstance()
+        {
+            return _gameInstance;
+        }
+
         public static GameObject GetInstance()
         {
             return _gameInstance ?? (_gameInstance = new GameObject());
@@ -184,7 +204,6 @@ namespace TheAirline.Models.General
         public void AddHumanMoney(double value)
         {
             HumanMoney += value;
-            HumanAirline.Money += value;
         }
 
         public void SetHumanAirline(Airline airline)
