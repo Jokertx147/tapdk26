@@ -8,6 +8,18 @@
             <Button Content="+ Add class" Command="{Binding AddCommand}" />
             <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" Opacity="0.8" />
           </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Save as" VerticalAlignment="Center" />
+            <TextBox Text="{Binding SaveName}" Watermark="Name, e.g. Short haul 2 class" Width="260" />
+            <Button Content="Save layout" Command="{Binding SaveCommand}" />
+            <Button Content="Delete layout" Command="{Binding DeleteCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasPending}">
+            <TextBlock Text="{Binding PendingText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Content="Delete" Command="{Binding ConfirmCommand}" />
+            <Button Content="Keep it" Command="{Binding CancelCommand}" />
+          </StackPanel>
+          <TextBlock Text="{Binding LayoutStatus}" TextWrapping="Wrap" Opacity="0.8" />
           <ItemsControl ItemsSource="{Binding Classes}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>

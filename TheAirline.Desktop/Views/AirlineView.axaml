@@ -75,8 +75,10 @@
                       <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
                       <v:CabinEditorView DataContext="{Binding Editor}" />
                       <TextBlock Text="{Binding CostText}" Opacity="0.8" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding AllText}" Opacity="0.8" TextWrapping="Wrap" IsVisible="{Binding HasOthers}" />
                       <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Content="Refit the aircraft" Command="{Binding ApplyCommand}" />
+                        <Button Content="Refit all stopped ones of this type" Command="{Binding ApplyAllCommand}" IsVisible="{Binding HasOthers}" />
                         <Button Content="Cancel" Command="{Binding CancelCommand}" />
                       </StackPanel>
                       <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="OrangeRed" />
@@ -364,8 +366,10 @@
                     <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" />
                     <v:CabinEditorView DataContext="{Binding Editor}" />
                     <TextBlock Text="{Binding CostText}" Opacity="0.8" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding AllText}" Opacity="0.8" TextWrapping="Wrap" IsVisible="{Binding HasOthers}" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
                       <Button Content="Refit the aircraft" Command="{Binding ApplyCommand}" />
+                      <Button Content="Refit all stopped ones of this type" Command="{Binding ApplyAllCommand}" IsVisible="{Binding HasOthers}" />
                       <Button Content="Cancel" Command="{Binding CancelCommand}" />
                     </StackPanel>
                     <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="OrangeRed" />

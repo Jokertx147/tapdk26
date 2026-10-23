@@ -89,6 +89,11 @@ namespace TheAirline.Infrastructure
             configurations.Add(configuration);
         }
 
+        public static void RemoveConfiguration(Configuration configuration)
+        {
+            configurations.Remove(configuration);
+        }
+
         public static void Clear()
         {
             configurations = new List<Configuration>();

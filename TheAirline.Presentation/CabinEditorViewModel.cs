@@ -167,6 +167,7 @@ namespace TheAirline.Presentation
     {
         public string Name { get; set; }
         public AirlinerConfiguration Configuration { get; set; }
+        public bool IsSaved => Configuration != null && !Configuration.Standard;
         public override string ToString()
         {
             return Name;
@@ -184,6 +185,8 @@ namespace TheAirline.Presentation
         private readonly Action _changed;
         private CabinPreset _preset;
         private bool _loading;
+        private string _saveName = "", _layoutStatus, _pendingText;
+        private Action _pending;
 
         public CabinEditorViewModel(AirlinerPassengerType type, Action changed = null)
         {
@@ -192,20 +195,86 @@ namespace TheAirline.Presentation
             _year = GameObject.GetInstance().GameTime.Year;
             Classes = new ObservableCollection<CabinClassViewModel>();
             AddCommand = new RelayCommand(Add, () => CanAdd);
+            SaveCommand = new RelayCommand(Save);
+            DeleteCommand = new RelayCommand(AskDelete, () => _preset != null && _preset.IsSaved);
+            ConfirmCommand = new RelayCommand(() => { var a = _pending; SetPending(null, null); a?.Invoke(); });
+            CancelCommand = new RelayCommand(() => SetPending(null, null));
 
-            Presets = new List<CabinPreset> { new CabinPreset { Name = "Economy only" } };
-            Presets.AddRange(
-                Configurations.GetConfigurations(Configuration.ConfigurationType.Airliner)
-                              .OfType<AirlinerConfiguration>()
-                              .Where(
-                                  c => c.MinimumSeats <= type.MaxSeatingCapacity
-                                       && c.Classes.Count <= Math.Max(1, type.MaxAirlinerClasses)
-                                       && c.Classes.Any(k => k.Type == AirlinerClass.ClassType.EconomyClass)
-                                       && c.Classes.All(k => _year >= (int) k.Type))
-                              .OrderBy(c => c.Name)
-                              .Select(c => new CabinPreset { Name = c.Name, Configuration = c }));
+            Presets = new ObservableCollection<CabinPreset>();
+            LoadPresets(null);
             _preset = Presets[0];
             Reset();
+        }
+
+        /// <summary>"Economy only", then the player's layouts, then the game's, all that fit this type.</summary>
+        private void LoadPresets(AirlinerConfiguration select)
+        {
+            Presets.Clear();
+            Presets.Add(new CabinPreset { Name = "Economy only" });
+            foreach (var c in CabinLayoutService.Saved().Where(c => CabinLayoutService.Fits(c, _type, _year)))
+                Presets.Add(new CabinPreset { Name = "Yours: " + c.Name + "  (" + CabinLayoutService.Describe(c) + ")", Configuration = c });
+            foreach (var c in Configurations.GetConfigurations(Configuration.ConfigurationType.Airliner)
+                                            .OfType<AirlinerConfiguration>()
+                                            .Where(c => c.Standard && CabinLayoutService.Fits(c, _type, _year))
+                                            .OrderBy(c => c.Name))
+                Presets.Add(new CabinPreset { Name = c.Name, Configuration = c });
+            if (select != null)
+            {
+                // select without applying: the editor already shows this layout
+                _preset = Presets.FirstOrDefault(p => p.Configuration == select) ?? Presets[0];
+                OnPropertyChanged(nameof(Preset));
+                (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
+        public ICommand SaveCommand { get; }
+        public ICommand DeleteCommand { get; }
+        public ICommand ConfirmCommand { get; }
+        public ICommand CancelCommand { get; }
+
+        /// <summary>The name to save the current layout under.</summary>
+        public string SaveName { get => _saveName; set => SetProperty(ref _saveName, value ?? ""); }
+
+        public string LayoutStatus { get => _layoutStatus; private set => SetProperty(ref _layoutStatus, value); }
+        public string PendingText { get => _pendingText; private set => SetProperty(ref _pendingText, value); }
+        public bool HasPending => _pending != null;
+        public int SavedCount => CabinLayoutService.Saved().Count;
+
+        private void SetPending(string text, Action action)
+        {
+            _pending = action;
+            PendingText = text;
+            OnPropertyChanged(nameof(HasPending));
+        }
+
+        private void Save()
+        {
+            var classes = BuildClasses();
+            bool replacing = CabinLayoutService.Exists(_saveName);
+            string m;
+            var conf = CabinLayoutService.Save(_saveName, classes, out m);
+            if (conf != null)
+            {
+                LoadPresets(conf);
+                if (replacing) m = m.Replace("Saved the layout", "Replaced the layout");
+                m += " It is in the Start from list for every aircraft it fits.";
+            }
+            LayoutStatus = m;
+        }
+
+        private void AskDelete()
+        {
+            var conf = _preset?.Configuration;
+            if (conf == null || conf.Standard) return;
+            SetPending("Delete your layout \"" + conf.Name + "\"? Aircraft that have it keep their cabins.", () =>
+                {
+                    CabinLayoutService.Delete(conf);
+                    LoadPresets(null);
+                    _preset = Presets[0];
+                    OnPropertyChanged(nameof(Preset));
+                    (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    LayoutStatus = "Deleted the layout \"" + conf.Name + "\". The editor keeps the seats it showed.";
+                });
         }
 
         /// <summary>The editor for an aircraft that exists already: starts from its classes and facilities.</summary>
@@ -268,7 +337,7 @@ namespace TheAirline.Presentation
         }
 
         public ObservableCollection<CabinClassViewModel> Classes { get; }
-        public List<CabinPreset> Presets { get; }
+        public ObservableCollection<CabinPreset> Presets { get; }
         public ICommand AddCommand { get; }
         public int TotalFloor => _type.MaxSeatingCapacity;
 
@@ -279,6 +348,9 @@ namespace TheAirline.Presentation
             {
                 if (value != null && SetProperty(ref _preset, value))
                 {
+                    (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    SetPending(null, null);
+                    if (value.IsSaved) SaveName = value.Configuration.Name;
                     if (value.Configuration == null)
                     {
                         Reset();

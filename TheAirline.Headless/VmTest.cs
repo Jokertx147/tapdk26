@@ -512,6 +512,55 @@ static class VmTest
             Console.WriteLine("  month total from two days: " + inv.GetAmount(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3));
             if (inv.GetAmount(TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, 2007, 3) != 150) { Console.WriteLine("  FAILED month total"); Environment.Exit(1); }
         }
+        Console.WriteLine("CABIN LAYOUT TEST");
+        {
+            var gC = TheAirline.Models.General.GameObject.GetInstance();
+            var meC = gC.HumanAirline;
+            var types = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().OfType<TheAirline.Models.Airliners.AirlinerPassengerType>().ToList();
+            var a320 = types.First(x => x.Name == "Airbus A320-200");
+            var big = types.Where(x => x.MaxAirlinerClasses >= 2 && x.MaxSeatingCapacity > 250).OrderBy(x => x.MaxSeatingCapacity).First();
+            var small = types.Where(x => x.MaxSeatingCapacity < 30).OrderBy(x => x.MaxSeatingCapacity).First();
+            var ed = new CabinEditorViewModel(a320);
+            ed.AddCommand.Execute(null); ed.Classes.Last().Seats = 12;
+            ed.SaveName = "x"; ed.SaveCommand.Execute(null); Console.WriteLine("  short name: " + ed.LayoutStatus);
+            ed.SaveName = "Test two class"; ed.SaveCommand.Execute(null); Console.WriteLine("  save: " + ed.LayoutStatus + " | selected " + ed.Preset.Name);
+            if (TheAirline.Helpers.CabinLayoutService.Saved().Count != 1 || !ed.Preset.IsSaved) { Console.WriteLine("  FAILED save"); Environment.Exit(1); }
+            ed.Classes.Last().Seats = 16; ed.SaveCommand.Execute(null); Console.WriteLine("  again: " + ed.LayoutStatus);
+            if (TheAirline.Helpers.CabinLayoutService.Saved().Count != 1) { Console.WriteLine("  FAILED replace"); Environment.Exit(1); }
+            var std = TheAirline.Infrastructure.Configurations.GetConfigurations(TheAirline.Infrastructure.Configuration.ConfigurationType.Airliner).First(c => c.Standard).Name;
+            ed.SaveName = std; ed.SaveCommand.Execute(null); Console.WriteLine("  game name: " + ed.LayoutStatus);
+            // a bigger aircraft gets the same premium seats and more economy
+            var edBig = new CabinEditorViewModel(big);
+            var mine = edBig.Presets.First(p => p.IsSaved);
+            edBig.Preset = mine; Console.WriteLine("  on " + big.Name + ": " + mine.Name + " -> " + edBig.Summary);
+            if (!edBig.Layout.Contains("16C")) { Console.WriteLine("  FAILED apply"); Environment.Exit(1); }
+            var edSmall = new CabinEditorViewModel(small);
+            Console.WriteLine("  on " + small.Name + " (" + small.MaxSeatingCapacity + " seats, " + small.MaxAirlinerClasses + " classes): offered " + edSmall.Presets.Any(p => p.IsSaved));
+            // refit every stopped aircraft of a type
+            var home = meC.Airports.First();
+            var fleet = new System.Collections.Generic.List<TheAirline.Models.Airliners.FleetAirliner>();
+            for (int i = 0; i < 3; i++)
+            {
+                var al = new TheAirline.Models.Airliners.Airliner("cab" + i, a320, "N-CAB" + i, gC.GameTime) { Airline = meC };
+                TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+                fleet.Add(TheAirline.Helpers.AirlineHelpers.AddAirliner(meC, al, home, false));
+            }
+            fleet[2].Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.ToRouteStart;
+            var before2 = fleet[2].Airliner.Classes.Count;
+            var refit = new CabinRefitViewModel(fleet[0], () => { });
+            refit.Editor.Preset = refit.Editor.Presets.First(p => p.IsSaved);
+            Console.WriteLine("  " + refit.AllText);
+            double money = meC.Money; meC.Money += 100000000; money = meC.Money;
+            refit.ApplyAllCommand.Execute(null);
+            Console.WriteLine("  refit all: " + string.Join(" ; ", fleet.Select(f => f.Name + " " + string.Join("/", f.Airliner.Classes.Select(c => c.Type.ToString().Substring(0, 1) + c.SeatingCapacity)))) + " | paid " + (money - meC.Money).ToString("N0") + " " + refit.Status);
+            if (fleet[1].Airliner.Classes.Count != 2 || fleet[2].Airliner.Classes.Count != before2) { Console.WriteLine("  FAILED refit all"); Environment.Exit(1); }
+            foreach (var f in fleet) { meC.RemoveAirliner(f); }
+            // keep one layout for the save test, add one to delete
+            ed.SaveName = "Delete me"; ed.SaveCommand.Execute(null);
+            ed.DeleteCommand.Execute(null); Console.WriteLine("  ask: " + ed.PendingText); ed.ConfirmCommand.Execute(null);
+            Console.WriteLine("  delete: " + ed.LayoutStatus + " | saved " + string.Join(", ", TheAirline.Helpers.CabinLayoutService.Saved().Select(c => c.Name)));
+            if (TheAirline.Helpers.CabinLayoutService.Saved().Count != 1) { Console.WriteLine("  FAILED delete"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -552,6 +601,12 @@ static class VmTest
             g.GameTime = nr.BuiltDate; TheAirline.Helpers.RunwayService.ProcessDaily();
             Console.WriteLine("  after build: max " + kiv.GetMaxRunwayLength() + " | " + g.NewsBox.GetNews().Where(n => n.Subject.Contains("unway")).Select(n => n.Subject + ": " + n.Body).LastOrDefault());
             if (kiv.GetMaxRunwayLength() != 4200) { Console.WriteLine("  FAILED new runway"); Environment.Exit(1); }
+        }
+        Console.WriteLine("CABIN LAYOUT AFTER LOAD");
+        {
+            var saved = TheAirline.Helpers.CabinLayoutService.Saved();
+            Console.WriteLine("  " + string.Join(", ", saved.Select(c => c.Name + " (" + TheAirline.Helpers.CabinLayoutService.Describe(c) + ", " + c.Classes.Sum(k => k.Facilities.Count) + " facilities)")));
+            if (saved.Count != 1 || saved[0].Name != "Test two class" || saved[0].Classes.Count != 2) { Console.WriteLine("  FAILED layout save"); Environment.Exit(1); }
         }
         Console.WriteLine("SHARES AFTER LOAD");
         {
