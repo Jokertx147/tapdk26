@@ -40,6 +40,9 @@ namespace TheAirline.Presentation
                         }
                     });
             CancelCommand = new RelayCommand(() => PendingText = null);
+            SetAirlineMoneyCommand = new RelayCommand(() => SetMoney(true, false));
+            SetHumanMoneyCommand = new RelayCommand(() => SetMoney(false, true));
+            SetBothMoneyCommand = new RelayCommand(() => SetMoney(true, true));
 
             var airline = GameObject.GetInstance().HumanAirline;
             _saveName = GameSession.SafeFileName(airline?.Profile?.Name ?? "save");
@@ -47,6 +50,84 @@ namespace TheAirline.Presentation
         }
 
         public ObservableCollection<SaveItem> Saves { get; } = new ObservableCollection<SaveItem>();
+
+        // ---- setting the money ----
+
+        private string _airlineMoney = "", _humanMoney = "", _moneyStatus;
+
+        /// <summary>Called after the money changed, so the top bar and pages update.</summary>
+        public Action MoneyChanged { get; set; }
+
+        public ICommand SetAirlineMoneyCommand { get; }
+        public ICommand SetHumanMoneyCommand { get; }
+        public ICommand SetBothMoneyCommand { get; }
+
+        public string AirlineMoney { get => _airlineMoney; set => SetProperty(ref _airlineMoney, value ?? ""); }
+        public string HumanMoneyInput { get => _humanMoney; set => SetProperty(ref _humanMoney, value ?? ""); }
+        public string MoneyStatus { get => _moneyStatus; private set => SetProperty(ref _moneyStatus, value); }
+
+        public string MoneyText
+        {
+            get
+            {
+                var game = GameObject.GetInstance();
+                if (game?.HumanAirline == null) return "No game is running.";
+                return string.Format(
+                    "Airline money (your airline's cash, shown in the top bar): {0}.  Human money (what the game checks before some purchases, such as facilities, maintenance and insurance): {1}.",
+                    Cash(game.HumanAirline.Money), Cash(game.HumanMoney));
+            }
+        }
+
+        private static string Cash(double v)
+        {
+            return Convert.ToString(new ValueCurrencyFormatter().Convert(v));
+        }
+
+        /// <summary>Reads amounts such as 50000000, 50,000,000, $50 000 000, 50m, 2.5b, 750k or -1000000.</summary>
+        public static bool TryParseMoney(string text, out double amount)
+        {
+            amount = 0;
+            string t = (text ?? "").Replace(",", "").Replace(" ", "").Replace("$", "").Replace("_", "").Trim().ToLowerInvariant();
+            if (t.Length == 0) return false;
+            double factor = 1;
+            char last = t[t.Length - 1];
+            if (last == 'k') factor = 1e3;
+            else if (last == 'm') factor = 1e6;
+            else if (last == 'b') factor = 1e9;
+            else if (last == 't') factor = 1e12;
+            if (factor > 1) t = t.Substring(0, t.Length - 1);
+            double v;
+            if (!double.TryParse(t, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v)) return false;
+            v *= factor;
+            if (double.IsNaN(v) || double.IsInfinity(v) || Math.Abs(v) > 1e15) return false;
+            amount = Math.Round(v, 2);
+            return true;
+        }
+
+        private void SetMoney(bool airline, bool human)
+        {
+            var game = GameObject.GetInstance();
+            if (game?.HumanAirline == null)
+            {
+                MoneyStatus = "Start or load a game first.";
+                return;
+            }
+
+            double amount;
+            string text = airline ? _airlineMoney : _humanMoney;
+            if (airline && human && text.Trim().Length == 0) text = _humanMoney;
+            if (!TryParseMoney(text, out amount))
+            {
+                MoneyStatus = "Type the amount as a number, for example 50000000, 50,000,000 or 50m (k, m and b work, a minus sign too).";
+                return;
+            }
+
+            if (airline) game.HumanAirline.Money = amount;
+            if (human) game.HumanMoney = amount;
+            MoneyStatus = (airline && human ? "Airline money and human money are" : airline ? "Airline money is" : "Human money is") + " now " + Cash(amount) + ".";
+            OnPropertyChanged(nameof(MoneyText));
+            MoneyChanged?.Invoke();
+        }
         public ICommand SaveCommand { get; }
         public ICommand DeleteCommand { get; }
         public ICommand ExitCommand { get; }
@@ -179,6 +260,7 @@ namespace TheAirline.Presentation
         {
             OnPropertyChanged(nameof(CostLevel));
             OnPropertyChanged(nameof(CostLevelText));
+            OnPropertyChanged(nameof(MoneyText));
             string keep = _selected?.Name;
             Saves.Clear();
             try

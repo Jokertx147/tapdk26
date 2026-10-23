@@ -161,6 +161,12 @@ namespace TheAirline.Presentation
             Shares = new SharesViewModel(OnGameChanged);
             Subsidiaries = new SubsidiariesViewModel(OnGameChanged);
             Options = new OptionsViewModel(shell, null, MainMenuCommand);
+            Options.MoneyChanged = () =>
+                {
+                    var me = GameObject.GetInstance().HumanAirline;
+                    if (me != null) Money = Convert.ToString(new ValueCurrencyFormatter().Convert(me.Money));
+                    OnGameChanged();
+                };
             News = new NewsViewModel();
             Map = new WorldMapViewModel();
             Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit), OpenSchedule);

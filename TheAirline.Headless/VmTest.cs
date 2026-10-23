@@ -623,6 +623,21 @@ static class VmTest
             Console.WriteLine("  delete: " + ed.LayoutStatus + " | saved " + string.Join(", ", TheAirline.Helpers.CabinLayoutService.Saved().Select(c => c.Name)));
             if (TheAirline.Helpers.CabinLayoutService.Saved().Count != 1) { Console.WriteLine("  FAILED delete"); Environment.Exit(1); }
         }
+        Console.WriteLine("SET MONEY TEST");
+        {
+            var gM = TheAirline.Models.General.GameObject.GetInstance();
+            var o = av.Options;
+            double keepA = gM.HumanAirline.Money, keepH = gM.HumanMoney;
+            Console.WriteLine("  " + o.MoneyText);
+            o.AirlineMoney = "abc"; o.SetAirlineMoneyCommand.Execute(null); Console.WriteLine("  bad: " + o.MoneyStatus);
+            o.AirlineMoney = "$1,234,567"; o.SetAirlineMoneyCommand.Execute(null); Console.WriteLine("  airline: " + o.MoneyStatus + " | top bar " + av.Money);
+            if (gM.HumanAirline.Money != 1234567 || gM.HumanMoney != keepH) { Console.WriteLine("  FAILED airline money"); Environment.Exit(1); }
+            o.HumanMoneyInput = "2.5b"; o.SetHumanMoneyCommand.Execute(null); Console.WriteLine("  human: " + o.MoneyStatus);
+            if (gM.HumanMoney != 2.5e9 || gM.HumanAirline.Money != 1234567) { Console.WriteLine("  FAILED human money"); Environment.Exit(1); }
+            o.AirlineMoney = "-750k"; o.SetBothMoneyCommand.Execute(null); Console.WriteLine("  both: " + o.MoneyStatus + " | " + o.MoneyText);
+            if (gM.HumanMoney != -750000 || gM.HumanAirline.Money != -750000) { Console.WriteLine("  FAILED both"); Environment.Exit(1); }
+            gM.HumanAirline.Money = keepA; gM.HumanMoney = keepH;
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
