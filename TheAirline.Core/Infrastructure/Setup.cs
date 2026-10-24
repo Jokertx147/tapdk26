@@ -36,7 +36,8 @@ namespace TheAirline.Infrastructure
     {
         #region Static Fields
 
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         // the loaders catch and swallow their own exceptions, so also write them to startup.log where they can be found
         private static void LogError(string message, params object[] args)

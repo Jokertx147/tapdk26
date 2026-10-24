@@ -45,7 +45,7 @@ namespace TheAirline.Presentation
         private Airline _selectedAirline;
         private string _ceo = "";
         private DifficultyLevel _selectedDifficulty;
-        private int _opponents = 5;
+        private int _opponents = 12;
         private bool _useDayTurns = true;
         private bool _majorAirports, _sameRegion = true;
         private List<Continent> _continents = new List<Continent>();
@@ -60,7 +60,9 @@ namespace TheAirline.Presentation
             _shell = shell;
 
             StartYears = Enumerable.Range(1960, 2030 - 1960 + 1).ToList();
-            OpponentChoices = new List<int> { 1, 3, 5, 8, 12, 20 };
+            // more than about 50 makes setting up a game and every game day very slow
+            OpponentChoices = new List<int> { 1, 3, 5, 8, 12, 20, 30, 50 };
+            OpponentOptions = OpponentChoices.Select(n => new NamedChoice<int> { Name = n.ToString(), Value = n }).ToList();
 
             CreateCommand = new AsyncCommand(CreateAsync, () => !_isLoading && !_isCreating && SelectedAirline != null);
             BackCommand = new RelayCommand(shell.ShowMainMenu, () => !_isCreating);
@@ -71,6 +73,29 @@ namespace TheAirline.Presentation
         public List<int> StartYears { get; }
 
         public List<int> OpponentChoices { get; }
+
+        public List<NamedChoice<int>> OpponentOptions { get; }
+
+        public NamedChoice<int> SelectedOpponentOption
+        {
+            get { return OpponentOptions.FirstOrDefault(o => o.Value == _opponents) ?? OpponentOptions[0]; }
+            set { if (value != null) Opponents = value.Value; }
+        }
+
+        /// <summary>How many airlines there are to compete with in the chosen year.</summary>
+        public string OpponentsText
+        {
+            get
+            {
+                if (_isLoading) return null;
+                int year = StartYear;
+                int n = Models.Airlines.Airlines.GetAirlines(a => a.Profile.Founded <= year && a.Profile.Folded > year).Count - 1;
+                int playing = Math.Min(n, _opponents);
+                return string.Format(
+                    "{0} other airlines flew in {1}; {2} of them will compete with you{3}. More airlines mean more competition and higher-fare routes get crowded; each game day also takes longer.",
+                    Math.Max(0, n), year, Math.Max(0, playing), SameRegion ? " (the ones nearest to you)" : " (picked at random)");
+            }
+        }
 
         public ICommand CreateCommand { get; }
 
@@ -143,7 +168,14 @@ namespace TheAirline.Presentation
         public int Opponents
         {
             get { return _opponents; }
-            set { SetProperty(ref _opponents, value); }
+            set
+            {
+                if (SetProperty(ref _opponents, value))
+                {
+                    OnPropertyChanged(nameof(SelectedOpponentOption));
+                    OnPropertyChanged(nameof(OpponentsText));
+                }
+            }
         }
 
         public List<Continent> Continents
@@ -256,6 +288,7 @@ namespace TheAirline.Presentation
                                                .ToList();
             SelectedAirline = Airlines.FirstOrDefault();
             Status = Airlines.Count + " airlines in " + year;
+            OnPropertyChanged(nameof(OpponentsText));
         }
 
         private bool InSelectedArea(Airline a)

@@ -71,7 +71,8 @@ namespace TheAirline.Helpers
     /// <summary>Flight schools: building them, instructors, training aircraft and students.</summary>
     public static class FlightSchoolService
     {
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         public static double BuildPrice => GeneralHelpers.GetInflationPrice(267050);
         public static double StudentPrice => GeneralHelpers.GetInflationPrice(PilotStudent.StudentCost);

@@ -14,7 +14,8 @@ namespace TheAirline.Helpers
     {
         #region Static Fields
 
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         #endregion
 

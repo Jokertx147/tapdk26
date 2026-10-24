@@ -24,7 +24,8 @@ namespace TheAirline.Helpers
             AirportTraffic
         }
 
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         //returns the number of delay minutes (0 if not delayed) for an airliner
         public static KeyValuePair<DelayType, int> GetDelayedMinutes(FleetAirliner airliner)

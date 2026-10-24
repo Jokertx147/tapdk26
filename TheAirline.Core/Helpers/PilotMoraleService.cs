@@ -17,7 +17,8 @@ namespace TheAirline.Helpers
         public const int MinPay = 70;
         public const int MaxPay = 150;
         public const int BonusWaitDays = 120;
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         public static double PayFactor(Airline airline)
         {

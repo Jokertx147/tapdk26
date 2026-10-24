@@ -25,7 +25,8 @@ namespace TheAirline.Helpers
 
         private static readonly Dictionary<Airline, double> HappinessPercent = new Dictionary<Airline, double>();
 
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         #endregion
 

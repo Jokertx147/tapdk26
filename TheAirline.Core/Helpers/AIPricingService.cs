@@ -4,6 +4,7 @@ using System.Linq;
 using TheAirline.Models.Airliners;
 using TheAirline.Models.Airlines;
 using TheAirline.Models.Airlines.Subsidiary;
+using TheAirline.Models.Airports;
 using TheAirline.Models.General;
 using TheAirline.Models.Routes;
 
@@ -128,6 +129,29 @@ namespace TheAirline.Helpers
             List<PassengerRoute> all;
             if (route.Airline == null || !Index().TryGetValue(Key(route), out all)) return new List<PassengerRoute>();
             return all.Where(r => r.Airline != null && !SameCompany(r.Airline, route.Airline) && r.HasAirliner && r.Airline.Routes.Contains(r)).ToList();
+        }
+
+        /// <summary>
+        ///     How attractive a new route between two airports is for an airline compared with an empty market (realistic
+        ///     costs): 1 when nobody flies it; with rivals, more when they are full and charge a lot, less when they have
+        ///     empty seats or are cheap, and less the more of them there are.
+        /// </summary>
+        public static double EntryFactor(Airline airline, Airport a, Airport b)
+        {
+            if (!PricingService.Realistic) return 1;
+            List<PassengerRoute> all;
+            string k = string.CompareOrdinal(a.Profile.IATACode + a.Profile.ICAOCode, b.Profile.IATACode + b.Profile.ICAOCode) < 0
+                ? a.Profile.IATACode + a.Profile.ICAOCode + "|" + b.Profile.IATACode + b.Profile.ICAOCode
+                : b.Profile.IATACode + b.Profile.ICAOCode + "|" + a.Profile.IATACode + a.Profile.ICAOCode;
+            if (!Index().TryGetValue(k, out all)) return 1;
+            var rivals = all.Where(r => r.Airline != null && !SameCompany(r.Airline, airline) && r.HasAirliner).ToList();
+            if (rivals.Count == 0) return 1;
+            double market = PricingService.MarketFare(a, b, AirlinerClass.ClassType.EconomyClass);
+            if (market <= 0) return 0.5;
+            double load = rivals.Average(r => ConnectionService.MonthLoad(r));
+            double fare = rivals.Average(r => EconomyFare(r))/market;
+            if (load <= 0) load = 0.8;
+            return Math.Max(0.05, Math.Min(1.2, Math.Pow(load/0.8, 2)*fare/(1 + rivals.Count)));
         }
 
         // when each route was last reviewed

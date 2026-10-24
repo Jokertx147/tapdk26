@@ -43,7 +43,8 @@ namespace TheAirline.Helpers
         private static readonly List<CharterOffer> OffersList = new List<CharterOffer>();
         private static DateTime _lastRefresh = DateTime.MinValue;
         private static int _nextId = 1;
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         private static readonly string[] Customers =
         {

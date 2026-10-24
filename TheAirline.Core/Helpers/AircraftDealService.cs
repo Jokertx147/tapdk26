@@ -13,7 +13,8 @@ namespace TheAirline.Helpers
     {
         public static readonly int[] LeaseMonths = {12, 36, 60};
         public static readonly double[] SalePrices = {0.9, 1.0, 1.15};
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
 
         public static bool IsLeasedOut(FleetAirliner f)
         {

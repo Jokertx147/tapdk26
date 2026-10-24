@@ -20,7 +20,8 @@
       <TextBlock Text="Difficulty" />
       <ComboBox ItemsSource="{Binding Difficulties}" SelectedItem="{Binding SelectedDifficulty}" HorizontalAlignment="Stretch" />
       <TextBlock Text="Opponents" />
-      <ComboBox ItemsSource="{Binding OpponentChoices}" SelectedItem="{Binding Opponents}" HorizontalAlignment="Stretch" />
+      <ComboBox ItemsSource="{Binding OpponentOptions}" SelectedItem="{Binding SelectedOpponentOption}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="{Binding OpponentsText}" TextWrapping="Wrap" Opacity="0.7" FontSize="12" />
       <CheckBox Content="One turn per day" IsChecked="{Binding UseDayTurns}" />
       <CheckBox Content="Major airports only" IsChecked="{Binding MajorAirports}" />
       <CheckBox Content="Opponents from the same region" IsChecked="{Binding SameRegion}" />

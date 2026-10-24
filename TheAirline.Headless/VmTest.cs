@@ -62,9 +62,25 @@ static class VmTest
         for (int m = 0; m < 12; m++)
         {
             int startMonth = g.GameTime.Month;
+            var swY = System.Diagnostics.Stopwatch.StartNew();
             while (g.GameTime.Month == startMonth) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
             var last = g.GameTime.AddMonths(-1);
-            Console.WriteLine("-- " + last.ToString("MMM yyyy"));
+            var margins = new System.Collections.Generic.List<double>();
+            foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0 && !a.IsHuman))
+            {
+                double i2 = 0, c2 = 0;
+                foreach (TheAirline.Models.General.Finances.Invoice.InvoiceType t in Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType)))
+                {
+                    if (t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Total || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Purchases || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Loans) continue;
+                    double v = a.GetInvoicesAmountMonth(last.Year, last.Month, t);
+                    if (v > 0) i2 += v; else c2 += v;
+                }
+                if (i2 > 0) margins.Add(100 * (i2 + c2) / i2);
+            }
+            margins.Sort();
+            var shared = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Routes).OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
+            int sharedCount = shared.Count(r => TheAirline.Helpers.AIPricingService.Rivals(r).Count > 0);
+            Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival");
             foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0).OrderByDescending(a => a.Fleet.Count).Take(6))
             {
                 var routes = a.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
@@ -81,6 +97,24 @@ static class VmTest
                     a.Profile.Name, a.Fleet.Count, routes.Count, ratios.Count > 0 ? ratios.Average() : 0, loads.Count > 0 ? loads.Average() * 100 : 0, inc > 0 ? 100 * (inc + cost) / inc : 0, a.Money));
             }
         }
+    }
+
+    /// <summary>"vm airlines": every airline at the start and after two months: who flies and who doesn't.</summary>
+    static void AirlinesProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        System.Action show = () =>
+        {
+            var all = TheAirline.Models.Airlines.Airlines.GetAllAirlines();
+            Console.WriteLine(g.GameTime.ToShortDateString() + ": " + all.Count + " airlines, " + all.Count(a => a.Fleet.Count > 0) + " with aircraft, " + all.Count(a => a.Routes.Count > 0) + " with routes");
+            foreach (var a in all.OrderByDescending(a => a.Fleet.Count).ThenBy(a => a.Profile.Name))
+                Console.WriteLine(string.Format("   {0,-28} {1,-4} {2,-10} {3,-9} fleet {4,3} routes {5,3} airports {6,3} money {7,14:N0} start {8:yyyy} | home {9}",
+                    a.Profile.Name, a.Profile.IATACode, a.Mentality, a.AirlineRouteFocus, a.Fleet.Count, a.Routes.Count, a.Airports.Count, a.Money, a.Profile.Founded == 0 ? g.GameTime : new DateTime(Math.Max(1, a.Profile.Founded), 1, 1),
+                    a.Airports.FirstOrDefault()?.Profile.IATACode ?? "-"));
+        };
+        show();
+        for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        show();
     }
 
     static string Med(System.Collections.Generic.IEnumerable<double> v) { var l = v.OrderBy(x => x).ToList(); return l.Count == 0 ? "-" : l[l.Count / 2].ToString("N1"); }
@@ -918,11 +952,15 @@ static class VmTest
             ng.SelectedRegion = ng.Regions[0];
             Console.WriteLine("all -> airlines " + ng.Airlines.Count);
             ng.SelectedAirline = ng.Airlines.First(a => a.Profile.IATACode == "DL") ;
+            // tests keep the small world they were written for; TAP_OPPONENTS sets more for the economy probes
+            int opp; ng.Opponents = int.TryParse(Environment.GetEnvironmentVariable("TAP_OPPONENTS"), out opp) ? opp : 5;
+            Console.WriteLine("opponents: " + ng.SelectedOpponentOption.Name + " | " + ng.OpponentsText);
             ng.CreateCommand.Execute(null);
             await Wait(() => shell.Current is AirlineViewModel, "game created");
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
             if (Environment.GetCommandLineArgs().Contains("quick")) { QuickTests(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("airlines")) { AirlinesProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }

@@ -21,7 +21,17 @@ namespace TheAirline.Helpers
     {
         #region Static Fields
 
-        private static readonly Random Rnd = new Random();
+        // Random.Shared is safe to use from the parallel airline threads (a shared new Random() is not)
+        private static Random Rnd => Random.Shared;
+
+        /// <summary>
+        ///     True one time in oneIn (always when oneIn is 1 or less). Works with any size: the products the airline
+        ///     checks use (style x fleet x idle aircraft) overflowed whole numbers and crashed the game for big airlines.
+        /// </summary>
+        private static bool Chance(double oneIn)
+        {
+            return oneIn <= 1 || Rnd.NextDouble()*oneIn < 1;
+        }
 
         #endregion
 
@@ -826,9 +836,11 @@ namespace TheAirline.Helpers
                     where
                         routes.Find(r => r.Destination1 == a || r.Destination2 == a) == null
                         && (a.Terminals.GetFreeGates(terminaltype) > 0 || AirportHelpers.HasFreeGates(a, airline, terminaltype))
+                    // with realistic costs, a market others already serve well is worth less than an empty or a crowded-out one
                     orderby
-                         airport.GetDestinationPassengersRate(a, AirlinerClass.ClassType.EconomyClass)
-                        + a.GetDestinationPassengersRate(airport, AirlinerClass.ClassType.EconomyClass) descending
+                         (airport.GetDestinationPassengersRate(a, AirlinerClass.ClassType.EconomyClass)
+                        + a.GetDestinationPassengersRate(airport, AirlinerClass.ClassType.EconomyClass))
+                        *AIPricingService.EntryFactor(airline, airport, a) descending
                     select a).ToList();
         }
 
@@ -1149,8 +1161,7 @@ namespace TheAirline.Helpers
             newCodesharingInterval *= GameObject.GetInstance().Difficulty.AILevel;
 
             Boolean newCodesharing = !airline.IsSubsidiary
-                                     && Rnd.Next(Convert.ToInt32(newCodesharingInterval)*(airlineCodesharings + 1))
-                                     == 0;
+                                     && Chance(newCodesharingInterval*(airlineCodesharings + 1));
 
             if (newCodesharing)
             {
@@ -1193,7 +1204,7 @@ namespace TheAirline.Helpers
 
             int members = alliance.Members.Count;
             const int inviteToAllianceInterval = 100000;
-            bool inviteToAlliance = Rnd.Next(inviteToAllianceInterval*members) == 0;
+            bool inviteToAlliance = Chance((double) inviteToAllianceInterval*members);
 
             if (inviteToAlliance)
             {
@@ -1222,7 +1233,7 @@ namespace TheAirline.Helpers
                     break;
             }
 
-            bool newHub = Rnd.Next(newHubInterval*hubs) == 0;
+            bool newHub = Chance((double) newHubInterval*hubs);
 
             if (newHub)
             {
@@ -1260,7 +1271,15 @@ namespace TheAirline.Helpers
                 newRouteInterval = Math.Min(newRouteInterval, 10000);
             }
 
-            bool newRoute = Rnd.Next(newRouteInterval*(airlinersInOrder + 1))/1100 == 0;
+            // with realistic costs, an airline sitting on cash puts it to work: new routes come faster
+            if (PricingService.Realistic && newRouteInterval > 10000)
+            {
+                double start = Math.Max(1, GameObject.GetInstance().StartMoney);
+                if (airline.Money > 4*start) newRouteInterval /= 4;
+                else if (airline.Money > 2*start) newRouteInterval /= 2;
+            }
+
+            bool newRoute = Chance((double) newRouteInterval*(airlinersInOrder + 1)/1100);
 
             if (newRoute)
             {
@@ -1291,7 +1310,7 @@ namespace TheAirline.Helpers
                     newAirlinersInterval = 1000000;
                     break;
             }
-            bool newAirliners = Rnd.Next(newAirlinersInterval*(airliners/2)*airlinersWithoutRoute) == 0;
+            bool newAirliners = Chance((double) newAirlinersInterval*(airliners/2)*airlinersWithoutRoute);
 
             if (newAirliners && airline.Profile.PrimaryPurchasing != AirlineProfile.PreferedPurchasing.Leasing)
             {
@@ -1324,7 +1343,7 @@ namespace TheAirline.Helpers
 
             //newSubInterval = 0;
 
-            bool newSub = !airline.IsSubsidiary && Rnd.Next(Convert.ToInt32(newSubInterval)*(subAirlines + 1)) == 0
+            bool newSub = !airline.IsSubsidiary && Chance(newSubInterval*(subAirlines + 1))
                              && airline.FutureAirlines.Count > 0 && airline.Money > airline.StartMoney/5;
 
             if (newSub)
