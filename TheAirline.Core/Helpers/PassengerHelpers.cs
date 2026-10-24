@@ -3193,7 +3193,7 @@ namespace TheAirline.Helpers
                 pax = 0;
             }
 
-            ConnectionService.Record(currentRoute, pax, pax*connectingShare);
+            ConnectionService.Record(currentRoute, pax, pax*connectingShare, airliner.Airliner.GetAirlinerClass(type).SeatingCapacity);
 
             return pax;
         }

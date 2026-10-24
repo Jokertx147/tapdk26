@@ -225,10 +225,11 @@ namespace TheAirline.Helpers
             return d.Year*12 + d.Month - 1;
         }
 
-        /// <summary>Counts a flight's passengers and how many of them connect.</summary>
-        public static void Record(Route route, int passengers, double connecting)
+        /// <summary>Counts a flight's passengers, how many of them connect, and the seats it flew.</summary>
+        public static void Record(Route route, int passengers, double connecting, int seats = 0)
         {
-            if (route == null || passengers <= 0) return;
+            if (passengers < 0) passengers = 0;
+            if (route == null || (passengers == 0 && seats <= 0)) return;
             int key = MonthKey(GameObject.GetInstance().GameTime);
             lock (route)
             {
@@ -237,11 +238,14 @@ namespace TheAirline.Helpers
                     bool previous = route.ConnectMonth == key - 1;
                     route.ConnectLastPassengers = previous ? route.ConnectPassengers : 0;
                     route.ConnectLastAllPassengers = previous ? route.ConnectAllPassengers : 0;
+                    route.ConnectLastSeats = previous ? route.ConnectSeats : 0;
                     route.ConnectPassengers = 0;
                     route.ConnectAllPassengers = 0;
+                    route.ConnectSeats = 0;
                     route.ConnectMonth = key;
                 }
                 route.ConnectAllPassengers += passengers;
+                route.ConnectSeats += Math.Max(0, seats);
                 route.ConnectPassengers += (int) Math.Round(Math.Max(0, Math.Min(passengers, connecting)));
             }
         }
@@ -253,6 +257,34 @@ namespace TheAirline.Helpers
             if (route.ConnectMonth == key) { connecting = route.ConnectLastPassengers; all = route.ConnectLastAllPassengers; }
             else if (route.ConnectMonth == key - 1) { connecting = route.ConnectPassengers; all = route.ConnectAllPassengers; }
             else { connecting = 0; all = 0; }
+        }
+
+        /// <summary>
+        ///     The share of seats filled: last month when it flew enough, else this month so far, else since the route
+        ///     started; 0 when unknown.
+        /// </summary>
+        public static double MonthLoad(Route route)
+        {
+            int key = MonthKey(GameObject.GetInstance().GameTime);
+            int lastPax = 0, lastSeats = 0, nowPax = 0, nowSeats = 0;
+            lock (route)
+            {
+                if (route.ConnectMonth == key)
+                {
+                    lastPax = route.ConnectLastAllPassengers; lastSeats = route.ConnectLastSeats;
+                    nowPax = route.ConnectAllPassengers; nowSeats = route.ConnectSeats;
+                }
+                else if (route.ConnectMonth == key - 1)
+                {
+                    lastPax = route.ConnectAllPassengers; lastSeats = route.ConnectSeats;
+                }
+            }
+            if (lastSeats >= 200) return Math.Min(1, (double) lastPax/lastSeats);
+            if (nowSeats + lastSeats >= 200) return Math.Min(1, (double) (nowPax + lastPax)/(nowSeats + lastSeats));
+            double v;
+            try { v = route.GetFillingDegree(); }
+            catch (Exception) { v = 0; }
+            return double.IsNaN(v) || double.IsInfinity(v) ? 0 : Math.Max(0, Math.Min(1, v));
         }
 
         /// <summary>This month's counts so far.</summary>

@@ -112,6 +112,13 @@ namespace TheAirline.Models.Routes
         [Versioning("connlastall")]
         public int ConnectLastAllPassengers { get; set; }
 
+        // seats flown in the same months, for the load factor
+        [Versioning("connseats")]
+        public int ConnectSeats { get; set; }
+
+        [Versioning("connlastseats")]
+        public int ConnectLastSeats { get; set; }
+
         [Versioning("lastupdated")]
         public DateTime LastUpdated { get; set; }
 

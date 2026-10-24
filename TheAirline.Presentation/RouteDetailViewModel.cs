@@ -290,7 +290,20 @@ namespace TheAirline.Presentation
             lines.Add(m.Income == 0 && m.Costs == 0
                 ? "No flights last month."
                 : string.Format("Last month: income {0}, flight costs {1}, profit {2}.", f.Convert(m.Income), f.Convert(m.Costs), f.Convert(m.Profit)));
-            if (load > 0.05) lines.Add(string.Format("Since it started the route has been {0:0}% full on average.", load*100));
+            double month = ConnectionService.MonthLoad(pr);
+            if (month > 0.005) lines.Add(string.Format("Recently {0:0}% full{1}.", month*100, load > 0.05 ? string.Format(" ({0:0}% on average since it started)", load*100) : ""));
+            else if (load > 0.05) lines.Add(string.Format("Since it started the route has been {0:0}% full on average.", load*100));
+            var rivals = AIPricingService.Rivals(pr);
+            if (rivals.Count == 0)
+            {
+                lines.Add("No other airline flies this route.");
+            }
+            else
+            {
+                lines.Add("Other airlines here (they review their fares every week or two and answer cheaper rivals): " + string.Join("; ", rivals
+                    .OrderBy(AIPricingService.EconomyFare)
+                    .Select(r => string.Format("{0} economy {1}, {2:0}% full", r.Airline.Profile.Name, f.Convert(AIPricingService.EconomyFare(r)), ConnectionService.MonthLoad(r)*100))) + ".");
+            }
             if (be > 0)
             {
                 lines.Add(load > 0.05

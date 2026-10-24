@@ -476,6 +476,84 @@ static class VmTest
             for (int i = 0; i < 2000; i++) TheAirline.Helpers.ConnectionService.FlightDemand(meK, meK.Routes[0], meK.Routes[0].Destination1, meK.Routes[0].Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
             Console.WriteLine("  2000 flight lookups in " + sw.ElapsedMilliseconds + " ms");
         }
+        Console.WriteLine("AI PRICING TEST");
+        {
+            var M = TheAirline.Models.Airlines.Airline.AirlineMentality.Moderate;
+            var S = TheAirline.Models.Airlines.Airline.AirlineMentality.Safe;
+            var A = TheAirline.Models.Airlines.Airline.AirlineMentality.Aggressive;
+            Func<double, double, double?, TheAirline.Models.Airlines.Airline.AirlineMentality, double, double> D = TheAirline.Helpers.AIPricingService.Decide;
+            Console.WriteLine("  full 95%: " + D(1.0, 0.95, null, M, 0.5).ToString("0.000") + " | 85%: " + D(1.0, 0.85, null, M, 0.5).ToString("0.000") + " | 70%: " + D(1.0, 0.7, null, M, 0.5).ToString("0.000") + " | 50%: " + D(1.0, 0.5, null, M, 0.5).ToString("0.000") + " | 30%: " + D(1.0, 0.3, null, M, 0.5).ToString("0.000"));
+            Console.WriteLine("  break-even 0.97 at 30% full: " + D(1.0, 0.3, null, M, 0.97).ToString("0.000") + " | break-even above the band: " + D(1.4, 0.3, null, M, 2.0).ToString("0.000"));
+            Console.WriteLine("  rival at 0.80, 75% full: careful " + D(1.0, 0.75, 0.8, S, 0.5).ToString("0.000") + ", balanced " + D(1.0, 0.75, 0.8, M, 0.5).ToString("0.000") + ", fast-growing " + D(1.0, 0.75, 0.8, A, 0.5).ToString("0.000") + " | rival at 0.80 but we're 95% full: " + D(1.0, 0.95, 0.8, M, 0.5).ToString("0.000"));
+            Console.WriteLine("  rival at 1.30, 85% full: " + D(1.0, 0.85, 1.3, M, 0.5).ToString("0.000") + " | top of band at 99%: careful " + D(1.44, 0.99, null, S, 0.5).ToString("0.000") + ", balanced " + D(1.44, 0.99, null, M, 0.5).ToString("0.000") + ", fast-growing " + D(1.44, 0.99, null, A, 0.5).ToString("0.000"));
+            Func<TheAirline.Models.Airlines.Airline.AirlineMentality, double> six = m => { double r = 1.0; for (int i = 0; i < 6; i++) r = D(r, 0.75, 0.8, m, 0.5); return r; };
+            Console.WriteLine("  after six reviews: careful " + six(S).ToString("0.000") + ", balanced " + six(M).ToString("0.000") + ", fast-growing " + six(A).ToString("0.000"));
+            if (!(six(A) < six(M) && six(M) < six(S) && six(S) >= 0.85 - 1e-9)) { Console.WriteLine("  FAILED mentality"); Environment.Exit(1); }
+            if (!(D(1.0, 0.95, null, M, 0.5) > 1.0 && D(1.0, 0.3, null, M, 0.5) < 1.0 && D(1.0, 0.3, null, M, 0.97) >= 0.97 && D(1.0, 0.3, null, M, 0.5) >= 0.9 - 1e-9
+                  && D(1.0, 0.75, 0.8, M, 0.5) < 1.0
+                  && D(1.0, 0.95, 0.8, M, 0.5) >= 1.0 && D(1.0, 0.85, 1.3, M, 0.5) > 1.03 && D(1.44, 0.99, null, M, 0.5) <= 1.35 + 1e-9))
+            { Console.WriteLine("  FAILED decide"); Environment.Exit(1); }
+
+            // what the computer airlines did in the weeks simulated so far
+            var gP = TheAirline.Models.General.GameObject.GetInstance();
+            var aiR = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes).OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
+            var ratios = aiR.Select(r => TheAirline.Helpers.AIPricingService.EconomyFare(r) / TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass)).ToList();
+            Console.WriteLine("  " + aiR.Count + " flying computer routes; fare / market: below 0.9 " + ratios.Count(x => x < 0.9) + ", 0.9-1.1 " + ratios.Count(x => x >= 0.9 && x <= 1.1) + ", above 1.1 " + ratios.Count(x => x > 1.1) + " | average " + (ratios.Count > 0 ? ratios.Average() : 0).ToString("0.00"));
+            var loads = aiR.Select(r => TheAirline.Helpers.ConnectionService.MonthLoad(r)).Where(x => x > 0).ToList();
+            Console.WriteLine("  their recent load: average " + (loads.Count > 0 ? loads.Average() * 100 : 0).ToString("0") + "% over " + loads.Count + " routes");
+
+            // a rival undercuts: the other airline answers at its next review
+            var byPair = aiR.GroupBy(r => string.Join("|", new[] { r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode }.OrderBy(x => x))).FirstOrDefault(g => g.Select(r => r.Airline).Distinct().Count() >= 2);
+            if (byPair == null) Console.WriteLine("  no shared computer route to test the rival answer");
+            else
+            {
+                var list = byPair.ToList();
+                var cheap = list[0]; var other = list.First(r => r.Airline != cheap.Airline);
+                double market = TheAirline.Helpers.PricingService.MarketFare(other.Destination1, other.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+                foreach (var c in other.Classes) c.FarePrice = market * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                foreach (var c in cheap.Classes) c.FarePrice = market * 0.75 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                // 70% full last month
+                int key = gP.GameTime.Year * 12 + gP.GameTime.Month - 1;
+                other.ConnectMonth = key; other.ConnectLastAllPassengers = 700; other.ConnectLastSeats = 1000;
+                TheAirline.Helpers.AIPricingService.Invalidate(); TheAirline.Helpers.AIPricingService.ForgetReviews();
+                Console.WriteLine("  " + other.Airline.Profile.Name + " (" + other.Airline.Mentality + ") vs " + cheap.Airline.Profile.Name + " at 75% of market: " + TheAirline.Helpers.AIPricingService.Review(other.Airline, other));
+                Console.WriteLine("  again at once: " + (TheAirline.Helpers.AIPricingService.Review(other.Airline, other) ?? "no review (a week has not passed)"));
+                if (TheAirline.Helpers.AIPricingService.EconomyFare(other) >= market * 0.995) { Console.WriteLine("  FAILED rival answer"); Environment.Exit(1); }
+            }
+
+            // the route page lists the rivals
+            var mine = gP.HumanAirline.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().First();
+            var rdP = new TheAirline.Presentation.RouteDetailViewModel(mine, () => { });
+            Console.WriteLine("  route page: " + rdP.PricingText.Replace(Environment.NewLine, " / "));
+
+            // a rival cuts its fare on the player's route: the player hears about it, once a month at most
+            // (two computer airlines share a route; for this check one of them stands in for the player)
+            if (byPair != null)
+            {
+                var player = gP.HumanAirline;
+                var list2 = byPair.ToList();
+                var mineN = list2[0]; var rivalP = list2.First(r => r.Airline != mineN.Airline);
+                gP.SetHumanAirline(mineN.Airline);
+                double mk = TheAirline.Helpers.PricingService.MarketFare(mineN.Destination1, mineN.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+                foreach (var c in mineN.Classes) c.FarePrice = mk * 0.75 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                foreach (var c in rivalP.Classes) c.FarePrice = mk * 1.1 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                int keyP = gP.GameTime.Year * 12 + gP.GameTime.Month - 1;
+                rivalP.ConnectMonth = keyP; rivalP.ConnectLastAllPassengers = 550; rivalP.ConnectLastSeats = 1000;
+                TheAirline.Helpers.AIPricingService.ForgetReviews();
+                int newsBefore = gP.NewsBox.GetNews().Count;
+                Console.WriteLine("  rival on your route: " + TheAirline.Helpers.AIPricingService.Review(rivalP.Airline, rivalP));
+                var n = gP.NewsBox.GetNews().LastOrDefault();
+                Console.WriteLine("  news: " + (n == null ? "none" : n.Subject + ": " + n.Body));
+                bool okNews = gP.NewsBox.GetNews().Count == newsBefore + 1 && n.Subject.Contains("cuts fares");
+                TheAirline.Helpers.AIPricingService.ForgetReviews();
+                TheAirline.Helpers.AIPricingService.Review(rivalP.Airline, rivalP);
+                Console.WriteLine("  second cut the same month: news " + (gP.NewsBox.GetNews().Count - newsBefore));
+                bool okFlood = gP.NewsBox.GetNews().Count == newsBefore + 1;
+                gP.SetHumanAirline(player);
+                if (!okNews) { Console.WriteLine("  FAILED fare news"); Environment.Exit(1); }
+                if (!okFlood) { Console.WriteLine("  FAILED news flood"); Environment.Exit(1); }
+            }
+        }
         Console.WriteLine("PRICING TEST");
         {
             var g10 = TheAirline.Models.General.GameObject.GetInstance();

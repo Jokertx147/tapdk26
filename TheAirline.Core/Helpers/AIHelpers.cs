@@ -1348,11 +1348,20 @@ namespace TheAirline.Helpers
 
                     Route.RouteType routeType = route.Type;
 
+                    // with realistic costs the airline prices by load and competition (see AIPricingService)
+                    if (PricingService.Realistic && route is PassengerRoute pricedRoute)
+                    {
+                        if (AIPricingService.Review(airline, pricedRoute) != null)
+                        {
+                            route.LastUpdated = GameObject.GetInstance().GameTime;
+                        }
+                    }
+
                     if (routeType == Route.RouteType.Mixed || routeType == Route.RouteType.Passenger || routeType == Route.RouteType.Helicopter)
                     {
                         if (balance < -1000)
                         {
-                            if (route.FillingDegree > 0.50 && (((PassengerRoute) route).IncomePerPassenger < 0.50))
+                            if (!PricingService.Realistic && route.FillingDegree > 0.50 && (((PassengerRoute) route).IncomePerPassenger < 0.50))
                             {
                                 foreach (RouteAirlinerClass rac in ((PassengerRoute) route).Classes)
                                 {
