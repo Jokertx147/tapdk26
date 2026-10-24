@@ -410,11 +410,24 @@ namespace TheAirline.Models.Airlines
         //adds an invoice for the airline - both incoming and expends - if updateMoney == true the money is updated as well
         public void AddInvoice(Invoice invoice, bool updateMoney = true)
         {
-            Invoices.AddInvoice(invoice);
-
-            if (updateMoney)
+            // flights and the computer airlines' decisions run on several threads at once: keep every payment
+            lock (Invoices)
             {
-                Money += invoice.Amount;
+                Invoices.AddInvoice(invoice);
+
+                if (updateMoney)
+                {
+                    Money += invoice.Amount;
+                }
+            }
+        }
+
+        /// <summary>Adds (or with a negative amount takes) money without an invoice, safely from any thread.</summary>
+        public void AddMoney(double amount)
+        {
+            lock (Invoices)
+            {
+                Money += amount;
             }
         }
 

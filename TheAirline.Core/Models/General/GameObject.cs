@@ -203,7 +203,8 @@ namespace TheAirline.Models.General
 
         public void AddHumanMoney(double value)
         {
-            HumanMoney += value;
+            if (HumanAirline != null) HumanAirline.AddMoney(value);
+            else HumanMoney += value;
         }
 
         public void SetHumanAirline(Airline airline)

@@ -200,7 +200,10 @@ namespace TheAirline.Helpers
                     }
                     continue;
                 }
-                if (c.Start.Month != now.Month || c.Start.Year != now.Year)
+                // the first month was paid at the start; one payment on the 1st for each further month booked
+                int monthsBooked = (c.End.Year - c.Start.Year)*12 + c.End.Month - c.Start.Month;
+                int monthIndex = (now.Year - c.Start.Year)*12 + now.Month - c.Start.Month;
+                if (monthIndex >= 1 && monthIndex < monthsBooked)
                     AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.AirlineExpenses, -c.MonthlyCost);
             }
 

@@ -128,13 +128,8 @@ namespace TheAirline.Helpers
         //adds an invoice to an airline
         public static void AddAirlineInvoice(Airline airline, DateTime date, Invoice.InvoiceType type, double amount)
         {
-            if (airline.IsHuman && GameObject.GetInstance().HumanAirline == airline)
-            {
-                GameObject.GetInstance().AddHumanMoney(amount);
-                GameObject.GetInstance().HumanAirline.AddInvoice(new Invoice(date, type, amount), false);
-            }
-            else
-                airline.AddInvoice(new Invoice(date, type, amount));
+            // the player's money is the human airline's money, so every airline is paid the same way
+            airline.AddInvoice(new Invoice(date, type, amount));
         }
 
         //buys an airliner to an airline
@@ -746,11 +741,13 @@ namespace TheAirline.Helpers
         //checks for any insurance claims up for settlement
         public static void CheckInsuranceSettlements(Airline airline)
         {
-            foreach (InsuranceClaim claim in airline.InsuranceClaims)
+            // each claim is settled once
+            foreach (InsuranceClaim claim in airline.InsuranceClaims.ToList())
             {
                 if (claim.SettlementDate <= GameObject.GetInstance().GameTime)
                 {
                     AirlineInsuranceHelpers.ReceiveInsurancePayout(airline, claim.Policy, claim);
+                    airline.InsuranceClaims.Remove(claim);
                 }
             }
         }
@@ -1348,7 +1345,6 @@ namespace TheAirline.Helpers
                 {
                     if (policy.NextPaymentDue.Month == GameObject.GetInstance().GameTime.Month)
                     {
-                        airline.Money -= policy.PaymentAmount;
                         AirlineHelpers.AddAirlineInvoice(airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -policy.PaymentAmount);
                         policy.RemainingPayments--;
                         switch (policy.InsTerms)
@@ -1411,10 +1407,10 @@ namespace TheAirline.Helpers
             if (claim.Damage > policy.Deductible)
             {
                 claim.Damage -= (int) policy.Deductible;
-                airline.Money -= policy.Deductible;
                 policy.Deductible = 0;
                 policy.InsuredAmount -= claim.Damage;
-                airline.Money += claim.Damage;
+                // the deductible is what the airline bears itself: the insurer pays the rest
+                AirlineHelpers.AddAirlineInvoice(airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, claim.Damage);
                 var news = new News(News.NewsType.AirlineNews, GameObject.GetInstance().GameTime, "Insurance Claim Payout",
                                     "You have received an insurance payout in the amount of $" + claim.Damage.ToString(CultureInfo.InvariantCulture) + ". This was for claim number " + claim.Index);
             }

@@ -719,6 +719,43 @@ static class VmTest
             if (gM.HumanAirline.Money != -749200 || gM.HumanMoney != -749200 || notes < 5) { Console.WriteLine("  FAILED follow"); Environment.Exit(1); }
             gM.HumanAirline.Money = keepA;
         }
+        Console.WriteLine("MONEY AUDIT TEST");
+        {
+            var gA = TheAirline.Models.General.GameObject.GetInstance();
+            var meA = gA.HumanAirline;
+            var aiA = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First(a => !a.IsHuman);
+            // payments from many threads at once all arrive
+            double m0 = meA.Money, a0 = aiA.Money;
+            System.Threading.Tasks.Parallel.For(0, 200000, i =>
+            {
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(meA, gA.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees, 1);
+                TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(aiA, gA.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees, 1);
+                if (i % 2 == 0) gA.AddHumanMoney(1);
+            });
+            Console.WriteLine("  200,000 parallel payments: player +" + (meA.Money - m0).ToString("N0") + " (human money " + (gA.HumanMoney - m0).ToString("N0") + "), computer airline +" + (aiA.Money - a0).ToString("N0"));
+            if (meA.Money - m0 != 300000 || aiA.Money - a0 != 200000 || gA.HumanMoney != meA.Money) { Console.WriteLine("  FAILED lost payments"); Environment.Exit(1); }
+            meA.Money = m0; aiA.Money = a0;
+
+            // an advertising campaign pays exactly the months booked
+            var t0 = gA.GameTime;
+            gA.GameTime = new DateTime(t0.Year, t0.Month, 15);
+            double mc = meA.Money; string msgA;
+            TheAirline.Helpers.AdvertisingService.StartCampaign(meA, false, meA.Profile.Country.Uid, 1, 1, out msgA);
+            TheAirline.Helpers.AdvertisingService.StartCampaign(meA, true, meA.Airports.First().Profile.IATACode, 1, 3, out msgA);
+            var camps = TheAirline.Helpers.AdvertisingService.Campaigns(meA).ToList();
+            double c1 = camps[camps.Count - 2].MonthlyCost, c3 = camps[camps.Count - 1].MonthlyCost;
+            int paidMonths = 0;
+            for (int k = 1; k <= 4; k++)
+            {
+                gA.GameTime = new DateTime(t0.Year, t0.Month, 1).AddMonths(k);
+                double beforeA = meA.Money; TheAirline.Helpers.AdvertisingService.ProcessMonth(meA);
+                Console.WriteLine("  month " + k + ": paid " + (beforeA - meA.Money).ToString("N0"));
+            }
+            double paid = mc - meA.Money;
+            Console.WriteLine("  campaigns of 1 and 3 months cost " + c1.ToString("N0") + " and " + c3.ToString("N0") + " a month; paid " + paid.ToString("N0") + " in all (expected " + (c1 + 3 * c3).ToString("N0") + ")");
+            gA.GameTime = t0; meA.Money = mc + paid;
+            if (Math.Abs(paid - (c1 + 3 * c3)) > 0.01) { Console.WriteLine("  FAILED campaign months"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();

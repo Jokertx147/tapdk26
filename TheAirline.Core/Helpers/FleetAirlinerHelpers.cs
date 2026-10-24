@@ -974,7 +974,6 @@ namespace TheAirline.Helpers
                 {
                     if (policy.NextPaymentDue.Month == GameObject.GetInstance().GameTime.Month)
                     {
-                        airline.Money -= policy.PaymentAmount;
                         //Invoice payment = new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, policy.PaymentAmount);
                         AirlineHelpers.AddAirlineInvoice(airline, GameObject.GetInstance().GameTime, Invoice.InvoiceType.Maintenances, -policy.PaymentAmount);
                         policy.RemainingPayments--;

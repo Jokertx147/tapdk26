@@ -1535,7 +1535,7 @@ namespace TheAirline.Helpers
                     airline,
                     GameObject.GetInstance().GameTime,
                     Invoice.InvoiceType.Purchases,
-                    AirportHelpers.GetHubPrice(airport, hubtype));
+                    -AirportHelpers.GetHubPrice(airport, hubtype));
 
                 // NewsFeeds.AddNewsFeed(new NewsFeed(GameObject.GetInstance().GameTime, string.Format(Translator.GetInstance().GetString("NewsFeed", "1003"), airline.Profile.Name, new AirportCodeFormatter().Convert(airport), airport.Profile.Town.Name, airport.Profile.Town.Country.ShortName)));
             }
@@ -1766,6 +1766,12 @@ namespace TheAirline.Helpers
                                         loan.Date,
                                         Invoice.InvoiceType.Loans,
                                         loan.Amount);
+                                    // the loan pays for the aircraft: it isn't free
+                                    AirlineHelpers.AddAirlineInvoice(
+                                        airline,
+                                        GameObject.GetInstance().GameTime,
+                                        Invoice.InvoiceType.Purchases,
+                                        -airliner.Value.Key.GetPrice());
                                 }
                                 else
                                 {

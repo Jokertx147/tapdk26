@@ -366,6 +366,15 @@ namespace TheAirline.Helpers
                     GameObject.GetInstance().GameTime,
                     Invoice.InvoiceType.Tickets,
                     agreementIncome);
+
+                // the partner's share of the tickets comes out of the operating airline's income
+                AirlineHelpers.AddAirlineInvoice(
+                    airline,
+                    GameObject.GetInstance().GameTime,
+                    Invoice.InvoiceType.Tickets,
+                    -agreementIncome);
+                airliner.CurrentFlight.Entry.TimeTable.Route.AddRouteInvoice(
+                    new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Tickets, -agreementIncome));
             }
 
             AirlineHelpers.AddAirlineInvoice(
@@ -407,13 +416,7 @@ namespace TheAirline.Helpers
                 wages = cabinCrew*flighttime.TotalHours
                         *airliner.Airliner.Airline.Fees.GetValue(FeeTypes.GetType("Cabin Wage"));
                 // +(airliner.CurrentFlight.Entry.TimeTable.Route.getTotalCabinCrew() * airliner.Airliner.Airline.Fees.getValue(FeeTypes.GetType("Cabin kilometer rate")) * fdistance) + (airliner.Airliner.Type.CockpitCrew * airliner.Airliner.Airline.Fees.getValue(FeeTypes.GetType("Cockpit kilometer rate")) * fdistance);
-                //wages
-                AirlineHelpers.AddAirlineInvoice(
-                    airline,
-                    GameObject.GetInstance().GameTime,
-                    Invoice.InvoiceType.Wages,
-                    -wages);
-
+                // holiday pay is 50% more; the airline is charged what the route shows
                 HolidayYearEvent holiday = HolidayYear.GetHoliday(
                     airline.Profile.Country,
                     GameObject.GetInstance().GameTime);
@@ -424,6 +427,11 @@ namespace TheAirline.Helpers
                 {
                     wages = wages*1.50;
                 }
+                AirlineHelpers.AddAirlineInvoice(
+                    airline,
+                    GameObject.GetInstance().GameTime,
+                    Invoice.InvoiceType.Wages,
+                    -wages);
 
                 airliner.CurrentFlight.Entry.TimeTable.Route.AddRouteInvoice(
                     new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Wages, -wages));
