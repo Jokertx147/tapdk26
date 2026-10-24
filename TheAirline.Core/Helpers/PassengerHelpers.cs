@@ -3022,6 +3022,7 @@ namespace TheAirline.Helpers
             double nearby = GetNearbyPassengerDemand(airportCurrent, airportDestination, airliner, type);
             double connectingShare = demand + connecting + nearby > 0 ? connecting/(demand + connecting + nearby) : 0;
 
+            double traceBase = demand + connecting + nearby;
             double passengerDemand = (demand + connecting + nearby)
                                      *GetSeasonFactor(airportDestination)*GetHolidayFactor(airportDestination)
                                      *GetHolidayFactor(airportCurrent);
@@ -3117,6 +3118,7 @@ namespace TheAirline.Helpers
 
             double flightsPerDay = Convert.ToDouble(routes.Sum(r => r.TimeTable.Entries.Count))/7;
 
+            double traceDaily = passengerDemand;
             passengerDemand = passengerDemand/flightsPerDay;
 
             double totalCapacity;
@@ -3195,8 +3197,28 @@ namespace TheAirline.Helpers
 
             ConnectionService.Record(currentRoute, pax, pax*connectingShare, airliner.Airliner.GetAirlinerClass(type).SeatingCapacity);
 
+            FlightTrace?.Invoke(new FlightPaxTrace
+            {
+                Airline = airliner.Airliner.Airline, Route = currentRoute, Type = type, BaseDemand = traceBase, Direct = demand, Connecting = connecting, Nearby = nearby, DailyDemand = traceDaily,
+                FlightsPerDay = flightsPerDay, PerFlight = passengerDemand, TotalCapacity = totalCapacity, CapacityPercent = capacityPercent,
+                Competition = routeRatioPercent, Reputation = reputationPercent, Score = routeScoreFactor,
+                Seats = airliner.Airliner.GetAirlinerClass(type).SeatingCapacity, Passengers = pax
+            });
+
             return pax;
         }
+
+        /// <summary>What went into one flight's passengers in one class (for the economy probe; off in normal play).</summary>
+        public class FlightPaxTrace
+        {
+            public Airline Airline;
+            public Route Route;
+            public AirlinerClass.ClassType Type;
+            public double BaseDemand, Direct, Connecting, Nearby, DailyDemand, FlightsPerDay, PerFlight, TotalCapacity, CapacityPercent, Competition, Reputation, Score;
+            public int Seats, Passengers;
+        }
+
+        public static Action<FlightPaxTrace> FlightTrace;
 
         //returns the number of passengers for a flight
         public static int GetFlightPassengers(FleetAirliner airliner, AirlinerClass.ClassType type)

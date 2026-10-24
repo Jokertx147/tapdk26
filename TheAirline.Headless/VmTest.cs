@@ -55,6 +55,60 @@ static class VmTest
     }
 
     // measures what flying costs: "vm costs"
+    /// <summary>"vm year": a year month by month: each airline's fares against the market, load and margin.</summary>
+    static void YearProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int m = 0; m < 12; m++)
+        {
+            int startMonth = g.GameTime.Month;
+            while (g.GameTime.Month == startMonth) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            var last = g.GameTime.AddMonths(-1);
+            Console.WriteLine("-- " + last.ToString("MMM yyyy"));
+            foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0).OrderByDescending(a => a.Fleet.Count).Take(6))
+            {
+                var routes = a.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
+                var ratios = routes.Select(r => TheAirline.Helpers.AIPricingService.EconomyFare(r) / TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass)).Where(x => x > 0 && !double.IsInfinity(x)).ToList();
+                var loads = routes.Select(r => TheAirline.Helpers.ConnectionService.MonthLoad(r)).Where(x => x > 0).ToList();
+                double inc = 0, cost = 0;
+                foreach (TheAirline.Models.General.Finances.Invoice.InvoiceType t in Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType)))
+                {
+                    if (t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Total || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Purchases || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Loans) continue;
+                    double v = a.GetInvoicesAmountMonth(last.Year, last.Month, t);
+                    if (v > 0) inc += v; else cost += v;
+                }
+                Console.WriteLine(string.Format("   {0,-22} {1,3} aircraft {2,3} routes | fare/market {3:0.00} | load {4:0}% | operating margin {5:0}% | cash {6:N0}",
+                    a.Profile.Name, a.Fleet.Count, routes.Count, ratios.Count > 0 ? ratios.Average() : 0, loads.Count > 0 ? loads.Average() * 100 : 0, inc > 0 ? 100 * (inc + cost) / inc : 0, a.Money));
+            }
+        }
+    }
+
+    static string Med(System.Collections.Generic.IEnumerable<double> v) { var l = v.OrderBy(x => x).ToList(); return l.Count == 0 ? "-" : l[l.Count / 2].ToString("N1"); }
+
+    /// <summary>"vm pax": what fills the flights, per airline (demand, competition, reputation, route score).</summary>
+    static void PaxProbe(AirlineViewModel av)
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int d = 0; d < 45; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var list = new System.Collections.Concurrent.ConcurrentBag<TheAirline.Helpers.PassengerHelpers.FlightPaxTrace>();
+        TheAirline.Helpers.PassengerHelpers.FlightTrace = t => { if (t.Type == TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass) list.Add(t); };
+        for (int d = 0; d < 10; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Helpers.PassengerHelpers.FlightTrace = null;
+        Console.WriteLine("economy class, " + list.Count + " flights in 10 days, " + g.GameTime.ToShortDateString());
+        foreach (var grp in list.GroupBy(t => t.Airline).OrderByDescending(x => x.Count()))
+        {
+            var x = grp.ToList();
+            Console.WriteLine(string.Format("== {0}: {1} flights | load {2:0}% | demand per flight / seats {3:0.0} (median {4:0.0}) | saturated {5:0}% | competition {6:0.00} | reputation {7:0.00} | route score factor {8:0.00} | flights/day on pair {9:0.0}",
+                grp.Key.Profile.Name, x.Count, 100.0 * x.Sum(t => t.Passengers) / Math.Max(1, x.Sum(t => t.Seats)),
+                x.Average(t => t.PerFlight / Math.Max(1, t.Seats)), x.Select(t => t.PerFlight / Math.Max(1, t.Seats)).OrderBy(v => v).ElementAt(x.Count / 2),
+                100.0 * x.Count(t => t.CapacityPercent >= 1) / x.Count, x.Average(t => t.Competition), x.Average(t => t.Reputation), x.Average(t => t.Score), x.Average(t => t.FlightsPerDay)));
+        }
+        Console.WriteLine("median per flight: direct " + Med(list.Select(t => t.Direct)) + ", connecting " + Med(list.Select(t => t.Connecting)) + ", nearby " + Med(list.Select(t => t.Nearby)) + " -> after score, season, price " + Med(list.Select(t => t.DailyDemand)) + " a day, / flights a day " + Med(list.Select(t => t.FlightsPerDay)) + " = " + Med(list.Select(t => t.PerFlight)) + " per flight vs seats " + Med(list.Select(t => (double) t.Seats)) + " | total capacity " + Med(list.Select(t => t.TotalCapacity)));
+        foreach (var t in list.Where(t => t.Airline.Profile.IATACode == "US").Take(3).Concat(list.Where(t => t.Airline.Profile.IATACode != "US").Take(3)))
+            Console.WriteLine("  " + t.Airline.Profile.IATACode + " " + t.Route.Destination1.Profile.IATACode + "-" + t.Route.Destination2.Profile.IATACode + ": direct " + t.Direct.ToString("N0") + " conn " + t.Connecting.ToString("N0") + " nearby " + t.Nearby.ToString("N0") + " daily " + t.DailyDemand.ToString("N0") + " flights/day " + t.FlightsPerDay.ToString("0.0") + " per flight " + t.PerFlight.ToString("N0") + " seats " + t.Seats + " pax " + t.Passengers);
+        Console.WriteLine("per-flight demand vs seats, all airlines: " + string.Join(", ", new[] { 0.5, 1, 2, 5, 10, 1e9 }.Select((hi, i) => { double lo = i == 0 ? 0 : new[] { 0.5, 1, 2, 5, 10 }[i - 1]; return "<" + (hi > 1e8 ? "inf" : hi.ToString()) + ": " + list.Count(t => t.PerFlight / Math.Max(1, t.Seats) >= lo && t.PerFlight / Math.Max(1, t.Seats) < hi); })));
+    }
+
     static void CostProbe(AirlineViewModel av)
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -869,6 +923,8 @@ static class VmTest
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
             if (Environment.GetCommandLineArgs().Contains("quick")) { QuickTests(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("unit")) { UnitTable(); return; }
             // aircraft market: pick the cheapest-looking aircraft we can afford and buy it

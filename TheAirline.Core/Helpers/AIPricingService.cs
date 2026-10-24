@@ -42,11 +42,12 @@ namespace TheAirline.Helpers
             Band(mentality, out low, out high);
             double target = ratio;
 
-            // the load
+            // the load: aim for flights about 85% full (an empty seat earns nothing, a full flight could charge more)
             if (load > 0.92) target *= 1.06;
-            else if (load > 0.82) target *= 1.03;
+            else if (load > 0.87) target *= 1.03;
             else if (load < 0.45) target *= 0.92;
-            else if (load < 0.60) target *= 0.96;
+            else if (load < 0.60) target *= 0.95;
+            else if (load < 0.75) target *= 0.98;
 
             // the competition
             if (rival.HasValue && rival.Value > 0)

@@ -2815,7 +2815,8 @@ namespace TheAirline.Helpers
 
             foreach (Airline airline in Airlines.GetAllAirlines())
             {
-                foreach (FleetAirliner airliner in airline.Fleet)
+                // with realistic costs maintenance is paid per flight hour (FlightCosts) and by the checks: no yearly bill on top
+                foreach (FleetAirliner airliner in FlightCosts.Enabled ? new List<FleetAirliner>() : airline.Fleet)
                 {
                     AirlineHelpers.AddAirlineInvoice(
                         airline,
