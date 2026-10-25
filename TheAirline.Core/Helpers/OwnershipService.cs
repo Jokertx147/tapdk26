@@ -12,11 +12,17 @@ namespace TheAirline.Helpers
     ///     What owning an aircraft costs with realistic costs: depreciation and the money tied up in it, 0.5% of its
     ///     current value a month (6% a year; a lease costs about 8.7% a year, so owning stays cheaper). It is paid
     ///     whether the aircraft flies or not, so idle aircraft cost money. Tough costs make it 40% more. Computer
-    ///     airlines sell owned aircraft they have no use for.
+    ///     airlines sell owned aircraft they have no use for, slowly (one a week) and at a used-market price (75%).
     /// </summary>
     public static class OwnershipService
     {
         public const double MonthlyShare = 0.005;
+
+        /// <summary>What a sold aircraft fetches, as a share of its value, and how often an airline can sell one.</summary>
+        public const double SalePriceShare = 0.75;
+        public const int DaysBetweenSales = 7;
+
+        private static readonly Dictionary<Airline, DateTime> LastSale = new Dictionary<Airline, DateTime>();
 
         public static bool IsOwned(FleetAirliner f)
         {
@@ -56,8 +62,8 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>
-        ///     A computer airline with more idle owned aircraft than its reserve sells the oldest one, at 90% of its value.
-        ///     Returns the aircraft sold, or null.
+        ///     A computer airline with more idle owned aircraft than its reserve sells the oldest one at 75% of its value,
+        ///     at most one a week. Returns the aircraft sold, or null.
         /// </summary>
         public static FleetAirliner SellSurplus(Airline airline)
         {
@@ -70,8 +76,14 @@ namespace TheAirline.Helpers
                                                 && f.Status == FleetAirliner.AirlinerStatus.Stopped).ToList();
             }
             if (idle.Count <= Reserve(airline)) return null;
+            lock (LastSale)
+            {
+                DateTime last;
+                if (LastSale.TryGetValue(airline, out last) && (now - last).TotalDays < DaysBetweenSales) return null;
+                LastSale[airline] = now;
+            }
             var sell = idle.OrderBy(f => f.Airliner.BuiltDate).First();
-            double price = Math.Max(0, sell.Airliner.GetPrice()*0.9);
+            double price = Math.Max(0, sell.Airliner.GetPrice()*SalePriceShare);
             lock (airline.Fleet)
             {
                 airline.RemoveAirliner(sell);

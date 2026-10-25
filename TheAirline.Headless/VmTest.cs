@@ -877,7 +877,18 @@ static class VmTest
             }
             int idle0 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
             double cash0 = aiO.Money; int sold = 0;
-            while (TheAirline.Helpers.OwnershipService.SellSurplus(aiO) != null) sold++;
+            var tO = gO.GameTime;
+            // one a week: a second sale the same day is refused, the next week's goes through
+            if (TheAirline.Helpers.OwnershipService.SellSurplus(aiO) != null) sold++;
+            bool sameDay = TheAirline.Helpers.OwnershipService.SellSurplus(aiO) != null;
+            Console.WriteLine("  first sale " + (sold == 1 ? "done" : "missing") + ", second the same day " + (sameDay ? "ALLOWED" : "refused"));
+            if (sold != 1 || sameDay) { Console.WriteLine("  FAILED weekly limit"); Environment.Exit(1); }
+            for (int w = 1; w <= 10; w++)
+            {
+                gO.GameTime = tO.AddDays(7 * w);
+                if (TheAirline.Helpers.OwnershipService.SellSurplus(aiO) != null) sold++;
+            }
+            gO.GameTime = tO;
             int idle1 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
             Console.WriteLine("  " + aiO.Profile.Name + ": " + idle0 + " idle owned, reserve " + TheAirline.Helpers.OwnershipService.Reserve(aiO) + " -> sold " + sold + " for " + (aiO.Money - cash0).ToString("N0") + ", " + idle1 + " idle left; on the used market: " + TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)));
             if (idle1 > TheAirline.Helpers.OwnershipService.Reserve(aiO) || sold == 0 || aiO.Money <= cash0 || TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)) != sold) { Console.WriteLine("  FAILED surplus sale"); Environment.Exit(1); }
