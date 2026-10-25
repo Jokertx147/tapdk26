@@ -116,7 +116,8 @@ namespace TheAirline.Helpers
 
         /// <summary>
         ///     The economy fare at which a flight with the route's aircraft, at the given share of seats filled, covers
-        ///     its flight costs (fuel, fees, crew, maintenance, handling, sales and overhead; not salaries or rents).
+        ///     its flight costs (fuel, fees, crew, maintenance, handling, sales and overhead) and its share of what the
+        ///     aircraft costs to own; not salaries or rents.
         /// </summary>
         public static double BreakEvenFare(PassengerRoute route, double load)
         {
@@ -134,12 +135,24 @@ namespace TheAirline.Helpers
             double cabin = (a.Type is AirlinerPassengerType p2 ? p2.CabinCrew : 0)*hours*route.Airline.Fees.GetValue(Models.Airlines.FeeTypes.GetType("Cabin Wage"));
             // the share-of-sales costs grow with the fare: solve fare*pax = fixed + fare*pax*share
             var parts = FlightCosts.Calculate(a, km, hours, 0);
-            double fixedCost = fuel + fees + cabin + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew;
+            double fixedCost = fuel + fees + cabin + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew + OwnershipPerFlight(f);
             double share = FlightCosts.Enabled ? (FlightCosts.DistributionShare(route.Airline) + 0.07)*(FlightCosts.Level >= 2 ? 1.4 : 1) : 0;
             // business and first seats pay more: count them as several economy seats
             double weight = route.Classes.Sum(c => a.GetAirlinerClass(c.Type) == null ? 0 : a.GetAirlinerClass(c.Type).SeatingCapacity*GeneralHelpers.ClassToPriceFactor(c.Type));
             double economyEquivalents = weight > 0 ? weight*Math.Max(0.1, load) : pax;
             return fixedCost/Math.Max(1, economyEquivalents*(1 - share));
+        }
+
+        /// <summary>An owned aircraft's monthly ownership cost spread over the flights it makes in a month.</summary>
+        public static double OwnershipPerFlight(FleetAirliner f)
+        {
+            double monthly = OwnershipService.MonthlyCost(f);
+            if (monthly <= 0) return 0;
+            int weekly;
+            try { weekly = f.Routes.ToList().SelectMany(r => r.TimeTable.Entries.ToList()).Count(e => e.Airliner == f); }
+            catch (Exception) { weekly = 0; }
+            double perMonth = weekly > 0 ? weekly*4.33 : 60;
+            return monthly/perMonth;
         }
 
         /// <summary>The share of seats the route filled in the last flights it flew (0 when unknown).</summary>
