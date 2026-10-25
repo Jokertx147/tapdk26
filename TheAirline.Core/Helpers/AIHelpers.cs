@@ -1196,6 +1196,9 @@ namespace TheAirline.Helpers
                 if (fleet.Count > 0)
                     CreateNewRoute(airline);
             }
+
+            // idle owned aircraft cost money: sell what the airline has no use for
+            OwnershipService.SellSurplus(airline);
         }
 
         private static void CheckForInviteToAlliance(Airline airline)

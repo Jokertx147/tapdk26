@@ -844,6 +844,44 @@ static class VmTest
             gA.GameTime = t0; meA.Money = mc + paid;
             if (Math.Abs(paid - (c1 + 3 * c3)) > 0.01) { Console.WriteLine("  FAILED campaign months"); Environment.Exit(1); }
         }
+        Console.WriteLine("OWNERSHIP TEST");
+        {
+            var gO = TheAirline.Models.General.GameObject.GetInstance();
+            var meO = gO.HumanAirline;
+            foreach (var f in meO.Fleet) Console.WriteLine("  " + f.Name + " " + f.Airliner.Type.Name + " " + f.Purchased + ": value " + f.Airliner.GetPrice().ToString("N0") + ", ownership " + TheAirline.Helpers.OwnershipService.MonthlyCost(f).ToString("N0") + " a month, lease would be " + f.Airliner.LeasingPrice.ToString("N0"));
+            double expected = meO.Fleet.Sum(f => TheAirline.Helpers.OwnershipService.MonthlyCost(f));
+            double m0 = meO.Money;
+            double charged = TheAirline.Helpers.OwnershipService.ProcessMonth(meO);
+            Console.WriteLine("  month: charged " + charged.ToString("N0") + ", money -" + (m0 - meO.Money).ToString("N0"));
+            if (Math.Abs(charged - expected) > 0.01 || Math.Abs((m0 - meO.Money) - charged) > 0.01) { Console.WriteLine("  FAILED ownership charge"); Environment.Exit(1); }
+            if (meO.Fleet.Any(f => f.Purchased == TheAirline.Models.Airliners.FleetAirliner.PurchasedType.Leased && TheAirline.Helpers.OwnershipService.MonthlyCost(f) > 0)) { Console.WriteLine("  FAILED leased charged"); Environment.Exit(1); }
+            gO.CostLevel = 0;
+            double orig = meO.Fleet.Sum(f => TheAirline.Helpers.OwnershipService.MonthlyCost(f));
+            gO.CostLevel = 2;
+            double tough = meO.Fleet.Sum(f => TheAirline.Helpers.OwnershipService.MonthlyCost(f));
+            gO.CostLevel = 1;
+            Console.WriteLine("  original costs " + orig.ToString("N0") + ", tough " + tough.ToString("N0"));
+            if (orig != 0 || (expected > 0 && Math.Abs(tough - expected * 1.4) > 0.01)) { Console.WriteLine("  FAILED levels"); Environment.Exit(1); }
+            meO.Money = m0;
+
+            // a computer airline sells idle aircraft beyond its reserve
+            var aiO = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman && a.Fleet.Count > 0 && a.Airports.Count > 0).OrderBy(a => a.Fleet.Count).First();
+            var t320 = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+            var mineO = new System.Collections.Generic.List<TheAirline.Models.Airliners.Airliner>();
+            for (int i = 0; i < 6; i++)
+            {
+                var al = new TheAirline.Models.Airliners.Airliner("own" + i, t320, "N-OWN" + i, gO.GameTime.AddYears(-i - 1)) { Airline = aiO };
+                TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+                TheAirline.Helpers.AirlineHelpers.AddAirliner(aiO, al, aiO.Airports.First(), false);
+                mineO.Add(al);
+            }
+            int idle0 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
+            double cash0 = aiO.Money; int sold = 0;
+            while (TheAirline.Helpers.OwnershipService.SellSurplus(aiO) != null) sold++;
+            int idle1 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
+            Console.WriteLine("  " + aiO.Profile.Name + ": " + idle0 + " idle owned, reserve " + TheAirline.Helpers.OwnershipService.Reserve(aiO) + " -> sold " + sold + " for " + (aiO.Money - cash0).ToString("N0") + ", " + idle1 + " idle left; on the used market: " + TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)));
+            if (idle1 > TheAirline.Helpers.OwnershipService.Reserve(aiO) || sold == 0 || aiO.Money <= cash0 || TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)) != sold) { Console.WriteLine("  FAILED surplus sale"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();

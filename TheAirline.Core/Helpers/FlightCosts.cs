@@ -39,7 +39,7 @@ namespace TheAirline.Helpers
             {
                 case 0: return "Original: flights pay only fuel, landing fees, passenger taxes, catering and cabin crew. Almost every route makes money.";
                 case 2: return "Tough: like Realistic, but the added costs are 40% higher. Only well-run routes make money.";
-                default: return "Realistic: flights also pay ground handling, maintenance per flight hour, en-route charges, crew time, ticket sales (5 to 8%) and overhead (7%). Short busy routes still earn well, long thin ones can lose.";
+                default: return "Realistic: flights also pay ground handling, maintenance per flight hour, en-route charges, crew time, ticket sales (5 to 8%) and overhead (7%), and owned aircraft cost 0.5% of their value a month whether they fly or not. Short busy routes still earn well, long thin ones can lose.";
             }
         }
 

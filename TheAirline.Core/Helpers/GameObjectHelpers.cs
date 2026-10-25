@@ -2710,6 +2710,8 @@ namespace TheAirline.Helpers
                 }
                 // reputation moves toward what the advertising supports; campaigns are paid here
                 AdvertisingService.ProcessMonth(airline);
+                // owned aircraft cost money too (realistic costs)
+                OwnershipService.ProcessMonth(airline);
                 //maintenance, insurance, and ratings
 
                 if (airline.InsurancePolicies != null)
