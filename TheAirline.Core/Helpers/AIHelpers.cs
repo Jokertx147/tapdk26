@@ -941,16 +941,16 @@ namespace TheAirline.Helpers
         public static void UpdateCPUAirline(Airline airline)
         {
             Parallel.Invoke(
-                () => CheckForNewRoute(airline),
-                () => CheckForNewHub(airline),
-                () => CheckForUpdateRoute(airline),
-                () => CheckForAirlinersWithoutRoutes(airline),
-                () => CheckForOrderOfAirliners(airline),
-                () => CheckForAirlineAlliance(airline),
-                () => CheckForAirlineCodesharing(airline),
-                () => CheckForSubsidiaryAirline(airline),
-                () => CheckForAirlineAirportFacilities(airline),
-                () => CheckForOrderOfAirliners(airline)); //close parallel.invoke
+                () => { using (Profiler.Measure("ai: CheckForNewRoute")) CheckForNewRoute(airline); },
+                () => { using (Profiler.Measure("ai: CheckForNewHub")) CheckForNewHub(airline); },
+                () => { using (Profiler.Measure("ai: CheckForUpdateRoute")) CheckForUpdateRoute(airline); },
+                () => { using (Profiler.Measure("ai: CheckForAirlinersWithoutRoutes")) CheckForAirlinersWithoutRoutes(airline); },
+                () => { using (Profiler.Measure("ai: CheckForOrderOfAirliners")) CheckForOrderOfAirliners(airline); },
+                () => { using (Profiler.Measure("ai: CheckForAirlineAlliance")) CheckForAirlineAlliance(airline); },
+                () => { using (Profiler.Measure("ai: CheckForAirlineCodesharing")) CheckForAirlineCodesharing(airline); },
+                () => { using (Profiler.Measure("ai: CheckForSubsidiaryAirline")) CheckForSubsidiaryAirline(airline); },
+                () => { using (Profiler.Measure("ai: CheckForAirlineAirportFacilities")) CheckForAirlineAirportFacilities(airline); },
+                () => { using (Profiler.Measure("ai: CheckForOrderOfAirliners")) CheckForOrderOfAirliners(airline); }); //close parallel.invoke
         }
 
         #endregion
@@ -1170,6 +1170,8 @@ namespace TheAirline.Helpers
         }
 
         //checks for any airliners without routes
+        private static readonly WeakDates<Airline> IdleRouteRetry = new WeakDates<Airline>();
+
         private static void CheckForAirlinersWithoutRoutes(Airline airline)
         {
             lock (airline.Fleet)
@@ -1193,12 +1195,23 @@ namespace TheAirline.Helpers
                         airline.Fleet.FindAll(
                             a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute));
 
-                if (fleet.Count > 0)
-                    CreateNewRoute(airline);
+                // looking for a route takes long (every airport in range is weighed); when nothing was found, wait a few
+                // days before looking again instead of searching every day for the idle reserve aircraft
+                DateTime retry;
+                bool waiting = IdleRouteRetry.TryGetValue(airline, out retry) && GameObject.GetInstance().GameTime < retry;
+                if (fleet.Count > 0 && !waiting)
+                {
+                    int routesBefore = airline.Routes.Count;
+                    using (Profiler.Measure("ai: idle aircraft, new route search"))
+                        CreateNewRoute(airline);
+                    if (airline.Routes.Count == routesBefore)
+                        IdleRouteRetry[airline] = GameObject.GetInstance().GameTime.AddDays(3);
+                }
             }
 
             // idle owned aircraft cost money: sell what the airline has no use for
-            OwnershipService.SellSurplus(airline);
+            using (Profiler.Measure("ai: idle aircraft, sell surplus"))
+                OwnershipService.SellSurplus(airline);
         }
 
         private static void CheckForInviteToAlliance(Airline airline)

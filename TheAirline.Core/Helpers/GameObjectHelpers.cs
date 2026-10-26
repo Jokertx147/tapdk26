@@ -315,7 +315,8 @@ namespace TheAirline.Helpers
 
         public static int GetPassengers(FleetAirliner airliner, AirlinerClass.ClassType type)
         {
-            return PassengerHelpers.GetFlightPassengers(airliner, type);
+            using (Profiler.Measure("flight: passengers (per class)"))
+                return PassengerHelpers.GetFlightPassengers(airliner, type);
         }
 
         public static void SetHistoricEventInfluence(HistoricEventInfluence e, Boolean onEndDate)
@@ -589,11 +590,15 @@ namespace TheAirline.Helpers
 
                 GameObject.GetInstance().GameTime = GameObject.GetInstance().GameTime.AddDays(1);
 
+                long pfD = Profiler.Start();
                 DoDailyUpdate();
+                Profiler.Stop("day: daily update", pfD);
 
                 if (MathHelpers.IsNewMonth(GameObject.GetInstance().GameTime))
                 {
+                    pfD = Profiler.Start();
                     DoMonthlyUpdate();
+                    Profiler.Stop("day: monthly update", pfD);
                 }
 
                 if (MathHelpers.IsNewYear(GameObject.GetInstance().GameTime))
@@ -606,12 +611,16 @@ namespace TheAirline.Helpers
                         {
                             double balance = airline.Money;
 
+                            long pfDay = Profiler.Start();
                             if (!airline.IsHuman)
                             {
                                 AIHelpers.UpdateCPUAirline(airline);
                             }
+                            Profiler.Stop("day: computer airline decisions", pfDay);
 
+                            pfDay = Profiler.Start();
                             DayTurnHelpers.SimulateAirlineFlights(airline);
+                            Profiler.Stop("day: flights", pfDay);
 
                             double income =
                                 airline.Invoices.MonthlyInvoices.Where(
@@ -3170,7 +3179,8 @@ namespace TheAirline.Helpers
                         }
                         if (airliner.CurrentFlight.IsCargoFlight())
                         {
-                            airliner.CurrentFlight.Cargo = PassengerHelpers.GetFlightCargo(airliner);
+                            using (Profiler.Measure("flight: cargo"))
+                                airliner.CurrentFlight.Cargo = PassengerHelpers.GetFlightCargo(airliner);
                         }
                     }
                     else

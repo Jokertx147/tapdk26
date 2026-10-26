@@ -348,6 +348,31 @@ static class VmTest
         }
     }
 
+    /// <summary>"vm perf": warm up (TAP_WARM days, default 40), then time TAP_DAYS game days (default 10) and show where the time goes.</summary>
+    static void PerfProbe()
+    {
+        int warm = int.TryParse(Environment.GetEnvironmentVariable("TAP_WARM"), out var w) ? w : 40;
+        int days = int.TryParse(Environment.GetEnvironmentVariable("TAP_DAYS"), out var d) ? d : 10;
+        var all = TheAirline.Models.Airlines.Airlines.GetAllAirlines();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("warm-up " + warm + " days: " + (sw.ElapsedMilliseconds / 1000.0).ToString("0.0") + " s, " + (sw.ElapsedMilliseconds / Math.Max(1, warm)) + " ms per day");
+        Console.WriteLine(all.Count(a => a.Fleet.Count > 0) + " airlines flying, " + all.Sum(a => a.Fleet.Count) + " aircraft, " + all.Sum(a => a.Routes.Count) + " routes");
+        TheAirline.Helpers.Profiler.Reset();
+        TheAirline.Helpers.Profiler.Enabled = true;
+        var times = new System.Collections.Generic.List<long>();
+        sw.Restart();
+        for (int i = 0; i < days; i++)
+        {
+            var one = System.Diagnostics.Stopwatch.StartNew();
+            TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            times.Add(one.ElapsedMilliseconds);
+        }
+        TheAirline.Helpers.Profiler.Enabled = false;
+        Console.WriteLine("PERF " + days + " days: " + sw.ElapsedMilliseconds + " ms, " + (sw.ElapsedMilliseconds / Math.Max(1, days)) + " ms per day (" + string.Join(", ", times) + ")");
+        Console.WriteLine(TheAirline.Helpers.Profiler.Report());
+    }
+
     /// <summary>"vm airlines": every airline at the start and after two months: who flies and who doesn't.</summary>
     static void AirlinesProbe()
     {
@@ -1354,6 +1379,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("cargo")) { CargoProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("airlines")) { AirlinesProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("perf")) { PerfProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

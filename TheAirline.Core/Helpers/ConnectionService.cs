@@ -212,11 +212,45 @@ namespace TheAirline.Helpers
         public static double FlightDemand(Airline airline, Route route, Airport current, Airport destination, AirlinerClass.ClassType type)
         {
             if (airline == null) return 0;
+            // the same for every flight of the route in that direction and class on one day: work it out once a day
+            DateTime day = GameObject.GetInstance().GameTime.Date;
+            var key = Tuple.Create(airline, current, destination, type);
+            DemandDay cached = route == null ? null : DemandCache.GetOrCreateValue(route);
+            if (cached != null)
+            {
+                lock (cached)
+                {
+                    double hit;
+                    if (cached.Day == day && cached.Values.TryGetValue(key, out hit)) return hit;
+                }
+            }
             double v = 0;
             foreach (var m in MarketsAt(airline, route, current, destination, type, true)) v += m.Added;
             foreach (var m in MarketsAt(airline, route, destination, current, type, false)) v += m.Added;
+            if (cached != null)
+            {
+                lock (cached)
+                {
+                    if (cached.Day != day)
+                    {
+                        cached.Day = day;
+                        cached.Values.Clear();
+                    }
+                    cached.Values[key] = v;
+                }
+            }
             return v;
         }
+
+        private sealed class DemandDay
+        {
+            public DateTime Day;
+            public readonly Dictionary<Tuple<Airline, Airport, Airport, AirlinerClass.ClassType>, double> Values =
+                new Dictionary<Tuple<Airline, Airport, Airport, AirlinerClass.ClassType>, double>();
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Route, DemandDay> DemandCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Route, DemandDay>();
 
         // ---- counting ----
 

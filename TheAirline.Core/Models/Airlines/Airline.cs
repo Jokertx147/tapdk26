@@ -459,13 +459,12 @@ namespace TheAirline.Models.Airlines
 
         public void AddRoute(Route route)
         {
-            var routes = new List<Route>(Routes);
-
             lock (_Routes)
             {
                 _Routes.Add(route);
                 route.Airline = this;
             }
+            RouteIndex.Invalidate();
             /*
                 foreach (string flightCode in route.TimeTable.Entries.Select(e => e.Destination.FlightCode).Distinct())
                     this.FlightCodes.Remove(flightCode);
@@ -867,6 +866,7 @@ namespace TheAirline.Models.Airlines
                 foreach (string flightCode in route.TimeTable.Entries.Select(e => e.Destination.FlightCode).Distinct())
                     this.FlightCodes.Add(flightCode);*/
             }
+            RouteIndex.Invalidate();
         }
 
         public void RemoveSubsidiaryAirline(SubsidiaryAirline subsidiary)

@@ -2923,32 +2923,15 @@ namespace TheAirline.Helpers
             double cargoPrice = airliner.CurrentFlight.GetCargoPrice();
             cargoDemand *= PricingService.CargoDemandFactor(cargoPrice, basicCargoPrice);
 
+            // every airline's flying cargo routes on this pair, nonstop or as a stopover leg
             var routes = new List<Route>();
-
-            foreach (Airline airline in Airlines.GetAllAirlines())
+            foreach (Route r in RouteIndex.Direct(airportCurrent, airportDestination))
             {
-                var aRoutes = new List<Route>(airline.Routes);
-
-                routes.AddRange(
-                    aRoutes.Where(r => r.Type == Route.RouteType.Cargo || r.Type == Route.RouteType.Mixed)
-                           .Where(
-                               r =>
-                               (r.HasAirliner)
-                               && (r.Destination1 == airportCurrent || r.Destination1 == airportDestination)
-                               && (r.Destination2 == airportDestination || r.Destination2 == airportCurrent)));
-                routes.AddRange(
-                    aRoutes.Where(r => r.Type == Route.RouteType.Mixed || r.Type == Route.RouteType.Cargo)
-                           .Where(
-                               r =>
-                               r.Stopovers.SelectMany(
-                                   s =>
-                                   s.Legs.Where(
-                                       l =>
-                                       r.HasAirliner
-                                       && (l.Destination1 == airportCurrent
-                                           || l.Destination1 == airportDestination)
-                                       && (l.Destination2 == airportDestination
-                                           || l.Destination2 == airportCurrent))).Any()));
+                if ((r.Type == Route.RouteType.Cargo || r.Type == Route.RouteType.Mixed) && r.HasAirliner) routes.Add(r);
+            }
+            foreach (Route r in RouteIndex.WithLeg(airportCurrent, airportDestination))
+            {
+                if ((r.Type == Route.RouteType.Cargo || r.Type == Route.RouteType.Mixed) && r.HasAirliner) routes.Add(r);
             }
 
             double flightsPerDay = Convert.ToDouble(routes.Sum(r => r.TimeTable.Entries.Count))/7;
@@ -3030,13 +3013,20 @@ namespace TheAirline.Helpers
 
             //double priceDiff = basicPrice / routePrice;
 
+            long pfAll = Profiler.Start();
+            long pf = Profiler.Start();
             double routeScoreFactor = RouteHelpers.GetRouteTotalScore(currentRoute)/5;
+            Profiler.Stop("pax: route score", pf);
 
             double demand = airportCurrent.GetDestinationPassengersRate(airportDestination, type);
 
             // passengers changing to or from the airline's (and its partners') other routes
+            pf = Profiler.Start();
             double connecting = ConnectionService.FlightDemand(airliner.Airliner.Airline, currentRoute, airportCurrent, airportDestination, type);
+            Profiler.Stop("pax: connecting demand", pf);
+            pf = Profiler.Start();
             double nearby = GetNearbyPassengerDemand(airportCurrent, airportDestination, airliner, type);
+            Profiler.Stop("pax: nearby demand", pf);
             double connectingShare = demand + connecting + nearby > 0 ? connecting/(demand + connecting + nearby) : 0;
 
             double traceBase = demand + connecting + nearby;
@@ -3075,6 +3065,7 @@ namespace TheAirline.Helpers
                 passengerDemand = passengerDemand*(115/100);
             }
 
+            pf = Profiler.Start();
             Hub hub = airportDestination.GetHubs().Find(h => h.Airline == airliner.Airliner.Airline);
 
             if (hub != null)
@@ -3105,36 +3096,20 @@ namespace TheAirline.Helpers
                 }
             }
 
+            // every airline's flying passenger routes on this pair, nonstop or as a stopover leg
             var routes = new List<Route>();
-
-            foreach (Airline airline in Airlines.GetAllAirlines())
+            foreach (Route r in RouteIndex.Direct(airportCurrent, airportDestination))
             {
-                var aRoutes = new List<Route>(airline.Routes);
-
-                routes.AddRange(
-                    aRoutes.Where(r => r.Type == Route.RouteType.Passenger || r.Type == Route.RouteType.Mixed)
-                           .Where(
-                               r =>
-                               (r.HasAirliner)
-                               && (r.Destination1 == airportCurrent || r.Destination1 == airportDestination)
-                               && (r.Destination2 == airportDestination || r.Destination2 == airportCurrent)));
-                routes.AddRange(
-                    aRoutes.Where(r => r.Type == Route.RouteType.Mixed || r.Type == Route.RouteType.Passenger)
-                           .Where(
-                               r =>
-                               r.Stopovers.SelectMany(
-                                   s =>
-                                   s.Legs.Where(
-                                       l =>
-                                       r.HasAirliner
-                                       && (l.Destination1 == airportCurrent
-                                           || l.Destination1 == airportDestination)
-                                       && (l.Destination2 == airportDestination
-                                           || l.Destination2 == airportCurrent))).Any()));
+                if ((r.Type == Route.RouteType.Passenger || r.Type == Route.RouteType.Mixed) && r.HasAirliner) routes.Add(r);
+            }
+            foreach (Route r in RouteIndex.WithLeg(airportCurrent, airportDestination))
+            {
+                if ((r.Type == Route.RouteType.Passenger || r.Type == Route.RouteType.Mixed) && r.HasAirliner) routes.Add(r);
             }
 
             double flightsPerDay = Convert.ToDouble(routes.Sum(r => r.TimeTable.Entries.Count))/7;
 
+            Profiler.Stop("pax: routes on the pair", pf);
             double traceDaily = passengerDemand;
             passengerDemand = passengerDemand/flightsPerDay;
 
@@ -3178,14 +3153,9 @@ namespace TheAirline.Helpers
                 routeRatioPercent = Math.Max(1, rations[currentRoute]/Math.Max(1, totalRatio));
             }
 
-            IDictionary<Airline, double> airlineScores = new Dictionary<Airline, double>();
-
-            foreach (Airline airline in Airlines.GetAllAirlines())
-            {
-                airlineScores.Add(airline, airportCurrent.GetAirlineReputation(airline));
-            }
-
-            double reputation = StatisticsHelpers.GetRatingScale(airlineScores)[airliner.Airliner.Airline];
+            pf = Profiler.Start();
+            double reputation = ReputationScale(airportCurrent, airliner.Airliner.Airline);
+            Profiler.Stop("pax: reputation of all airlines", pf);
 
             if (reputation < 76)
             {
@@ -3213,6 +3183,7 @@ namespace TheAirline.Helpers
             }
 
             ConnectionService.Record(currentRoute, pax, pax*connectingShare, airliner.Airliner.GetAirlinerClass(type).SeatingCapacity);
+            Profiler.Stop("pax: whole calculation", pfAll);
 
             FlightTrace?.Invoke(new FlightPaxTrace
             {
@@ -3558,6 +3529,33 @@ namespace TheAirline.Helpers
                 }
             }
             return 1;
+        }
+
+        // each airline's reputation at an airport on a 1-100 scale against all airlines, worked out once a game day
+        // per airport (it looks at every airline's routes and facilities there, which used to happen for every flight)
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, IDictionary<Airline, double>>> ReputationCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, IDictionary<Airline, double>>>();
+
+        private static double ReputationScale(Airport airport, Airline airline)
+        {
+            DateTime day = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, IDictionary<Airline, double>> cached;
+            double value;
+            if (ReputationCache.TryGetValue(airport, out cached) && cached.Item1 == day && cached.Item2.TryGetValue(airline, out value))
+            {
+                return value;
+            }
+
+            IDictionary<Airline, double> airlineScores = new Dictionary<Airline, double>();
+            foreach (Airline a in Airlines.GetAllAirlines())
+            {
+                if (!airlineScores.ContainsKey(a)) airlineScores.Add(a, airport.GetAirlineReputation(a));
+            }
+            if (!airlineScores.ContainsKey(airline)) airlineScores.Add(airline, airport.GetAirlineReputation(airline));
+
+            IDictionary<Airline, double> scale = StatisticsHelpers.GetRatingScale(airlineScores);
+            ReputationCache.AddOrUpdate(airport, Tuple.Create(day, scale));
+            return scale[airline];
         }
 
         private static double GetNearbyPassengerDemand(

@@ -36,6 +36,7 @@ namespace TheAirline.Infrastructure
                 Models.General.GameObject.RestartInstance();
                 // caches from an earlier game point into its world: start empty
                 Helpers.ConnectionService.Invalidate();
+                Helpers.RouteIndex.Invalidate();
                 Helpers.AIPricingService.Invalidate();
                 Helpers.AIPricingService.ForgetReviews();
                 if (Setup.SetupError != null)

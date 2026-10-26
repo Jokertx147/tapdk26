@@ -160,6 +160,7 @@ namespace TheAirline.Models.Routes
         public void AddStopover(StopoverRoute stopover)
         {
             Stopovers.Add(stopover);
+            RouteIndex.Invalidate();
         }
 
         public void ClearRouteStats()

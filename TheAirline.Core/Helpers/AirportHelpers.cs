@@ -860,18 +860,7 @@ namespace TheAirline.Helpers
 
         public static bool HasRoute(Airport airport1, Airport airport2)
         {
-            var airlines = new List<Airline>(Airlines.GetAllAirlines());
-
-            var routes = new List<Route>();
-
-            foreach (Airline airline in airlines)
-            {
-                routes.AddRange(airline.Routes);
-            }
-
-            return
-                routes.Any(r => (r.Destination1 == airport1 && r.Destination2 == airport2)
-                                || (r.Destination1 == airport2 && r.Destination2 == airport1));
+            return RouteIndex.HasRoute(airport1, airport2);
         }
 
         public static void ReallocateAirport(Airport airportOld, Airport airportNew)
