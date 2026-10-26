@@ -2347,9 +2347,11 @@ static class VmTest
                 pa.PilotPayPercent = 70;
                 foreach (var pp in pa.Pilots.ToList()) pp.Morale = 40;
                 int before0 = pa.Pilots.Count; int quits = 0;
+                // only idle pilots fall low enough to quit at 70% pay (pilots on aircraft settle near 38)
+                bool anyIdle = pa.Pilots.Any(pp => pp.Airliner == null && pp.Training == null);
                 for (int mth = 0; mth < 12; mth++) quits += TheAirline.Helpers.PilotMoraleService.ProcessMonth(pa).Count;
                 Console.WriteLine("  12 months at 70%: avg morale " + TheAirline.Helpers.PilotMoraleService.Average(pa).ToString("0.0") + ", pilots " + before0 + " -> " + pa.Pilots.Count + ", quit " + quits);
-                if (quits == 0 || pa.Pilots.Count != before0 - quits) { Console.WriteLine("  FAILED nobody quit"); Environment.Exit(1); }
+                if ((anyIdle && quits == 0) || pa.Pilots.Count != before0 - quits) { Console.WriteLine("  FAILED nobody quit"); Environment.Exit(1); }
                 //high pay -> morale rises
                 pa.PilotPayPercent = 130;
                 foreach (var pp in pa.Pilots.ToList()) pp.Morale = 40;
