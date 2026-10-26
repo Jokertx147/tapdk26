@@ -103,8 +103,10 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>Folds the subsidiary into the main airline: aircraft, gates, airports and money come over.</summary>
-        public static void FoldIn(Airline parent, SubsidiaryAirline sub, out string message)
+        public static bool FoldIn(Airline parent, SubsidiaryAirline sub, out string message)
         {
+            message = AirlineTypeRules.MergeBlocker(parent, sub);
+            if (message != null) return false;
             string name = sub.Profile.Name;
             int fleet = sub.Fleet.Count, routes = sub.Routes.Count;
             double money = sub.Money;
@@ -122,6 +124,7 @@ namespace TheAirline.Helpers
             }
             AirlineHelpers.CloseSubsidiaryAirline(sub);
             message = string.Format("{0} is now part of your airline: {1} aircraft, {2} route(s) and {3} came over.", name, fleet, routes, Money(money));
+            return true;
         }
 
         public static double LastMonthProfit(Airline a)

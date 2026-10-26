@@ -248,6 +248,11 @@ namespace TheAirline.Helpers
         {
             message = GetTakeoverBlocker(buyer, target);
             if (message != null) return false;
+            if (!asSubsidiary)
+            {
+                message = AirlineTypeRules.MergeBlocker(buyer, target);
+                if (message != null) return false;
+            }
 
             double cost = TakeoverCost(buyer, target);
             Pay(buyer, -cost);

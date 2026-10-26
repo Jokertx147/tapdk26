@@ -415,11 +415,13 @@ static class VmTest
             Console.WriteLine("  " + pv.Info + " | logo " + pv.LogoPath + " | header " + av.LogoPath + " | " + pv.LogoCount);
             if (pv.LogoPath == null || !System.IO.File.Exists(pv.LogoPath)) { Console.WriteLine("  FAILED no logo"); Environment.Exit(1); }
             pv.Name = "Lone Star Air"; pv.CEO = "Jose"; pv.Color = "1565c0"; pv.Narrative = "Texas first.";
-            pv.Focus = pv.Focuses.First(f => f.Value == TheAirline.Models.Routes.Route.RouteType.Mixed);
+            // the kind can't change once the airline flies: the rest saves and the note says why
+            pv.Focus = pv.Focuses.First(f => f.Value == TheAirline.Models.Routes.Route.RouteType.Cargo);
             pv.SaveCommand.Execute(null);
             av.Refresh();
             Console.WriteLine("  save: " + pv.Status + " | now " + me2.Profile.Name + ", CEO " + me2.Profile.CEO + ", color " + me2.Profile.Color + ", focus " + me2.AirlineRouteFocus + " | header " + av.AirlineName);
             if (me2.Profile.Name != "Lone Star Air" || me2.Profile.Color != "#1565C0" || av.AirlineName != "Lone Star Air") { Console.WriteLine("  FAILED save"); Environment.Exit(1); }
+            if ((me2.Routes.Count > 0 || me2.Fleet.Count > 0) && (me2.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Cargo || !pv.Status.Contains("only change"))) { Console.WriteLine("  FAILED kind change allowed"); Environment.Exit(1); }
             var other = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First(x => !x.IsHuman);
             pv.Name = other.Profile.Name; pv.SaveCommand.Execute(null); Console.WriteLine("  taken name: " + pv.Status);
             pv.Name = "Lone Star Air"; pv.Color = "not a color!"; pv.SaveCommand.Execute(null); Console.WriteLine("  bad color: " + pv.Status);
@@ -996,6 +998,27 @@ static class VmTest
             Console.WriteLine("  " + aiO.Profile.Name + ": " + idle0 + " idle owned, reserve " + TheAirline.Helpers.OwnershipService.Reserve(aiO) + " -> sold " + sold + " for " + (aiO.Money - cash0).ToString("N0") + ", " + idle1 + " idle left; on the used market: " + TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)));
             if (idle1 > TheAirline.Helpers.OwnershipService.Reserve(aiO) || sold == 0 || aiO.Money <= cash0 || TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)) != sold) { Console.WriteLine("  FAILED surplus sale"); Environment.Exit(1); }
         }
+        Console.WriteLine("AIRLINE KIND TEST");
+        {
+            var meT = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+            var cargoAl = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First(a => a.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Cargo);
+            var freighter = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(t => t is TheAirline.Models.Airliners.AirlinerCargoType);
+            var a320T = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(t => t.Name == "Airbus A320-200");
+            Console.WriteLine("  " + meT.Profile.Name + ": " + TheAirline.Helpers.AirlineTypeRules.Kind(meT) + " | " + cargoAl.Profile.Name + ": " + TheAirline.Helpers.AirlineTypeRules.Kind(cargoAl));
+            Console.WriteLine("  cargo route: " + TheAirline.Helpers.AirlineTypeRules.RouteBlocker(meT, TheAirline.Models.Routes.Route.RouteType.Cargo));
+            Console.WriteLine("  freighter: " + TheAirline.Helpers.AirlineTypeRules.TypeBlocker(meT, freighter));
+            Console.WriteLine("  merge: " + TheAirline.Helpers.AirlineTypeRules.MergeBlocker(meT, cargoAl));
+            string m;
+            var req = new TheAirline.Helpers.NewRouteRequest { Origin = meT.Airports.First(), Destination = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "MEM"), RouteType = TheAirline.Models.Routes.Route.RouteType.Cargo };
+            var made = TheAirline.Helpers.RouteCreator.Create(req, out m);
+            Console.WriteLine("  create cargo route: " + (made == null ? "refused: " + m : "CREATED"));
+            av.NewAircraft.Reload(); av.Market.Reload();
+            int fNew = av.NewAircraft.Types.Count(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType), fUsed = av.Market.Aircraft.Count(x => x.Airliner.Type is TheAirline.Models.Airliners.AirlinerCargoType);
+            Console.WriteLine("  freighters offered: new " + fNew + ", used " + fUsed + " | create route page kind: " + av.Airports.KindText + ", can choose " + av.Airports.CanChooseKind);
+            if (made != null || fNew != 0 || fUsed != 0 || TheAirline.Helpers.AirlineTypeRules.CanUseType(meT, freighter) || !TheAirline.Helpers.AirlineTypeRules.CanUseType(cargoAl, freighter)
+                || TheAirline.Helpers.AirlineTypeRules.CanUseType(cargoAl, a320T) || TheAirline.Helpers.AirlineTypeRules.MergeBlocker(meT, cargoAl) == null || av.Airports.CanChooseKind)
+            { Console.WriteLine("  FAILED airline kinds"); Environment.Exit(1); }
+        }
         Console.WriteLine("RUNWAY TEST");
         {
             var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -1107,6 +1130,7 @@ static class VmTest
             // tests keep the small world they were written for; TAP_OPPONENTS sets more for the economy probes
             int opp; ng.Opponents = int.TryParse(Environment.GetEnvironmentVariable("TAP_OPPONENTS"), out opp) ? opp : 5;
             Console.WriteLine("opponents: " + ng.SelectedOpponentOption.Name + " | " + ng.OpponentsText);
+            Console.WriteLine("kind: " + ng.SelectedAirlineKind);
             ng.CreateCommand.Execute(null);
             await Wait(() => shell.Current is AirlineViewModel, "game created");
             var av = (AirlineViewModel)shell.Current;
@@ -1578,8 +1602,18 @@ static class VmTest
                     Console.WriteLine("  buy facility: " + cam.Status);
                 }
                 for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
-                // buy a cargo aircraft
+                // a passenger airline can't buy freighters or plan cargo routes
+                var meKind = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
                 var cna = cav.NewAircraft;
+                cna.Reload();
+                int paxFreighters = cna.Types.Count(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType);
+                cav.Airports.CargoMode = true;
+                Console.WriteLine("  passenger airline: freighters for sale " + paxFreighters + ", cargo mode " + cav.Airports.CargoMode + " (" + cav.Airports.Status + ")");
+                if (paxFreighters != 0 || cav.Airports.CargoMode) { Console.WriteLine("  FAILED passenger airline went cargo"); Environment.Exit(1); }
+                // for the cargo checks the test airline becomes a cargo airline (in a game only possible before it flies)
+                meKind.AirlineRouteFocus = TheAirline.Models.Routes.Route.RouteType.Cargo;
+                cav.Airports.ReloadAdvice();
+                // buy a cargo aircraft
                 cna.Reload();
                 var cargoType = cna.Types.FirstOrDefault(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType && t.Type.Range >= 1700);
                 Console.WriteLine("  cargo types in new-aircraft list: " + cna.Types.Count(t => t.Type is TheAirline.Models.Airliners.AirlinerCargoType) + " pick=" + cargoType?.Name + " | " + cargoType?.Details);
@@ -1624,6 +1658,9 @@ static class VmTest
                 }
                 var ctt = cav.Timetable;
                 Console.WriteLine("  timetable aircraft: " + string.Join(", ", ctt.Aircraft.Select(x => x.ToString())));
+                if (croute == null) { Console.WriteLine("  FAILED no cargo route for the cargo airline"); Environment.Exit(1); }
+                meKind.AirlineRouteFocus = TheAirline.Models.Routes.Route.RouteType.Passenger;
+                cav.Airports.ReloadAdvice();
             }
             {
                 Console.WriteLine("ASSIGN TEST");

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TheAirline.Helpers;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
+using TheAirline.Models.Routes;
 
 namespace TheAirline.Presentation
 {
@@ -96,6 +97,8 @@ namespace TheAirline.Presentation
             Airports = new ObservableCollection<AirportItem>();
             Advice = new ObservableCollection<AdviceItem>();
             Destinations = new ObservableCollection<DestinationItem>();
+            // a cargo airline plans cargo routes, a passenger airline passenger routes
+            _cargo = AirlineTypeRules.IsCargoAirline(GameObject.GetInstance()?.HumanAirline);
             ApplySearch();
             Selected = Airports.FirstOrDefault();
         }
@@ -195,6 +198,15 @@ namespace TheAirline.Presentation
             get { return _cargo; }
             set
             {
+                var me = GameObject.GetInstance()?.HumanAirline;
+                string blocker = me == null ? null : AirlineTypeRules.RouteBlocker(me, value ? Route.RouteType.Cargo : Route.RouteType.Passenger);
+                if (blocker != null)
+                {
+                    Status = blocker;
+                    OnPropertyChanged(nameof(CargoMode));
+                    OnPropertyChanged(nameof(PassengerMode));
+                    return;
+                }
                 if (SetProperty(ref _cargo, value))
                 {
                     OnPropertyChanged(nameof(PassengerMode));
@@ -260,7 +272,7 @@ namespace TheAirline.Presentation
         /// <summary>Opens the new route form for two airports (used by the connections page).</summary>
         public void PlanRoute(Airport from, Airport to)
         {
-            CargoMode = false;
+            if (AirlineTypeRules.CanFlyRoute(GameObject.GetInstance().HumanAirline, Route.RouteType.Passenger)) CargoMode = false;
             var item = Airports.FirstOrDefault(a => a.Airport == from);
             if (item != null) Selected = item;
             Create = new CreateRouteViewModel(from, to, OnCreateDone, false);
@@ -311,7 +323,38 @@ namespace TheAirline.Presentation
         /// <summary>Recalculates the suggestions (after the fleet or routes changed).</summary>
         public void ReloadAdvice()
         {
+            // the airline's kind decides the kind of route (it can change on the profile page while there are no routes)
+            var me = GameObject.GetInstance()?.HumanAirline;
+            if (me != null && !AirlineTypeRules.CanFlyRoute(me, _cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger))
+            {
+                _cargo = !_cargo;
+                OnPropertyChanged(nameof(CargoMode));
+                OnPropertyChanged(nameof(PassengerMode));
+                OnPropertyChanged(nameof(AdviceTitle));
+            }
+            OnPropertyChanged(nameof(CanChooseKind));
+            OnPropertyChanged(nameof(KindText));
             LoadAdvice(false);
+        }
+
+        /// <summary>Only an airline that flies both kinds picks passenger or cargo routes here.</summary>
+        public bool CanChooseKind
+        {
+            get
+            {
+                var me = GameObject.GetInstance()?.HumanAirline;
+                return me != null && AirlineTypeRules.CanFlyRoute(me, Route.RouteType.Cargo) && AirlineTypeRules.CanFlyRoute(me, Route.RouteType.Passenger);
+            }
+        }
+
+        public string KindText
+        {
+            get
+            {
+                var me = GameObject.GetInstance()?.HumanAirline;
+                if (me == null || CanChooseKind) return null;
+                return AirlineTypeRules.IsCargoAirline(me) ? "Cargo routes (a cargo airline)" : "Passenger routes (a passenger airline)";
+            }
         }
 
         private int _loadId;

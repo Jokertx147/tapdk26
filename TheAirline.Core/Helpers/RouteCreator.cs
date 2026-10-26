@@ -135,6 +135,13 @@ namespace TheAirline.Helpers
             Airport origin = request.Origin;
             Airport destination = request.Destination;
 
+            // a passenger airline flies passenger routes, a cargo airline cargo routes
+            message = AirlineTypeRules.RouteBlocker(airline, request.RouteType == Route.RouteType.Cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger);
+            if (message != null)
+            {
+                return null;
+            }
+
             if (airline.Routes.Exists(
                 r =>
                 r.IsCargoRoute == (request.RouteType == Route.RouteType.Cargo)

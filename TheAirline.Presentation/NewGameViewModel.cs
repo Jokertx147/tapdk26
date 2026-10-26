@@ -127,6 +127,19 @@ namespace TheAirline.Presentation
             private set { SetProperty(ref _airlines, value); }
         }
 
+        /// <summary>What the chosen airline can fly: passenger airlines fly passenger routes, cargo airlines cargo routes.</summary>
+        public string SelectedAirlineKind
+        {
+            get
+            {
+                var a = _selectedAirline;
+                if (a == null) return null;
+                bool cargo = Helpers.AirlineTypeRules.IsCargoAirline(a);
+                return a.Profile.Name + " is a " + Helpers.AirlineTypeRules.Kind(a) + ": it flies " + (cargo ? "cargo" : "passenger") +
+                       " routes only. You can start a " + (cargo ? "passenger" : "cargo") + " subsidiary later to fly the other kind.";
+            }
+        }
+
         public Airline SelectedAirline
         {
             get { return _selectedAirline; }
@@ -139,6 +152,7 @@ namespace TheAirline.Presentation
                         Ceo = value.Profile.CEO ?? "";
                         OnPropertyChanged(nameof(Narrative));
                     }
+                    OnPropertyChanged(nameof(SelectedAirlineKind));
 
                     (CreateCommand as AsyncCommand)?.RaiseCanExecuteChanged();
                 }

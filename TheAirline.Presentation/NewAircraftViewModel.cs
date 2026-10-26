@@ -236,7 +236,9 @@ namespace TheAirline.Presentation
                                     t => t.Produced.From <= now && t.Produced.To > now
                                          && (t.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
                                              || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
-                                             || t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo))
+                                             || t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
+                                         // passenger airlines don't buy freighters, cargo airlines buy nothing else
+                                         && AirlineTypeRules.CanUseType(GameObject.GetInstance().HumanAirline, t))
                                 .OrderBy(t => t.Manufacturer?.Name)
                                 .ThenBy(t => t.Name)
                                 .Select(t => new NewTypeItem(t))

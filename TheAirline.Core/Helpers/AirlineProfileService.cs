@@ -161,21 +161,26 @@ namespace TheAirline.Helpers
                 return false;
             }
 
+            // the kind (passenger or cargo) only changes while the airline has no routes and no aircraft
+            string kindNote = AirlineTypeRules.KindChangeBlocker(airline, focus);
+            bool newKind = kindNote == null && AirlineTypeRules.IsCargoAirline(airline) != (focus == Route.RouteType.Cargo);
+
             var p = airline.Profile;
             var changes = new List<string>();
             if (p.Name != name) changes.Add("name");
             if ((p.CEO ?? "") != (ceo ?? "").Trim()) changes.Add("CEO");
             if (c != null && p.Color != c) changes.Add("color");
             if ((p.Narrative ?? "") != (narrative ?? "").Trim()) changes.Add("story");
-            if (airline.AirlineRouteFocus != focus) changes.Add("route focus");
+            if (newKind) changes.Add(focus == Route.RouteType.Cargo ? "now a cargo airline" : "now a passenger airline");
 
             p.Name = name;
             p.CEO = (ceo ?? "").Trim();
             if (c != null) p.Color = c;
             p.Narrative = (narrative ?? "").Trim();
-            airline.AirlineRouteFocus = focus;
+            if (newKind) airline.AirlineRouteFocus = focus;
 
             message = changes.Count == 0 ? "Nothing changed." : "Saved: " + string.Join(", ", changes) + ".";
+            if (kindNote != null) message += " " + kindNote;
             return true;
         }
     }

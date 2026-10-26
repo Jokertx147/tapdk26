@@ -2028,6 +2028,7 @@ namespace TheAirline.Helpers
                 airline.Fleet.FindAll(
                     f =>
                     !f.HasRoute && f.Airliner.BuiltDate <= GameObject.GetInstance().GameTime
+                    && AirlineTypeRules.CanUseType(airline, f.Airliner.Type)
                     && f.Airliner.Range
                     > MathHelpers.GetDistance(
                         destination1.Profile.Coordinates.ConvertToGeoCoordinate(),

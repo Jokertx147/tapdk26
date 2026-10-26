@@ -30,9 +30,9 @@ namespace TheAirline.Presentation
             Logos = new ObservableCollection<LogoChoice>();
             Focuses = new List<NamedChoice<Route.RouteType>>
             {
-                new NamedChoice<Route.RouteType> { Name = "Passengers", Value = Route.RouteType.Passenger },
-                new NamedChoice<Route.RouteType> { Name = "Cargo", Value = Route.RouteType.Cargo },
-                new NamedChoice<Route.RouteType> { Name = "Passengers and cargo", Value = Route.RouteType.Mixed }
+                // an airline is one or the other; a subsidiary flies the other kind
+                new NamedChoice<Route.RouteType> { Name = "Passenger airline", Value = Route.RouteType.Passenger },
+                new NamedChoice<Route.RouteType> { Name = "Cargo airline", Value = Route.RouteType.Cargo }
             };
             SaveCommand = new RelayCommand(Save);
             UndoCommand = new RelayCommand(Reload);
@@ -125,7 +125,7 @@ namespace TheAirline.Presentation
             CEO = p.CEO;
             Color = p.Color;
             Narrative = p.Narrative;
-            Focus = Focuses.FirstOrDefault(f => f.Value == airline.AirlineRouteFocus) ?? Focuses[0];
+            Focus = AirlineTypeRules.IsCargoAirline(airline) ? Focuses[1] : Focuses[0];
             Info = string.Format(
                 "Code {0}  |  {1}  |  founded {2}  |  the code cannot be changed, the game uses it to find your airline",
                 p.IATACode, p.Country?.Name, p.Founded);

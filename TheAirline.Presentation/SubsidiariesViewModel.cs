@@ -236,9 +236,15 @@ namespace TheAirline.Presentation
             var s = _selected?.Airline;
             if (s == null) return;
             var me = GameObject.GetInstance().HumanAirline;
+            string blocker = AirlineTypeRules.MergeBlocker(me, s);
+            if (blocker != null)
+            {
+                Status = blocker;
+                return;
+            }
             SetPending(
                 "Fold " + s.Profile.Name + " into your airline? Its aircraft, routes, gates, pilots and " + Money(s.Money) + " come over and its name disappears.",
-                () => { string m; SubsidiaryService.FoldIn(me, s, out m); Done(true, m); });
+                () => { string m; Done(SubsidiaryService.FoldIn(me, s, out m), m); });
         }
     }
 }

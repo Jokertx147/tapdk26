@@ -111,9 +111,10 @@ namespace TheAirline.Presentation
         {
             _all = Airliners.GetAirlinersForSale()
                             .Where(
-                                a => a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
-                                     || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
-                                     || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
+                                a => (a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
+                                      || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
+                                      || a.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
+                                     && AirlineTypeRules.CanUseType(GameObject.GetInstance().HumanAirline, a.Type))
                             .OrderByDescending(a => a.BuiltDate.Year)
                             .ThenBy(a => a.Type.Name)
                             .Select(a => new AircraftItem(a))
