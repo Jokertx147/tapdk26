@@ -113,7 +113,34 @@ namespace TheAirline.Presentation
         public string CargoPrice
         {
             get { return _cargoPrice; }
-            set { SetProperty(ref _cargoPrice, value); }
+            set { if (SetProperty(ref _cargoPrice, value)) OnPropertyChanged(nameof(CargoEffectText)); }
+        }
+
+        private double CargoMarket => IsCargo ? PricingService.CargoMarketRate(_route.Destination1, _route.Destination2) : 0;
+
+        public string CargoMarketText => IsCargo ? "market " + Money(CargoMarket) : "";
+
+        /// <summary>What the typed cargo rate does to demand.</summary>
+        public string CargoEffectText
+        {
+            get
+            {
+                double p;
+                if (!IsCargo || !PricingService.Realistic || CargoMarket <= 0) return "";
+                if (!double.TryParse((_cargoPrice ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out p)) return "";
+                return string.Format("{0:0}% of market, about {1:0}% of the normal cargo demand", p/CargoMarket*100, PricingService.CargoDemandFactor(p, CargoMarket)*100);
+            }
+        }
+
+        public ICommand CargoMarketCommand => new RelayCommand(() => CargoPrice = CargoMarket.ToString("0.00", CultureInfo.InvariantCulture));
+        public ICommand CargoDownCommand => new RelayCommand(() => ScaleCargo(0.9));
+        public ICommand CargoUpCommand => new RelayCommand(() => ScaleCargo(1.1));
+
+        private void ScaleCargo(double f)
+        {
+            double p;
+            if (double.TryParse((_cargoPrice ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out p))
+                CargoPrice = (p*f).ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         private void SaveCargoPrice()
@@ -133,6 +160,7 @@ namespace TheAirline.Presentation
 
             cr.PricePerUnit = price;
             Status = "Price saved.";
+            UpdatePricing();
         }
         public string Numbers { get; private set; }
         public string AircraftText { get; private set; }
@@ -274,6 +302,12 @@ namespace TheAirline.Presentation
         private void UpdatePricing()
         {
             var pr = _route as PassengerRoute;
+            if (_route is CargoRoute cargoRoute)
+            {
+                PricingText = CargoPricing(cargoRoute);
+                OnPropertyChanged(nameof(PricingText));
+                return;
+            }
             if (pr == null)
             {
                 PricingText = "";
@@ -314,6 +348,34 @@ namespace TheAirline.Presentation
                 lines.Add("Fares above the market fare lose passengers (economy most, first class least); fares below it win more. When planes are full anyway, a higher fare is usually worth it.");
             PricingText = string.Join(Environment.NewLine, lines);
             OnPropertyChanged(nameof(PricingText));
+        }
+
+        /// <summary>The pricing help of a cargo route: last month, load, break-even rate and the rivals' rates.</summary>
+        private static string CargoPricing(CargoRoute cr)
+        {
+            var f = new ValueCurrencyFormatter();
+            var m = PricingService.LastMonth(cr);
+            double load = ConnectionService.MonthLoad(cr);
+            var lines = new List<string>();
+            lines.Add(m.Income == 0 && m.Costs == 0
+                ? "No flights last month."
+                : string.Format("Last month: income {0}, flight costs {1}, profit {2}.", f.Convert(m.Income), f.Convert(m.Costs), f.Convert(m.Profit)));
+            if (load > 0.005) lines.Add(string.Format("Recently {0:0}% of the cargo space was filled.", load*100));
+            double atLoad = load > 0.05 ? load : 0.75;
+            double be = PricingService.CargoBreakEvenRate(cr, atLoad);
+            double be75 = PricingService.CargoBreakEvenRate(cr, 0.75);
+            if (be > 0)
+                lines.Add(load > 0.05
+                    ? string.Format("Break-even rate per unit at {0:0}% full: {1} (at 75% full: {2}), including what the freighter costs to own.", atLoad*100, f.Convert(be), f.Convert(be75))
+                    : string.Format("Break-even rate per unit at 75% full: {0}, including what the freighter costs to own.", f.Convert(be75)));
+            var rivals = AIPricingService.CargoRivals(cr);
+            lines.Add(rivals.Count == 0
+                ? "No other airline flies cargo on this route."
+                : "Other cargo airlines here (they review their rates every week or two): " + string.Join("; ", rivals.OrderBy(r => r.PricePerUnit)
+                    .Select(r => string.Format("{0} {1} per unit, {2:0}% full", r.Airline.Profile.Name, f.Convert(r.PricePerUnit), ConnectionService.MonthLoad(r)*100))) + ".");
+            if (PricingService.Realistic)
+                lines.Add("A rate above the market rate loses cargo, one below it wins more. Short cargo flights need a higher rate per km than long ones: the market rate has a fixed part for handling.");
+            return string.Join(Environment.NewLine, lines);
         }
 
         private void SaveFares()

@@ -1378,6 +1378,13 @@ namespace TheAirline.Helpers
                             route.LastUpdated = GameObject.GetInstance().GameTime;
                         }
                     }
+                    else if (PricingService.Realistic && route is CargoRoute cargoPriced)
+                    {
+                        if (AIPricingService.ReviewCargo(airline, cargoPriced) != null)
+                        {
+                            route.LastUpdated = GameObject.GetInstance().GameTime;
+                        }
+                    }
 
                     if (routeType == Route.RouteType.Mixed || routeType == Route.RouteType.Passenger || routeType == Route.RouteType.Helicopter)
                     {

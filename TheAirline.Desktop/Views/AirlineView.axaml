@@ -167,9 +167,15 @@
                     <StackPanel Orientation="Horizontal" Spacing="10">
                       <TextBox Text="{Binding CargoPrice}" Width="120" />
                       <TextBlock Text="per unit of cargo" VerticalAlignment="Center" Opacity="0.7" />
+                      <Button Content="-10%" Command="{Binding CargoDownCommand}" Padding="6,2" />
+                      <Button Content="+10%" Command="{Binding CargoUpCommand}" Padding="6,2" />
+                      <Button Content="Market" Command="{Binding CargoMarketCommand}" Padding="6,2" />
+                      <TextBlock Text="{Binding CargoMarketText}" VerticalAlignment="Center" Opacity="0.7" />
                       <Button Content="Save price" Command="{Binding SaveCargoPriceCommand}" />
                     </StackPanel>
+                    <TextBlock Text="{Binding CargoEffectText}" Opacity="0.65" FontSize="12" />
                     <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding PricingText}" TextWrapping="Wrap" Opacity="0.8" />
                   </StackPanel>
 
                   <TextBlock Text="Fares" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" IsVisible="{Binding IsPassenger}" />

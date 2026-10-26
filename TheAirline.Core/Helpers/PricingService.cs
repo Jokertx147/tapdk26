@@ -91,6 +91,81 @@ namespace TheAirline.Helpers
             return service*reputation/c.FarePrice;
         }
 
+        // ---- cargo ----
+
+        /// <summary>
+        ///     The market rate per unit of cargo. With realistic costs a fixed part for handling plus a rate per km (about
+        ///     $53 for 500 km, $102 for 1,500 km and $175 for 3,000 km in 2007), set so a freighter 75% full makes about 12%
+        ///     over any distance; with the original costs the game's original rate (a flat rate per km).
+        /// </summary>
+        public static double CargoMarketRate(double km)
+        {
+            if (!Realistic) return km*GeneralHelpers.GetInflationPrice(0.0081);
+            return GeneralHelpers.GetInflationPrice(4 + 0.0070*km);
+        }
+
+        public static double CargoMarketRate(Airport a, Airport b)
+        {
+            return CargoMarketRate(MathHelpers.GetDistance(a, b));
+        }
+
+        /// <summary>How much shippers mind the price: a little less than economy passengers.</summary>
+        public const double CargoElasticity = 1.2;
+
+        /// <summary>The share of the normal cargo demand at a rate: 1 at the market rate, less above it, more below it.</summary>
+        public static double CargoDemandFactor(double price, double market)
+        {
+            if (!Realistic || market <= 0) return 1;
+            if (price <= 0) return 2;
+            return Math.Max(0.03, Math.Min(2.0, Math.Pow(price/market, -CargoElasticity)));
+        }
+
+        /// <summary>A cargo (or combi) route's rate per unit, 0 for other routes.</summary>
+        public static double CargoPrice(Route r)
+        {
+            if (r is CargoRoute c) return c.PricePerUnit;
+            if (r is CombiRoute m) return m.PricePerUnit;
+            return 0;
+        }
+
+        /// <summary>On a cargo route several airlines fly, the cheaper and better-known one gets more of the cargo (0.65 to 1.5).</summary>
+        public static double CargoCompetitionFactor(Route current, List<Route> routes)
+        {
+            Func<Route, double> attract = r =>
+                {
+                    double p = CargoPrice(r);
+                    return p <= 0 ? 0 : AdvertisingService.ReputationFactor(r.Airline)*RatingsService.CustomerFactor(r.Airline)/p;
+                };
+            double mine = attract(current);
+            var all = routes.Distinct().Select(attract).Where(v => v > 0).ToList();
+            if (mine <= 0 || all.Count < 2) return 1;
+            return Math.Max(0.65, Math.Min(1.5, Math.Sqrt(mine/all.Average())));
+        }
+
+        /// <summary>
+        ///     The rate per unit at which a flight of the route's freighter, at the given share of its space filled, covers
+        ///     its flight costs and its share of what the aircraft costs to own (not salaries or rents).
+        /// </summary>
+        public static double CargoBreakEvenRate(Route route, double load)
+        {
+            var f = route.GetAirliners().FirstOrDefault(x => x.Airliner?.Type is AirlinerCargoType);
+            if (f == null) return 0;
+            var a = f.Airliner;
+            var t = (AirlinerCargoType) a.Type;
+            double km = MathHelpers.GetDistance(route.Destination1, route.Destination2);
+            double hours = km/Math.Max(100, t.CruisingSpeed) + 0.5;
+            double cap = Math.Max(1, t.CargoSize);
+            double units = cap*Math.Max(0.1, load);
+            double fuelPrice = AirportHelpers.GetFuelPrice(route.Destination1);
+            double fuel = fuelPrice*km*cap*a.FuelConsumption*0.55 + fuelPrice*a.FuelConsumption*units*km*0.45;
+            double fees = AirportHelpers.GetLandingFee(route.Destination2, a) + 5*units;
+            var parts = FlightCosts.Calculate(a, km, hours, 0);
+            double fixedCost = fuel + fees + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew + OwnershipPerFlight(f);
+            // sales and overhead grow with the income; freighters pay half the added costs
+            double share = FlightCosts.Enabled ? (FlightCosts.DistributionShare(route.Airline) + 0.07)*(FlightCosts.Level >= 2 ? 1.4 : 1)*0.5 : 0;
+            return fixedCost/Math.Max(1, units*(1 - share));
+        }
+
         // ---- the numbers for the route page ----
 
         public class RouteMonth

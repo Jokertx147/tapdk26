@@ -16,6 +16,41 @@ static class VmTest
     }
 
     // per-flight economics of common types at 80% load: "vm unit"
+    /// <summary>"vm cargounit": what each freighter type earns and costs per flight at 75% full and the going cargo rate.</summary>
+    static void CargoUnitTable()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var atl = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+        var types = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().OfType<TheAirline.Models.Airliners.AirlinerCargoType>()
+            .Where(t => t.Produced.From.Year <= g.GameTime.Year).GroupBy(t => t.Name).Select(x => x.First()).OrderBy(t => t.CargoSize).ToList();
+        Console.WriteLine(types.Count + " freighter types; inflation x" + TheAirline.Helpers.GeneralHelpers.GetInflationPrice(1).ToString("0.00") + ", fuel " + g.FuelPrice.ToString("0.000"));
+        foreach (var t in types.Where((t, i) => i % Math.Max(1, types.Count / 14) == 0))
+        {
+            var a = new TheAirline.Models.Airliners.Airliner("CT", t, "N-CT", g.GameTime.AddYears(-10)) { Airline = me };
+            var f = new TheAirline.Models.Airliners.FleetAirliner(TheAirline.Models.Airliners.FleetAirliner.PurchasedType.Bought, g.GameTime, me, a, atl);
+            foreach (double km in new[] { 500.0, 1500, 3000, 6000 })
+            {
+                if (km > t.Range) continue;
+                double hours = km / Math.Max(100, t.CruisingSpeed) + 0.5;
+                double load = t.CargoSize * 0.75;
+                double rate = km * TheAirline.Helpers.GeneralHelpers.GetInflationPrice(0.0081);
+                double income = load * rate;
+                double fuel = g.FuelPrice * km * t.CargoSize * a.FuelConsumption * 0.55 + g.FuelPrice * a.FuelConsumption * load * km * 0.45;
+                double landing = TheAirline.Helpers.AirportHelpers.GetLandingFee(atl, a);
+                double tax = 5 * load;
+                double added = TheAirline.Helpers.FlightCosts.Calculate(a, km, hours, income).Total;
+                double flightsMonth = 300.0 / hours; // about 10 hours a day in the air
+                double own = TheAirline.Helpers.OwnershipService.MonthlyShare * a.GetPrice() / flightsMonth;
+                double lease = a.LeasingPrice / flightsMonth;
+                double cost = fuel + landing + tax + added;
+                Console.WriteLine(string.Format("  {0,-26} {1,5:N0} units {2,5:N0} km | income {3,8:N0} | fuel {4,7:N0} landing {5,5:N0} tax {6,5:N0} added {7,6:N0} own {8,6:N0} lease {9,6:N0} | margin owned {10,4:0}% leased {11,4:0}% | rate for 10% owned {12:0.00}x",
+                    t.Name, t.CargoSize, km, income, fuel, landing, tax, added, own, lease, 100 * (income - cost - own) / income, 100 * (income - cost - lease) / income, (cost + own) / 0.9 / income));
+            }
+        }
+        Environment.Exit(0);
+    }
+
     static void UnitTable()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -115,6 +150,42 @@ static class VmTest
         show();
         for (int d = 0; d < 60; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         show();
+    }
+
+    /// <summary>"vm cargo": what fills cargo flights and what they earn and cost.</summary>
+    static void CargoProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int d = 0; d < 45; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var tr = new System.Collections.Concurrent.ConcurrentBag<TheAirline.Helpers.PassengerHelpers.CargoFlightTrace>();
+        TheAirline.Helpers.PassengerHelpers.CargoTrace = t => tr.Add(t);
+        TheAirline.Helpers.FlightLog.Clear(); TheAirline.Helpers.FlightLog.Enabled = true;
+        for (int d = 0; d < 10; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Helpers.PassengerHelpers.CargoTrace = null; TheAirline.Helpers.FlightLog.Enabled = false;
+        var cargoAirlines = tr.Select(t => t.Airline).Distinct().ToList();
+        foreach (var a in cargoAirlines)
+        {
+            var x = tr.Where(t => t.Airline == a).ToList();
+            Console.WriteLine(string.Format("== {0}: {1} cargo flights | load {2:0}% | demand per flight / capacity: median {3:0.00} | saturated {4:0}% | price/market {5:0.00} | capacity median {6:0} | km median {7:0} | destination cargo facility {8:0}",
+                a.Profile.Name, x.Count, 100 * x.Sum(t => t.Cargo) / Math.Max(1, x.Sum(t => t.Capacity)), x.Select(t => t.DemandPerFlight / Math.Max(1, t.Capacity)).OrderBy(v => v).ElementAt(x.Count / 2),
+                100.0 * x.Count(t => t.DemandPerFlight >= t.TotalCapacity) / x.Count, x.Average(t => t.Price / Math.Max(0.01, t.MarketPrice)), x.Select(t => t.Capacity).OrderBy(v => v).ElementAt(x.Count / 2), x.Select(t => t.Km).OrderBy(v => v).ElementAt(x.Count / 2), x.Average(t => t.Facility)));
+            var recs = TheAirline.Helpers.FlightLog.Records().Where(r => r.Airline == a && r.Seats == 0).ToList();
+            if (recs.Count == 0) continue;
+            double n = recs.Count;
+            // the added realistic costs for the same flights
+            var fleetTypes = a.Fleet.Where(f => f.Airliner.Type is TheAirline.Models.Airliners.AirlinerCargoType).ToList();
+            double added = 0, own = 0;
+            foreach (var r in recs)
+            {
+                var f = fleetTypes.FirstOrDefault(ff => ff.Airliner.Type.Name == r.Type);
+                if (f == null) continue;
+                added += TheAirline.Helpers.FlightCosts.Calculate(f.Airliner, r.Km, r.Hours, r.Tickets).Total;
+                own += TheAirline.Helpers.PricingService.OwnershipPerFlight(f);
+            }
+            double inc = recs.Sum(r => r.Tickets), cost = recs.Sum(r => r.Fuel + r.Landing + r.Tax) + added + own;
+            Console.WriteLine(string.Format("   per flight: income {0:N0} | fuel {1:N0} | landing {2:N0} | tax {3:N0} | added flight costs {4:N0} | ownership {5:N0} | margin {6:0}%",
+                inc / n, recs.Sum(r => r.Fuel) / n, recs.Sum(r => r.Landing) / n, recs.Sum(r => r.Tax) / n, added / n, own / n, inc > 0 ? 100 * (inc - cost) / inc : 0));
+        }
     }
 
     static string Med(System.Collections.Generic.IEnumerable<double> v) { var l = v.OrderBy(x => x).ToList(); return l.Count == 0 ? "-" : l[l.Count / 2].ToString("N1"); }
@@ -642,6 +713,38 @@ static class VmTest
                 if (!okFlood) { Console.WriteLine("  FAILED news flood"); Environment.Exit(1); }
             }
         }
+        Console.WriteLine("CARGO PRICING TEST");
+        {
+            var gK = TheAirline.Models.General.GameObject.GetInstance();
+            foreach (double km in new[] { 500.0, 1500, 3000, 6000 })
+            {
+                gK.CostLevel = 0; double origRate = TheAirline.Helpers.PricingService.CargoMarketRate(km); gK.CostLevel = 1;
+                Console.WriteLine("  market cargo rate " + km + " km: " + TheAirline.Helpers.PricingService.CargoMarketRate(km).ToString("N2") + " (original " + origRate.ToString("N2") + ")");
+            }
+            foreach (double r in new[] { 0.7, 1.0, 1.3, 2.0 }) Console.Write("  rate x" + r + ": demand " + TheAirline.Helpers.PricingService.CargoDemandFactor(r * 100, 100).ToString("0.00"));
+            Console.WriteLine();
+            if (TheAirline.Helpers.PricingService.CargoDemandFactor(70, 100) <= 1 || TheAirline.Helpers.PricingService.CargoDemandFactor(130, 100) >= 1) { Console.WriteLine("  FAILED cargo demand"); Environment.Exit(1); }
+            var cr = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes).OfType<TheAirline.Models.Routes.CargoRoute>().FirstOrDefault(r => r.HasAirliner);
+            if (cr == null) Console.WriteLine("  no flying computer cargo route to test");
+            else
+            {
+                double mk = TheAirline.Helpers.PricingService.CargoMarketRate(cr.Destination1, cr.Destination2);
+                Console.WriteLine("  " + cr.Airline.Profile.Name + " " + cr.Destination1.Profile.IATACode + "-" + cr.Destination2.Profile.IATACode + ": rate " + cr.PricePerUnit.ToString("N2") + ", market " + mk.ToString("N2") + ", recent load " + (TheAirline.Helpers.ConnectionService.MonthLoad(cr) * 100).ToString("0") + "%, break-even at 75% " + TheAirline.Helpers.PricingService.CargoBreakEvenRate(cr, 0.75).ToString("N2"));
+                if (TheAirline.Helpers.ConnectionService.MonthLoad(cr) <= 0) { Console.WriteLine("  FAILED cargo load counting"); Environment.Exit(1); }
+                // half empty at twice the market rate: the airline cuts
+                cr.PricePerUnit = mk * 2;
+                int key = gK.GameTime.Year * 12 + gK.GameTime.Month - 1;
+                cr.ConnectMonth = key; cr.ConnectLastAllPassengers = 400; cr.ConnectLastSeats = 1000;
+                TheAirline.Helpers.AIPricingService.ForgetReviews();
+                Console.WriteLine("  40% full at 2x market: " + TheAirline.Helpers.AIPricingService.ReviewCargo(cr.Airline, cr));
+                if (cr.PricePerUnit >= mk * 2) { Console.WriteLine("  FAILED cargo review"); Environment.Exit(1); }
+                var rdK = new TheAirline.Presentation.RouteDetailViewModel(cr, () => { });
+                Console.WriteLine("  route page: " + rdK.CargoMarketText + " | " + rdK.CargoEffectText);
+                rdK.CargoMarketCommand.Execute(null); Console.WriteLine("  market button: " + rdK.CargoPrice + " | " + rdK.CargoEffectText);
+                Console.WriteLine("  " + rdK.PricingText.Replace(Environment.NewLine, " / "));
+                if (string.IsNullOrEmpty(rdK.PricingText) || !rdK.PricingText.Contains("Break-even")) { Console.WriteLine("  FAILED cargo route page"); Environment.Exit(1); }
+            }
+        }
         Console.WriteLine("PRICING TEST");
         {
             var g10 = TheAirline.Models.General.GameObject.GetInstance();
@@ -1009,10 +1112,12 @@ static class VmTest
             var av = (AirlineViewModel)shell.Current;
             Console.WriteLine("AIRLINE SCREEN: " + av.AirlineName + " " + av.Date + " " + av.Money + " fleet=" + av.Fleet.Count + " routes=" + av.Routes.Count + " running=" + av.IsRunning);
             if (Environment.GetCommandLineArgs().Contains("quick")) { QuickTests(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("cargo")) { CargoProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("airlines")) { AirlinesProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }
             if (Environment.GetCommandLineArgs().Contains("unit")) { UnitTable(); return; }
             // aircraft market: pick the cheapest-looking aircraft we can afford and buy it
             var mk = av.Market;

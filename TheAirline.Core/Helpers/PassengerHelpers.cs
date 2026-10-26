@@ -2878,11 +2878,8 @@ namespace TheAirline.Helpers
 
         public static double GetCargoPrice(Airport dest1, Airport dest2)
         {
-            double dist = MathHelpers.GetDistance(dest1, dest2);
-
-            double ticketPrice = dist*GeneralHelpers.GetInflationPrice(0.0081);
-
-            return ticketPrice; // *2;
+            // the market rate per unit (see PricingService)
+            return PricingService.CargoMarketRate(dest1, dest2);
         }
 
         // chs, 2011-13-10 added for loading of passenger happiness
@@ -2898,9 +2895,10 @@ namespace TheAirline.Helpers
 
         public static double GetFlightCargo(Airport airportCurrent, Airport airportDestination, FleetAirliner airliner)
         {
+            // the flying airline's cargo facility at the destination (the original used the player's for everyone)
             double destinationFacilityFactor =
                 airportDestination.GetAirportFacility(
-                    GameObject.GetInstance().HumanAirline,
+                    airliner.Airliner.Airline,
                     AirportFacility.FacilityType.Cargo,
                     true).ServiceLevel;
 
@@ -2919,6 +2917,11 @@ namespace TheAirline.Helpers
                             *(destinationFacilityFactor/100);
 
             double cargoDemand = demand*1000;
+
+            // with realistic costs shippers react to the rate both ways
+            double basicCargoPrice = GetCargoPrice(airportCurrent, airportDestination);
+            double cargoPrice = airliner.CurrentFlight.GetCargoPrice();
+            cargoDemand *= PricingService.CargoDemandFactor(cargoPrice, basicCargoPrice);
 
             var routes = new List<Route>();
 
@@ -2968,18 +2971,31 @@ namespace TheAirline.Helpers
 
             double capacityPercent = cargoDemand > totalCapacity ? 1 : cargoDemand/totalCapacity;
 
-            double basicCargoPrice = GetCargoPrice(airportCurrent, airportDestination);
-            double cargoPrice = airliner.CurrentFlight.GetCargoPrice();
-
             double priceDiff = basicCargoPrice/cargoPrice;
 
             double cargoPriceDiff = priceDiff < 0.75 ? priceDiff : 1;
+
+            Route cargoRoute = airliner.CurrentFlight.Entry?.TimeTable?.Route;
+            if (PricingService.Realistic)
+            {
+                // the rate already acted on demand; on a shared route the cheaper airline gets more
+                cargoPriceDiff = cargoRoute != null ? PricingService.CargoCompetitionFactor(cargoRoute, routes) : 1;
+            }
 
             cargoPriceDiff *= GameObject.GetInstance().Difficulty.PriceLevel;
 
             double randomCargo = Convert.ToDouble(Rnd.Next(97, 103))/100;
 
             var cargo = (int) Math.Min(capacity, (capacity*capacityPercent*randomCargo*cargoPriceDiff));
+
+            // the month's load of the route
+            ConnectionService.Record(cargoRoute, cargo, 0, (int) capacity);
+
+            CargoTrace?.Invoke(new CargoFlightTrace
+            {
+                Airline = airliner.Airliner.Airline, Capacity = capacity, Cargo = cargo, DemandPerFlight = cargoDemand, TotalCapacity = totalCapacity,
+                MarketPrice = basicCargoPrice, Price = cargoPrice, Km = distance, Facility = destinationFacilityFactor
+            });
 
             return cargo;
         }
@@ -3220,6 +3236,15 @@ namespace TheAirline.Helpers
         }
 
         public static Action<FlightPaxTrace> FlightTrace;
+
+        /// <summary>What went into one cargo flight's load (for the economy probe; off in normal play).</summary>
+        public class CargoFlightTrace
+        {
+            public Airline Airline;
+            public double Capacity, Cargo, DemandPerFlight, TotalCapacity, MarketPrice, Price, Km, Facility;
+        }
+
+        public static Action<CargoFlightTrace> CargoTrace;
 
         //returns the number of passengers for a flight
         public static int GetFlightPassengers(FleetAirliner airliner, AirlinerClass.ClassType type)

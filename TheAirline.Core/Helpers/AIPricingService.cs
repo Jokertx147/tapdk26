@@ -84,7 +84,7 @@ namespace TheAirline.Helpers
 
         // every passenger route by airport pair, built once a game day
         private static readonly object IndexLock = new object();
-        private static Dictionary<string, List<PassengerRoute>> _index;
+        private static Dictionary<string, List<Route>> _index;
         private static DateTime _indexDay;
 
         private static string Key(Route r)
@@ -98,23 +98,22 @@ namespace TheAirline.Helpers
             lock (IndexLock) _index = null;
         }
 
-        private static Dictionary<string, List<PassengerRoute>> Index()
+        private static Dictionary<string, List<Route>> Index()
         {
             var day = GameObject.GetInstance().GameTime.Date;
             lock (IndexLock)
             {
                 if (_index != null && _indexDay == day) return _index;
-                var map = new Dictionary<string, List<PassengerRoute>>();
+                var map = new Dictionary<string, List<Route>>();
                 foreach (var a in Airlines.GetAllAirlines().ToList())
                 {
                     foreach (var r in a.Routes)
                     {
-                        var pr = r as PassengerRoute;
-                        if (pr?.Destination1 == null || pr.Destination2 == null) continue;
-                        List<PassengerRoute> list;
-                        string k = Key(pr);
-                        if (!map.TryGetValue(k, out list)) map[k] = list = new List<PassengerRoute>();
-                        list.Add(pr);
+                        if (r?.Destination1 == null || r.Destination2 == null) continue;
+                        List<Route> list;
+                        string k = Key(r);
+                        if (!map.TryGetValue(k, out list)) map[k] = list = new List<Route>();
+                        list.Add(r);
                     }
                 }
                 _index = map;
@@ -126,9 +125,17 @@ namespace TheAirline.Helpers
         /// <summary>The other airlines' flying passenger routes on the same airport pair.</summary>
         public static List<PassengerRoute> Rivals(Route route)
         {
-            List<PassengerRoute> all;
+            List<Route> all;
             if (route.Airline == null || !Index().TryGetValue(Key(route), out all)) return new List<PassengerRoute>();
-            return all.Where(r => r.Airline != null && !SameCompany(r.Airline, route.Airline) && r.HasAirliner && r.Airline.Routes.Contains(r)).ToList();
+            return all.OfType<PassengerRoute>().Where(r => r.Airline != null && !SameCompany(r.Airline, route.Airline) && r.HasAirliner && r.Airline.Routes.Contains(r)).ToList();
+        }
+
+        /// <summary>The other airlines' flying cargo routes on the same airport pair.</summary>
+        public static List<CargoRoute> CargoRivals(Route route)
+        {
+            List<Route> all;
+            if (route.Airline == null || !Index().TryGetValue(Key(route), out all)) return new List<CargoRoute>();
+            return all.OfType<CargoRoute>().Where(r => r.Airline != null && !SameCompany(r.Airline, route.Airline) && r.HasAirliner && r.Airline.Routes.Contains(r)).ToList();
         }
 
         /// <summary>
@@ -139,17 +146,18 @@ namespace TheAirline.Helpers
         public static double EntryFactor(Airline airline, Airport a, Airport b)
         {
             if (!PricingService.Realistic) return 1;
-            List<PassengerRoute> all;
+            List<Route> all;
             string k = string.CompareOrdinal(a.Profile.IATACode + a.Profile.ICAOCode, b.Profile.IATACode + b.Profile.ICAOCode) < 0
                 ? a.Profile.IATACode + a.Profile.ICAOCode + "|" + b.Profile.IATACode + b.Profile.ICAOCode
                 : b.Profile.IATACode + b.Profile.ICAOCode + "|" + a.Profile.IATACode + a.Profile.ICAOCode;
             if (!Index().TryGetValue(k, out all)) return 1;
-            var rivals = all.Where(r => r.Airline != null && !SameCompany(r.Airline, airline) && r.HasAirliner).ToList();
+            bool cargo = airline.AirlineRouteFocus == Route.RouteType.Cargo;
+            var rivals = all.Where(r => r.Airline != null && !SameCompany(r.Airline, airline) && r.HasAirliner && (cargo ? r is CargoRoute : r is PassengerRoute)).ToList();
             if (rivals.Count == 0) return 1;
-            double market = PricingService.MarketFare(a, b, AirlinerClass.ClassType.EconomyClass);
+            double market = cargo ? PricingService.CargoMarketRate(a, b) : PricingService.MarketFare(a, b, AirlinerClass.ClassType.EconomyClass);
             if (market <= 0) return 0.5;
             double load = rivals.Average(r => ConnectionService.MonthLoad(r));
-            double fare = rivals.Average(r => EconomyFare(r))/market;
+            double fare = rivals.Average(r => cargo ? PricingService.CargoPrice(r) : EconomyFare((PassengerRoute) r))/market;
             if (load <= 0) load = 0.8;
             return Math.Max(0.05, Math.Min(1.2, Math.Pow(load/0.8, 2)*fare/(1 + rivals.Count)));
         }
@@ -162,6 +170,64 @@ namespace TheAirline.Helpers
         public static void ForgetReviews()
         {
             lock (LastReview) LastReview.Clear();
+        }
+
+        /// <summary>Reviews a computer airline's cargo route and changes its rate, the same way as fares. Returns what changed, or null.</summary>
+        public static string ReviewCargo(Airline airline, CargoRoute route)
+        {
+            if (!PricingService.Realistic || airline == null || airline.IsHuman || route == null || !route.HasAirliner || route.PricePerUnit <= 0) return null;
+            var now = GameObject.GetInstance().GameTime;
+            lock (LastReview)
+            {
+                DateTime last;
+                if (LastReview.TryGetValue(route, out last) && (now - last).TotalDays < ReviewDays) return null;
+                LastReview[route] = now;
+            }
+            double market = PricingService.CargoMarketRate(route.Destination1, route.Destination2);
+            if (market <= 0) return null;
+            double load = ConnectionService.MonthLoad(route);
+            if (load <= 0) return null;
+
+            List<CargoRoute> rivals;
+            try { rivals = CargoRivals(route); }
+            catch (InvalidOperationException) { return null; }
+            var cheapest = rivals.Where(r => r.PricePerUnit > 0).OrderBy(r => r.PricePerUnit).FirstOrDefault();
+            double? rival = cheapest != null ? cheapest.PricePerUnit/market : (double?) null;
+
+            double floor;
+            try { floor = PricingService.CargoBreakEvenRate(route, Math.Max(0.5, Math.Min(0.9, load)))/market; }
+            catch (Exception) { floor = 0; }
+
+            double ratio = route.PricePerUnit/market;
+            double next = Decide(ratio, load, rival, airline.Mentality, floor);
+            if (Math.Abs(next - ratio)/ratio < 0.01) return null;
+            double before = route.PricePerUnit;
+            route.PricePerUnit = Math.Round(market*next, 2);
+            double factor = route.PricePerUnit/before;
+            string pair = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
+
+            var game = GameObject.GetInstance();
+            var human = rivals.FirstOrDefault(r => r.Airline == game.HumanAirline);
+            if (human != null && factor < 0.96)
+            {
+                bool tell;
+                lock (Reported)
+                {
+                    DateTime last;
+                    tell = !Reported.TryGetValue(human, out last) || (game.GameTime - last).TotalDays >= 30;
+                    if (tell) Reported[human] = game.GameTime;
+                }
+                if (tell)
+                {
+                    var f = new ValueCurrencyFormatter();
+                    lock (game.NewsBox) game.NewsBox.AddNews(new News(
+                        News.NewsType.AirlineNews, game.GameTime, airline.Profile.Name + " cuts cargo rates on " + pair,
+                        string.Format("{0} cut its cargo rate on {1} by {2:0}% to {3} per unit. Your rate there is {4}; the market rate is {5}. Their freighters were {6:0}% full.",
+                                      airline.Profile.Name, pair, (1 - factor)*100, f.Convert(route.PricePerUnit), f.Convert(human.PricePerUnit), f.Convert(market), load*100)));
+                }
+            }
+            return string.Format("{0} {1} cargo: {2:0.00} -> {3:0.00} ({4:+0;-0}%), {5:0}% full{6}", airline.Profile.IATACode, pair, before, route.PricePerUnit,
+                                 (factor - 1)*100, load*100, rival.HasValue ? string.Format(", cheapest rival {0:0.00}", cheapest.PricePerUnit) : "");
         }
 
         public static double EconomyFare(PassengerRoute r)
