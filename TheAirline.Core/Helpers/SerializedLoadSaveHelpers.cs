@@ -321,6 +321,7 @@ namespace TheAirline.Helpers
                         {
                             so.AirportsFromStringList.Add(airport.Profile.IATACode);
                         }
+                        StartupLog.Write("SaveGame: " + so.AirportsList.Count + " airports saved in full (" + string.Join(" ", so.AirportsList.Select(a => a.Profile.IATACode + (a.PlayerEdited ? "*" : ""))) + "), " + so.AirportsFromStringList.Count + " by code");
                     },
                 () =>
                     {

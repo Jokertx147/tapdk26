@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<airline>
+  <profile name="Pacific Airways" iata="PCA" color="SteelBlue" country="122" CEO="Board of Directors" mentality="Moderate" market="Global" preferedairport="SFO">
+    <narrative narrative="  Pacific Airways is a fictional San Francisco airline made for the New Management scenario: once a proud flag carrier across the Pacific, it has been weakened by years of mismanagement and heavy debt." /></profile>
+  <info real="False" from="1985" to="2199" />
+</airline>

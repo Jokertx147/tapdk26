@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.ScenariosView">
+  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="320,16,*" Margin="24">
+    <TextBlock Grid.ColumnSpan="3" Text="Scenarios" FontSize="26" FontWeight="Bold" Margin="0,0,0,12" />
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Margin="0,2">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Summary}" Opacity="0.7" TextWrapping="Wrap" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <ScrollViewer Grid.Row="1" Grid.Column="2">
+      <StackPanel Spacing="8" Margin="0,0,12,0">
+        <TextBlock Text="{Binding Selected.Name}" FontSize="20" FontWeight="Bold" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Details}" TextWrapping="Wrap" Opacity="0.8" />
+        <TextBlock Text="Goals" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ItemsControl ItemsSource="{Binding Goals}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,3" Opacity="{Binding Opacity}">
+                <TextBlock Text="{Binding Goal}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding When}" Opacity="0.7" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="Lose one goal and the scenario is over; meet them all until the end year to win. After either you can keep playing." Opacity="0.6" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+      <Button Content="Back" Command="{Binding BackCommand}" />
+      <Button Content="Start scenario" Command="{Binding StartCommand}" />
+      <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+</UserControl>

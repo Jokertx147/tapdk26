@@ -48,6 +48,16 @@ namespace TheAirline.Models.General.Scenarios
         [Versioning("scenariofailed")]
         public ScenarioFailure ScenarioFailed { get; set; }
 
+        /// <summary>When the scenario was won or lost.</summary>
+        [Versioning("endedon")]
+        public DateTime EndedOn { get; set; }
+
+        /// <summary>True once the player has been shown the result.</summary>
+        [Versioning("endshown")]
+        public bool EndShown { get; set; }
+
+        public bool IsEnded => ScenarioFailed != null || IsSuccess;
+
         #endregion
 
         #region Public Methods and Operators

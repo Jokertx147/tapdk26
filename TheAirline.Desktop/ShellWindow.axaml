@@ -9,6 +9,7 @@
     <DataTemplate DataType="vm:MainMenuViewModel"><v:MainMenuView /></DataTemplate>
     <DataTemplate DataType="vm:NewGameViewModel"><v:NewGameView /></DataTemplate>
     <DataTemplate DataType="vm:LoadGameViewModel"><v:LoadGameView /></DataTemplate>
+    <DataTemplate DataType="vm:ScenariosViewModel"><v:ScenariosView /></DataTemplate>
     <DataTemplate DataType="vm:AirlineViewModel"><v:AirlineView /></DataTemplate>
   </Window.DataTemplates>
 

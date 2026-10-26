@@ -66,6 +66,9 @@
                 <v:WorldMapView Grid.Row="1" DataContext="{Binding Map}" />
               </Grid>
             </TabItem>
+            <TabItem Header="Scenario" IsVisible="{Binding Scenario.HasScenario}">
+              <v:ScenarioView DataContext="{Binding Scenario}" />
+            </TabItem>
             <TabItem Header="Fleet">
               <Grid RowDefinitions="*,Auto">
                 <v:FleetOverviewView DataContext="{Binding Overview}" />

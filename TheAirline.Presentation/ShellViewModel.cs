@@ -88,6 +88,11 @@ namespace TheAirline.Presentation
             Navigate(new NewGameViewModel(this));
         }
 
+        public void ShowScenarios()
+        {
+            Navigate(new ScenariosViewModel(this));
+        }
+
         public void ShowLoadGame()
         {
             Navigate(new LoadGameViewModel(this));

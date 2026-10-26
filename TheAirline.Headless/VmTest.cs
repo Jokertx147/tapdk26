@@ -9,6 +9,220 @@ using TheAirline.Presentation;
 // Drives the view models the way a UI would: menu -> new game -> airline screen -> save -> menu -> load.
 static class VmTest
 {
+    /// <summary>"vm scenario": every scenario from the main menu: it loads, starts, plays a month; then a lost one ends with a message.</summary>
+    static async Task ScenarioTest(ShellViewModel shell)
+    {
+        ((MainMenuViewModel)shell.Current).ScenariosCommand.Execute(null);
+        var sv = (ScenariosViewModel)shell.Current;
+        await Wait(() => !sv.IsBusy, "scenarios load");
+        Console.WriteLine("SCENARIOS: " + sv.Items.Count + (sv.Status != null ? " | " + sv.Status : ""));
+        var names = sv.Items.Select(i => i.Name).ToList();
+        // TAP_SCEN picks one scenario (by the start of its name) instead of all
+        string only = Environment.GetEnvironmentVariable("TAP_SCEN");
+        if (!string.IsNullOrEmpty(only)) names = names.Where(n => only.Split(',').Any(o => n.StartsWith(o))).ToList();
+        foreach (var it in sv.Items) Console.WriteLine("  " + it.Name + " | " + it.Summary + (it.Problem != null ? " | PROBLEM: " + it.Problem : ""));
+        if (sv.Items.Count == 0 || sv.Items.Any(i => i.Problem != null)) { Console.WriteLine("  FAILED scenarios unplayable"); Environment.Exit(1); }
+        sv.Selected = sv.Items.First();
+        Console.WriteLine("  details: " + sv.Details.Replace(Environment.NewLine, " / "));
+        foreach (var g in sv.Goals) Console.WriteLine("    goal: " + g.Goal + " | " + g.When);
+
+        foreach (var name in names)
+        {
+            // back to the menu reloads the data, as in the game
+            TheAirline.Infrastructure.GameDataLoader.Invalidate();
+            shell.ShowScenarios();
+            sv = (ScenariosViewModel)shell.Current;
+            await Wait(() => !sv.IsBusy, "scenarios load");
+            sv.Selected = sv.Items.First(i => i.Name == name);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            sv.StartCommand.Execute(null);
+            await Wait(() => shell.Current is AirlineViewModel || (sv.Status != null && sv.Status.Contains("failed")), "scenario " + name + " starts");
+            if (!(shell.Current is AirlineViewModel)) { Console.WriteLine("  FAILED start " + name + ": " + sv.Status); Environment.Exit(1); }
+            var av = (AirlineViewModel)shell.Current;
+            var g = TheAirline.Models.General.GameObject.GetInstance();
+            var me = g.HumanAirline;
+            Console.WriteLine("== " + name + " started in " + sw.ElapsedMilliseconds + " ms: " + av.AirlineName + " " + g.GameTime.ToShortDateString() + " cash " + me.Money.ToString("N0") + " loans " + me.Loans.Sum(l => l.PaymentLeft).ToString("N0") + " fleet " + me.Fleet.Count + " routes " + me.Routes.Count + " airports " + me.Airports.Count + " | airlines " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Count + " | paused " + TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused);
+            if (g.Scenario == null || me != g.Scenario.Scenario.Airline || me.Money != g.Scenario.Scenario.StartCash) { Console.WriteLine("  FAILED scenario setup"); Environment.Exit(1); }
+            GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+            Console.WriteLine("  memory after start: " + (GC.GetTotalMemory(true) / 1048576) + " MB");
+            if (g.Scenario.Scenario.StartDebt > 0 && me.Loans.Sum(l => l.PaymentLeft) < g.Scenario.Scenario.StartDebt) { Console.WriteLine("  FAILED start debt"); Environment.Exit(1); }
+            for (int d = 0; d < 35; d++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            av.Refresh();
+            Console.WriteLine("  after a month: " + g.GameTime.ToShortDateString() + " | " + av.Scenario.YearsText + (av.Scenario.HasResult ? " | " + av.Scenario.ResultText : ""));
+            foreach (var row in av.Scenario.Goals) Console.WriteLine("    " + row.Goal + " | " + row.When + " | " + row.Status + " " + row.Now);
+            if (!av.Scenario.HasScenario || av.Scenario.Goals.Count == 0) { Console.WriteLine("  FAILED scenario tab"); Environment.Exit(1); }
+            if (g.Scenario.IsEnded) Console.WriteLine("  (ended early: " + av.Scenario.ResultText + ")");
+            // a goal met at the start must be met after the first month (debt: what is owed, not the interest)
+            var goals = TheAirline.Helpers.ScenarioService.Goals(g.Scenario);
+            var debtGoal = goals.FirstOrDefault(x => x.Failure.Type == TheAirline.Models.General.Scenarios.ScenarioFailure.FailureType.Debt);
+            if (debtGoal != null && debtGoal.Ok != true) { Console.WriteLine("  FAILED debt goal at start: " + debtGoal.Now); Environment.Exit(1); }
+        }
+
+        // a lost scenario: cash below zero for the allowed months
+        {
+            var av = (AirlineViewModel)shell.Current;
+            var g = TheAirline.Models.General.GameObject.GetInstance();
+            var so = g.Scenario;
+            var cash = so.Scenario.Failures.FirstOrDefault(f => f.Type == TheAirline.Models.General.Scenarios.ScenarioFailure.FailureType.Cash);
+            if (cash != null && !so.IsEnded)
+            {
+                g.HumanAirline.Money = -50000000;
+                var t = g.GameTime;
+                for (int m = 1; m <= cash.MonthsOfFailure && !so.IsEnded; m++)
+                {
+                    g.GameTime = new DateTime(t.Year, t.Month, 1).AddMonths(m);
+                    TheAirline.Helpers.ScenarioHelpers.UpdateScenario(so);
+                    Console.WriteLine("  month " + m + " below zero: ended " + so.IsEnded);
+                }
+                av.Refresh();
+                Console.WriteLine("  message: " + shell.MessageTitle + " | " + (shell.Message ?? "").Replace(Environment.NewLine, " / ") + " | paused " + TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused);
+                Console.WriteLine("  tab: " + av.Scenario.ResultText);
+                if (!so.IsEnded || so.IsSuccess || !shell.HasMessage) { Console.WriteLine("  FAILED losing"); Environment.Exit(1); }
+                shell.DismissMessageCommand.Execute(null);
+                av.Refresh();
+                Console.WriteLine("  shown once: " + !shell.HasMessage);
+                if (shell.HasMessage) { Console.WriteLine("  FAILED message repeats"); Environment.Exit(1); }
+            }
+        }
+        if (Environment.GetEnvironmentVariable("TAP_LEAK") == "1") FindStale();
+        if (Environment.GetEnvironmentVariable("TAP_LEAK") == "2") FindLeakRoots();
+        // saved and loaded, the scenario and its result stay
+        {
+            var g = TheAirline.Models.General.GameObject.GetInstance();
+            string name = g.Scenario.Scenario.Name; bool lost = g.Scenario.ScenarioFailed != null;
+            TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("scenariotest");
+            TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("scenariotest");
+            g = TheAirline.Models.General.GameObject.GetInstance();
+            Console.WriteLine("  after load: " + (g.Scenario == null ? "no scenario" : g.Scenario.Scenario.Name + ", lost " + (g.Scenario.ScenarioFailed != null) + ", shown " + g.Scenario.EndShown + ", goals " + TheAirline.Helpers.ScenarioService.Goals(g.Scenario).Count + ", success text " + (g.Scenario.Scenario.SuccessText != null)));
+            if (g.Scenario == null || g.Scenario.Scenario.Name != name || (g.Scenario.ScenarioFailed != null) != lost || !g.Scenario.EndShown) { Console.WriteLine("  FAILED scenario save"); Environment.Exit(1); }
+            // winning: every goal met when the end year comes
+            var won = new TheAirline.Models.General.Scenarios.ScenarioObject(g.Scenario.Scenario);
+            g.GameTime = new DateTime(won.Scenario.EndYear, 1, 1);
+            g.HumanAirline.Money = 1e9;
+            foreach (var f in won.Scenario.Failures.Where(x => x.Type != TheAirline.Models.General.Scenarios.ScenarioFailure.FailureType.Cash && x.Type != TheAirline.Models.General.Scenarios.ScenarioFailure.FailureType.Debt).ToList()) won.Scenario.Failures.Remove(f);
+            TheAirline.Helpers.ScenarioService.Check(won);
+            Console.WriteLine("  end year with cash: won " + won.IsSuccess + " | " + g.NewsBox.GetNews().Last().Subject + ": " + g.NewsBox.GetNews().Last().Body);
+            if (!won.IsSuccess || won.ScenarioFailed != null) { Console.WriteLine("  FAILED winning"); Environment.Exit(1); }
+        }
+        Console.WriteLine("SCENARIO TEST OK");
+        Environment.Exit(0);
+    }
+
+    /// <summary>Walks the game's object graph and prints the reference chain to an airport or country from an earlier data load.</summary>
+    static void FindStale()
+    {
+        var airports = new System.Collections.Generic.HashSet<object>(TheAirline.Models.Airports.Airports.GetAllAirports(), System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        var countries = new System.Collections.Generic.HashSet<object>(TheAirline.Models.General.Countries.Countries.GetAllCountries(), System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        foreach (var c in TheAirline.Models.General.Countries.TemporaryCountries.GetCountries()) countries.Add(c);
+        var parent = new System.Collections.Generic.Dictionary<object, (object, string)>(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        var queue = new System.Collections.Generic.Queue<object>();
+        void Add(object o, object from, string via)
+        {
+            if (o == null || o is string || o.GetType().IsPrimitive || o is Delegate || o is Type || o is System.Reflection.MemberInfo) return;
+            if (parent.ContainsKey(o)) return;
+            parent[o] = (from, via);
+            queue.Enqueue(o);
+        }
+        Add(TheAirline.Models.General.GameObject.GetInstance(), null, "GameObject");
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines()) Add(a, null, "Airlines");
+        foreach (var a in TheAirline.Models.Airliners.Airliners.GetAllAirliners()) Add(a, null, "Airliners");
+        int seen = 0, staleAirports = 0, staleCountries = 0; object first = null;
+        while (queue.Count > 0 && seen < 20000000)
+        {
+            var o = queue.Dequeue(); seen++;
+            if (o is TheAirline.Models.Airports.Airport && !airports.Contains(o)) { staleAirports++; first = first ?? o; continue; }
+            if (o is TheAirline.Models.General.Countries.Country && !countries.Contains(o)) { staleCountries++; first = first ?? o; continue; }
+            if (o is System.Collections.IEnumerable en && !(o is string))
+            {
+                int i = 0;
+                try { foreach (var x in en) { if (x is System.Collections.DictionaryEntry de) { Add(de.Key, o, "[key]"); Add(de.Value, o, "[value]"); } else Add(x, o, "[" + i + "]"); i++; } } catch { }
+                if (o is Array) continue;
+            }
+            for (var t = o.GetType(); t != null && t != typeof(object); t = t.BaseType)
+                foreach (var f in t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly))
+                {
+                    if (f.FieldType.IsPrimitive || f.FieldType.IsEnum) continue;
+                    object v; try { v = f.GetValue(o); } catch { continue; }
+                    Add(v, o, f.Name);
+                }
+        }
+        Console.WriteLine("  graph: " + seen + " objects, stale airports " + staleAirports + ", stale countries " + staleCountries);
+        foreach (var grp in parent.Keys.GroupBy(k => k.GetType().Name).OrderByDescending(x => x.Count()).Take(14))
+            Console.WriteLine("    " + grp.Key + ": " + grp.Count().ToString("N0"));
+        if (first != null)
+        {
+            var chain = new System.Collections.Generic.List<string>();
+            object cur = first;
+            for (int i = 0; i < 40 && cur != null; i++)
+            {
+                var (from, via) = parent[cur];
+                string name = cur is TheAirline.Models.Airports.Airport ap ? "Airport " + ap.Profile.IATACode : cur is TheAirline.Models.General.Countries.Country cc ? "Country " + cc.Name : cur is TheAirline.Models.Airlines.Airline al ? "Airline " + al.Profile.Name : cur.GetType().Name;
+                chain.Add(name + " <-" + via + "-");
+                cur = from;
+            }
+            Console.WriteLine("  path: " + string.Join(" ", chain));
+        }
+    }
+
+    /// <summary>Which static fields still reach an airport from an earlier data load (memory not freed between games).</summary>
+    static void FindLeakRoots()
+    {
+        var current = new System.Collections.Generic.HashSet<object>(TheAirline.Models.Airports.Airports.GetAllAirports(), System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        var asms = new[] { typeof(TheAirline.Models.Airports.Airport).Assembly, typeof(AirlineViewModel).Assembly };
+        foreach (var asm in asms)
+        foreach (var type in asm.GetTypes())
+        {
+            if (type.ContainsGenericParameters) continue;
+            foreach (var f in type.GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+            {
+                if (f.FieldType.IsPrimitive || f.FieldType.IsEnum || f.FieldType == typeof(string) || f.IsLiteral) continue;
+                object root; try { root = f.GetValue(null); } catch { continue; }
+                if (root == null) continue;
+                // walk from this root, stop at current airports, count stale ones
+                var seen = new System.Collections.Generic.HashSet<object>(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+                var parent = new System.Collections.Generic.Dictionary<object, (object, string)>(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+                var q = new System.Collections.Generic.Queue<object>();
+                void Add(object o, object from, string via)
+                {
+                    if (o == null || o is string || o.GetType().IsPrimitive || o is Type || o is System.Reflection.MemberInfo || o is System.Threading.Thread) return;
+                    if (!seen.Add(o)) return;
+                    parent[o] = (from, via);
+                    q.Enqueue(o);
+                }
+                Add(root, null, type.Name + "." + f.Name);
+                object stale = null; int n = 0;
+                while (q.Count > 0 && n < 40000000 && stale == null)
+                {
+                    var o = q.Dequeue(); n++;
+                    if (o is TheAirline.Models.Airports.Airport) { if (!current.Contains(o)) stale = o; continue; }
+                    if (o is Delegate d) { foreach (var x in d.GetInvocationList()) Add(x.Target, o, "target"); continue; }
+                    if (o is System.Collections.IEnumerable en)
+                    {
+                        try { int i = 0; foreach (var x in en) { if (x is System.Collections.DictionaryEntry de) { Add(de.Key, o, "[key]"); Add(de.Value, o, "[value]"); } else Add(x, o, "[" + (i++) + "]"); } } catch { }
+                        if (o is Array) continue;
+                    }
+                    for (var t = o.GetType(); t != null && t != typeof(object); t = t.BaseType)
+                        foreach (var ff in t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly))
+                        {
+                            if (ff.FieldType.IsPrimitive || ff.FieldType.IsEnum) continue;
+                            object v; try { v = ff.GetValue(o); } catch { continue; }
+                            Add(v, o, ff.Name);
+                        }
+                }
+                if (stale == null) continue;
+                var chain = new System.Collections.Generic.List<string>();
+                object cur = stale;
+                for (int i = 0; i < 25 && cur != null; i++)
+                {
+                    var (from, via) = parent[cur];
+                    chain.Add((cur is TheAirline.Models.Airports.Airport ap ? "Airport " + ap.Profile.IATACode : cur.GetType().Name) + " <-" + via + "-");
+                    cur = from;
+                }
+                Console.WriteLine("  LEAK " + type.FullName + "." + f.Name + ": " + string.Join(" ", chain));
+            }
+        }
+    }
+
     static async Task Wait(Func<bool> done, string what)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -1114,6 +1328,7 @@ static class VmTest
         try
         {
             var shell = new ShellViewModel(a => a(), () => Console.WriteLine("exit"));
+            if (Environment.GetCommandLineArgs().Contains("scenario")) { await ScenarioTest(shell); return; }
             var menu = (MainMenuViewModel)shell.Current;
             menu.NewGameCommand.Execute(null);
             var ng = (NewGameViewModel)shell.Current;

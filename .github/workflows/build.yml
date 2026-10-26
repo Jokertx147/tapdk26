@@ -43,6 +43,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm quick | tee quicktest.log
           grep -q "QUICK TEST OK" quicktest.log
 
+      - name: Scenario test (two scenarios from the main menu, a lost one, save and load)
+        run: |
+          TAP_SCEN="Jet,New Man" timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm scenario | tee scenariotest.log
+          grep -q "SCENARIO TEST OK" scenariotest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

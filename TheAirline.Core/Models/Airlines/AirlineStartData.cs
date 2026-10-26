@@ -177,6 +177,11 @@ namespace TheAirline.Models.Airlines
 
         #region Public Methods and Operators
 
+        public static void Clear()
+        {
+            StartData.Clear();
+        }
+
         public static void AddStartData(AirlineStartData data)
         {
             StartData.Add(data);

@@ -90,6 +90,14 @@ namespace TheAirline.Models.General.Scenarios
         [Versioning("startyear")]
         public int StartYear { get; set; }
 
+        /// <summary>The message when the scenario is won (from the scenario file).</summary>
+        [Versioning("successtext")]
+        public string SuccessText { get; set; }
+
+        /// <summary>The debt the airline starts with (some scenarios start in debt).</summary>
+        [Versioning("startdebt")]
+        public long StartDebt { get; set; }
+
         #endregion
 
         #region Public Methods and Operators

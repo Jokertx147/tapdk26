@@ -129,6 +129,7 @@ namespace TheAirline.Presentation
                     CompareTypes.AddType(t);
                     AirlinersTab = 2;
                 };
+            Scenario = new ScenarioViewModel();
             Connections = new ConnectionsViewModel((a, b) =>
                 {
                     Airports.PlanRoute(a, b);
@@ -285,6 +286,9 @@ namespace TheAirline.Presentation
         }
 
         public ConnectionsViewModel Connections { get; }
+
+        /// <summary>My Airline > Scenario (only in scenario games).</summary>
+        public ScenarioViewModel Scenario { get; }
 
         /// <summary>The open sub tab under Airliners: 0 new, 1 used, 2 compare.</summary>
         public int AirlinersTab
@@ -507,6 +511,15 @@ namespace TheAirline.Presentation
                 if (_loanMonth != game.GameTime.Month)
                 {
                     _loanMonth = game.GameTime.Month;
+                    Scenario.Reload();
+                    // a scenario that just ended: pause and tell the player once
+                    string endTitle;
+                    string endText = ScenarioViewModel.TakeEndMessage(out endTitle);
+                    if (endText != null)
+                    {
+                        GameObjectWorker.GetInstance().Pause();
+                        _shell.ShowMessage(endTitle, endText);
+                    }
                     Loans.Reload();
                     Maintenance.Reload();
                     Insurance.Reload();

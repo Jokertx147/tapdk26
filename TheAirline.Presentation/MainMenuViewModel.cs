@@ -9,6 +9,7 @@ namespace TheAirline.Presentation
         {
             NewGameCommand = new RelayCommand(shell.ShowNewGame);
             LoadGameCommand = new RelayCommand(shell.ShowLoadGame);
+            ScenariosCommand = new RelayCommand(shell.ShowScenarios);
             ExitCommand = new RelayCommand(exit);
         }
 
@@ -17,6 +18,8 @@ namespace TheAirline.Presentation
         public ICommand NewGameCommand { get; }
 
         public ICommand LoadGameCommand { get; }
+
+        public ICommand ScenariosCommand { get; }
 
         public ICommand ExitCommand { get; }
     }

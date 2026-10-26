@@ -22,7 +22,7 @@ namespace TheAirline.Helpers
         public const double SalePriceShare = 0.75;
         public const int DaysBetweenSales = 7;
 
-        private static readonly Dictionary<Airline, DateTime> LastSale = new Dictionary<Airline, DateTime>();
+        private static readonly WeakDates<Airline> LastSale = new WeakDates<Airline>();
 
         public static bool IsOwned(FleetAirliner f)
         {

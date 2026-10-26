@@ -721,6 +721,8 @@ namespace TheAirline.Infrastructure
             Instructors.Clear();
             TrainingAircraftTypes.Clear();
             Scenarios.Clear();
+            // kept the previous game's airlines (and their whole world) in memory
+            AirlineStartDatas.Clear();
             HubTypes.Clear();
             CooperationTypes.Clear();
         }
@@ -3875,9 +3877,10 @@ namespace TheAirline.Infrastructure
                     {
                         string description = selectSingleNode.Attributes["text"].Value;
                         var singleNode = element.SelectSingleNode("success");
+                        string successText = null;
                         if (singleNode?.Attributes != null)
                         {
-                            string successText = singleNode.Attributes["text"].Value;
+                            successText = singleNode.Attributes["text"].Value;
                         }
 
                         var startElement = (XmlElement) element.SelectSingleNode("start");
@@ -3903,6 +3906,11 @@ namespace TheAirline.Infrastructure
                                 endYear,
                                 startCash,
                                 difficulty);
+                            scenario.SuccessText = successText;
+                            if (startElement.HasAttribute("debt"))
+                            {
+                                scenario.StartDebt = Convert.ToInt64(startElement.Attributes["debt"].Value, CultureInfo.InvariantCulture);
+                            }
                             Scenarios.AddScenario(scenario);
 
                             XmlNodeList humanRoutesList = startElement.SelectNodes("routes/route");

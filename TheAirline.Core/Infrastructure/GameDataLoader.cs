@@ -31,6 +31,13 @@ namespace TheAirline.Infrastructure
                 // the data files use US number and date formats
                 Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US", false);
                 Setup.SetupGame();
+                // a fresh game state for the fresh data: the old one held the previous game's contract offers, news and
+                // scenario (which kept that whole world in memory, and made a new game check the old scenario's goals)
+                Models.General.GameObject.RestartInstance();
+                // caches from an earlier game point into its world: start empty
+                Helpers.ConnectionService.Invalidate();
+                Helpers.AIPricingService.Invalidate();
+                Helpers.AIPricingService.ForgetReviews();
                 if (Setup.SetupError != null)
                 {
                     throw new System.InvalidOperationException("Loading the game data failed: " + Setup.SetupError.Message,

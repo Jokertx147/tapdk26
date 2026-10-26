@@ -163,7 +163,7 @@ namespace TheAirline.Helpers
         }
 
         // when each route was last reviewed
-        private static readonly Dictionary<Route, DateTime> LastReview = new Dictionary<Route, DateTime>();
+        private static readonly WeakDates<Route> LastReview = new WeakDates<Route>();
         public const int ReviewDays = 7;
 
         /// <summary>Lets every route be reviewed again at once (for tests).</summary>
@@ -236,7 +236,7 @@ namespace TheAirline.Helpers
         }
 
         // the last time a route's cut was reported to the player, so the news isn't flooded
-        private static readonly Dictionary<Route, DateTime> Reported = new Dictionary<Route, DateTime>();
+        private static readonly WeakDates<Route> Reported = new WeakDates<Route>();
 
         /// <summary>Reviews a computer airline's route and changes its fares. Returns what changed, or null.</summary>
         public static string Review(Airline airline, PassengerRoute route)

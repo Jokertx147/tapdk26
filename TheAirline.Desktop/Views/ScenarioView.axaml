@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.ScenarioView">
+  <ScrollViewer>
+    <StackPanel Spacing="8" Margin="0,10,12,0" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="Bold" />
+      <TextBlock Text="{Binding YearsText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <Border IsVisible="{Binding HasResult}" Background="#33808080" CornerRadius="6" Padding="10">
+        <TextBlock Text="{Binding ResultText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+      </Border>
+      <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Opacity="0.8" />
+      <TextBlock Text="Goals" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+      <ItemsControl ItemsSource="{Binding Goals}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border BorderThickness="0,0,0,1" BorderBrush="#33808080" Padding="0,5" Opacity="{Binding Opacity}">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="{Binding Goal}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding When}" Opacity="0.7" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
+                  <TextBlock Text="{Binding Status}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  <TextBlock Text="{Binding Now}" Opacity="0.7" HorizontalAlignment="Right" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Text="Your subsidiaries count toward the goals. Goals checked once are checked in January of the year shown." Opacity="0.6" TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
