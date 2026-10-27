@@ -3651,6 +3651,8 @@ namespace TheAirline.Helpers
             return null;
         }
 
+        // (the factors were written as 150/100 and 50/100, whole-number divisions that came out as 1 and 0: a summer
+        // airport got no passengers at all from September to February, a winter airport none from March to August)
         private static double GetSeasonFactor(Airport airport)
         {
             bool isSummer = GameObject.GetInstance().GameTime.Month >= 3
@@ -3664,17 +3666,17 @@ namespace TheAirline.Helpers
             {
                 if (isSummer)
                 {
-                    return 150/100;
+                    return 1.5;
                 }
-                return 50/100;
+                return 0.5;
             }
             if (airport.Profile.Season == Weather.Season.Winter)
             {
                 if (isSummer)
                 {
-                    return 50/100;
+                    return 0.5;
                 }
-                return 150/100;
+                return 1.5;
             }
 
             return 1;

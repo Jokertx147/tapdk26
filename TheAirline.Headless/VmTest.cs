@@ -452,20 +452,13 @@ static class VmTest
         Console.WriteLine("REPLACE TEST");
         var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
         var mk = av.Market;
-        // two aircraft of the same type, the cheapest that has a home base
-        foreach (var item in mk.Aircraft.OrderBy(a => a.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
-        var type = mk.Selected.Airliner.Type;
+        // the cheapest aircraft that has a home base, and a route for it
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
         mk.BuyCommand.Execute(null);
         av.Refresh();
-        var second = mk.Aircraft.Where(a => a.Airliner.Type == type).OrderBy(a => a.Airliner.GetPrice()).FirstOrDefault();
-        if (second != null) { mk.Selected = second; mk.BuyCommand.Execute(null); }
-        av.Refresh();
-        Console.WriteLine("  fleet: " + string.Join(", ", h.Fleet.Select(f => f.Name + " " + f.Airliner.Type.Name)));
-        if (h.Fleet.Count < 2) { Console.WriteLine("  FAILED could not buy two aircraft"); Environment.Exit(1); }
-
         var ap = av.Airports;
         await Wait(() => !ap.IsBusy, "advice");
-        ap.SelectedAdvice = ap.Advice.First(a => a.Advice.FleetCanFly);
+        ap.SelectedAdvice = ap.Advice.First(x => x.Advice.FleetCanFly);
         var cr = ap.Create;
         foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
         cr.CreateCommand.Execute(null);
@@ -473,11 +466,37 @@ static class VmTest
         if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
         var route = h.Routes.First(r => r.HasAirliner);
         var a = route.GetAirliners()[0];
-        var b = h.Fleet.First(f => f != a);
+        if (a.Pilots.Count < a.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(a);
+        if (a.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) a.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+
+        // a second aircraft of the same kind that can fly the route: the cheapest one, of the same type when there is one
+        double dist = route.GetDistance();
+        var fits = mk.Aircraft.Where(x => x.Airliner.Type.TypeAirliner == a.Airliner.Type.TypeAirliner && x.Airliner.Range >= dist && x.Airliner.Type.CruisingSpeed >= a.Airliner.Type.CruisingSpeed).ToList();
+        mk.Selected = fits.Where(x => x.Airliner.Type == a.Airliner.Type).OrderBy(x => x.Airliner.GetPrice()).FirstOrDefault() ?? fits.OrderBy(x => x.Airliner.GetPrice()).FirstOrDefault();
+        if (mk.Selected != null) mk.BuyCommand.Execute(null);
+        av.Refresh();
+        Console.WriteLine("  fleet: " + string.Join(", ", h.Fleet.Select(f => f.Name + " " + f.Airliner.Type.Name)));
+        var b = h.Fleet.FirstOrDefault(f => f != a);
+        if (b == null) { Console.WriteLine("  FAILED could not buy a second aircraft"); Environment.Exit(1); }
         if (b.Pilots.Count < b.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(b);
         int flights = route.TimeTable.Entries.Count(e => e.Airliner == a);
         Console.WriteLine("  route " + route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode + " flown by " + a.Name + " (" + flights + " weekly flights), spare " + b.Name);
+        int seats0 = route.ConnectSeats;
+        if (Environment.GetEnvironmentVariable("TAP_TRACE") == "1")
+        {
+            int shown = 0;
+            var pr = (TheAirline.Models.Routes.PassengerRoute) route;
+            var eco = TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass;
+            Console.WriteLine("    score " + TheAirline.Helpers.RouteHelpers.GetRouteTotalScore(route).ToString("0.00") + " | fare " + pr.GetFarePrice(eco).ToString("0.00") + " market " + TheAirline.Helpers.PricingService.MarketFare(route.Destination1, route.Destination2, eco).ToString("0.00") + " demand factor " + TheAirline.Helpers.PricingService.DemandFactor(pr, eco).ToString("0.000")
+                + " | parts: age " + TheAirline.Helpers.RouteHelpers.GetPlaneAgeScore(route) + " inflight " + TheAirline.Helpers.RouteHelpers.GetRouteInflightScore(route) + " meal " + TheAirline.Helpers.RouteHelpers.GetRouteMealScore(route) + " type " + TheAirline.Helpers.RouteHelpers.GetRoutePlaneTypeScore(route) + " price " + TheAirline.Helpers.RouteHelpers.GetRoutePriceScore(route) + " seats " + TheAirline.Helpers.RouteHelpers.GetRouteSeatsScore(route) + " luggage " + TheAirline.Helpers.RouteHelpers.GetRouteLuggageScore(route));
+            TheAirline.Helpers.PassengerHelpers.FlightTrace = t =>
+            {
+                if (t.Route != route || shown++ > 6) return;
+                Console.WriteLine("    trace " + t.Type + ": base " + t.BaseDemand.ToString("0.0") + " direct " + t.Direct.ToString("0.0") + " conn " + t.Connecting.ToString("0.0") + " nearby " + t.Nearby.ToString("0.0") + " daily " + t.DailyDemand.ToString("0.0") + " flights/day " + t.FlightsPerDay.ToString("0.0") + " per flight " + t.PerFlight.ToString("0.00") + " cap " + t.TotalCapacity + " cap% " + t.CapacityPercent.ToString("0.000") + " comp " + t.Competition.ToString("0.000") + " rep " + t.Reputation.ToString("0.00") + " seats " + t.Seats + " -> " + t.Passengers);
+            };
+        }
         for (int i = 0; i < 3; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  " + a.Name + " flew " + (route.ConnectSeats - seats0) + " seats in 3 days (" + route.ConnectAllPassengers + " passengers counted for the load, " + route.Statistics.GetTotalValue(TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers")) + " in the route statistics), status " + a.Status);
         var times = route.TimeTable.Entries.Where(e => e.Airliner == a).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
 
         var rd = new TheAirline.Presentation.RouteDetailViewModel(route, () => { });
@@ -495,11 +514,11 @@ static class VmTest
         if (!sameTimes || route.TimeTable.Entries.Any(e => e.Airliner == a) || a.Routes.Contains(route) || !b.Routes.Contains(route) || rd.IsReplacing)
         { Console.WriteLine("  FAILED replace"); Environment.Exit(1); }
 
-        double paxBefore = route.Statistics.GetTotalValue(TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
+        int seats1 = route.ConnectSeats;
         for (int i = 0; i < 4; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
-        double paxAfter = route.Statistics.GetTotalValue(TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
-        Console.WriteLine("  four days later: " + b.Name + " at " + b.CurrentPosition?.Profile.IATACode + ", status " + b.Status + " | passengers on the route " + paxBefore + " -> " + paxAfter);
-        if (paxAfter <= paxBefore) { Console.WriteLine("  FAILED the new aircraft doesn't fly the route"); Environment.Exit(1); }
+        int flown = route.ConnectSeats - seats1;
+        Console.WriteLine("  four days later: " + b.Name + " at " + b.CurrentPosition?.Profile.IATACode + ", status " + b.Status + " | seats flown on the route " + flown);
+        if (flown <= 0) { Console.WriteLine("  FAILED the new aircraft doesn't fly the route"); Environment.Exit(1); }
 
         // and back again: the first aircraft is free now
         rd.OpenReplaceCommand.Execute(null);
