@@ -90,7 +90,9 @@ namespace TheAirline.Presentation
             DeleteCommand = new RelayCommand(() => ConfirmDelete = true);
             OpenReplaceCommand = new RelayCommand(OpenReplace, () => CanMove);
             CloseReplaceCommand = new RelayCommand(() => IsReplacing = false);
-            ReplaceCommand = new RelayCommand(DoReplace, () => _replaceFrom != null && _replaceTo != null && _replaceTo.Value.CanReplace);
+            ReplaceCommand = new RelayCommand(() => DoReplace(ReplaceMode.SameTimes), () => _replaceFrom != null && _replaceTo != null && _replaceTo.Value.CanReplace);
+            ShiftReplaceCommand = new RelayCommand(() => DoReplace(ReplaceMode.ShiftTimes), () => _replaceTo?.Value?.Shift != null);
+            KeepReplaceCommand = new RelayCommand(() => DoReplace(ReplaceMode.KeepFitting), () => _replaceTo?.Value?.Keep != null);
             ConfirmDeleteCommand = new RelayCommand(Delete);
             CancelDeleteCommand = new RelayCommand(() => ConfirmDelete = false);
 
@@ -203,6 +205,14 @@ namespace TheAirline.Presentation
         public ICommand OpenReplaceCommand { get; }
         public ICommand CloseReplaceCommand { get; }
         public ICommand ReplaceCommand { get; }
+        public ICommand ShiftReplaceCommand { get; }
+        public ICommand KeepReplaceCommand { get; }
+
+        public bool CanReplaceSame => _replaceTo?.Value?.CanReplace == true;
+        public bool CanShift => _replaceTo?.Value?.Shift != null;
+        public bool CanKeep => _replaceTo?.Value?.Keep != null;
+        public string ShiftText => CanShift ? "Shift the times: " + _replaceTo.Value.Shift.Summary + "." : null;
+        public string KeepText => CanKeep ? "Keep what fits: " + _replaceTo.Value.Keep.Summary + "." : null;
 
         public ObservableCollection<NamedChoice<FleetAirliner>> ReplaceFromChoices { get; } = new ObservableCollection<NamedChoice<FleetAirliner>>();
         public ObservableCollection<NamedChoice<ReplacementOption>> ReplaceToChoices { get; } = new ObservableCollection<NamedChoice<ReplacementOption>>();
@@ -241,7 +251,14 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _replaceTo, value))
                 {
                     OnPropertyChanged(nameof(ReplaceText));
+                    OnPropertyChanged(nameof(CanReplaceSame));
+                    OnPropertyChanged(nameof(CanShift));
+                    OnPropertyChanged(nameof(CanKeep));
+                    OnPropertyChanged(nameof(ShiftText));
+                    OnPropertyChanged(nameof(KeepText));
                     (ReplaceCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (ShiftReplaceCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (KeepReplaceCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -257,7 +274,9 @@ namespace TheAirline.Presentation
                 int flights = _route.TimeTable.Entries.Count(e => e.Airliner == from);
                 return _replaceTo.Value.CanReplace
                     ? _replaceTo.Value.Airliner.Name + " takes over the " + flights + " weekly flights of " + from.Name + " on this route, at the same times."
-                    : _replaceTo.Value.Airliner.Name + " can't take over: " + _replaceTo.Value.Note + ".";
+                    : _replaceTo.Value.Shift != null || _replaceTo.Value.Keep != null
+                        ? _replaceTo.Value.Airliner.Name + " is too slow for the flights as they are. Pick how to make the route fit:"
+                        : _replaceTo.Value.Airliner.Name + " can't take over: " + _replaceTo.Value.Note + ".";
             }
         }
 
@@ -288,14 +307,14 @@ namespace TheAirline.Presentation
                 }
             }
             _replaceTo = null;
-            ReplaceTo = ReplaceToChoices.FirstOrDefault(c => c.Value.CanReplace);
+            ReplaceTo = ReplaceToChoices.FirstOrDefault(c => c.Value.CanReplace) ?? ReplaceToChoices.FirstOrDefault(c => c.Value.Shift != null || c.Value.Keep != null);
             OnPropertyChanged(nameof(ReplaceText));
         }
 
-        private void DoReplace()
+        private void DoReplace(ReplaceMode mode)
         {
             string message;
-            bool ok = AircraftReplaceService.Replace(_route, _replaceFrom?.Value, _replaceTo?.Value?.Airliner, out message);
+            bool ok = AircraftReplaceService.Replace(_route, _replaceFrom?.Value, _replaceTo?.Value?.Airliner, mode, out message);
             Status = message;
             if (ok)
             {

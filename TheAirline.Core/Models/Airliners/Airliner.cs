@@ -323,13 +323,15 @@ namespace TheAirline.Models.Airliners
             return 0;
         }
 
+        // 3% less each year of age, and a fifth of the price from 25 years on (written as 3/100 and 20/100 before,
+        // whole-number divisions: an aircraft kept its full price until 25 and was then worth nothing)
         public long GetValue()
         {
             if (GetAge() < 25)
             {
-                return GetPrice()*(1 - (long) GetAge()*(3/100));
+                return (long) (GetPrice()*(1 - GetAge()*0.03));
             }
-            return GetPrice()*(20/100);
+            return (long) (GetPrice()*0.20);
         }
 
         public void RemoveAirlinerClass(AirlinerClass airlinerClass)

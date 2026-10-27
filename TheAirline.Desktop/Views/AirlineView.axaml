@@ -175,8 +175,16 @@
                         <ComboBox ItemsSource="{Binding ReplaceToChoices}" SelectedItem="{Binding ReplaceTo}" MinWidth="320" MaxWidth="420" />
                       </StackPanel>
                       <TextBlock Text="{Binding ReplaceText}" TextWrapping="Wrap" Opacity="0.8" />
+                      <StackPanel Spacing="4" IsVisible="{Binding CanShift}">
+                        <TextBlock Text="{Binding ShiftText}" TextWrapping="Wrap" Opacity="0.8" />
+                        <Button Content="Replace and shift the times" Command="{Binding ShiftReplaceCommand}" />
+                      </StackPanel>
+                      <StackPanel Spacing="4" IsVisible="{Binding CanKeep}">
+                        <TextBlock Text="{Binding KeepText}" TextWrapping="Wrap" Opacity="0.8" />
+                        <Button Content="Replace and keep the flights that fit" Command="{Binding KeepReplaceCommand}" />
+                      </StackPanel>
                       <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Replace" Command="{Binding ReplaceCommand}" />
+                        <Button Content="Replace" Command="{Binding ReplaceCommand}" IsVisible="{Binding CanReplaceSame}" />
                         <Button Content="Cancel" Command="{Binding CloseReplaceCommand}" />
                       </StackPanel>
                     </StackPanel>

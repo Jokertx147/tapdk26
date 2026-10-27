@@ -528,6 +528,80 @@ static class VmTest
         Console.WriteLine("  " + rd.Status);
         if (!a.Routes.Contains(route) || b.Routes.Contains(route)) { Console.WriteLine("  FAILED replace back"); Environment.Exit(1); }
 
+        // a slower aircraft: the flights as they are don't fit, so shift the times (or keep the round trips that fit)
+        var slowType = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes()
+            .Where(t => t.TypeAirliner == a.Airliner.Type.TypeAirliner && t.Range >= route.GetDistance() && t.CruisingSpeed < a.Airliner.Type.CruisingSpeed * 0.95
+                        && t.MinRunwaylength <= Math.Min(route.Destination1.GetMaxRunwayLength(), route.Destination2.GetMaxRunwayLength()))
+            .OrderBy(t => t.CruisingSpeed).FirstOrDefault();
+        if (slowType == null) Console.WriteLine("  (no slower aircraft type for this route, shift part skipped)");
+        else
+        {
+            // pack the first aircraft's flights back to back, so a slower aircraft can't fly them at these times
+            var packed = route.TimeTable.Entries.Where(e => e.Airliner == a).OrderBy(e => (int) e.Day*1440 + e.Time.TotalMinutes).ToList();
+            int t0 = (int) packed[0].Day*1440 + (int) packed[0].Time.TotalMinutes;
+            int needA = (int) Math.Ceiling(route.GetFlightTime(a.Airliner.Type).TotalMinutes + TheAirline.Helpers.FleetAirlinerHelpers.GetMinTimeBetweenFlights(a).TotalMinutes);
+            for (int k = 0; k < packed.Count; k++)
+            {
+                var e = packed[k];
+                int m = t0 % (7*1440);
+                e.Day = (DayOfWeek) (m/1440); e.Time = new TimeSpan(0, m%1440, 0);
+                // room inside each round trip, none between them: a slower aircraft can keep every other trip, or shift
+                t0 += k % 2 == 0 ? needA*2 : needA + 5;
+            }
+            Console.WriteLine("  packed " + packed.Count + " flights of " + a.Name + " back to back, clash " + (TheAirline.Helpers.AircraftReplaceService.FirstClash(a, packed) ?? "none"));
+            var slow = TheAirline.Helpers.AirlineHelpers.CreateAirliner(h, slowType);
+            h.AddAirliner(slow);
+            TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(slow);
+            rd.OpenReplaceCommand.Execute(null);
+            var choice = rd.ReplaceToChoices.FirstOrDefault(c => c.Value.Airliner == slow);
+            Console.WriteLine("  slow " + slow.Name + " (" + slowType.Name + ", " + slowType.CruisingSpeed + " km/h vs " + a.Airliner.Type.CruisingSpeed + "): " + choice?.Name);
+            rd.ReplaceTo = choice;
+            Console.WriteLine("  " + rd.ReplaceText + " | shift: " + rd.ShiftText + " | keep: " + rd.KeepText + " | same allowed " + rd.CanReplaceSame);
+            if (choice == null || rd.CanReplaceSame || (!rd.CanShift && !rd.CanKeep)) { Console.WriteLine("  FAILED slow aircraft options"); Environment.Exit(1); }
+            int total = route.TimeTable.Entries.Count(e => e.Airliner == a);
+            if (rd.CanKeep)
+            {
+                var keepPlan = choice.Value.Keep;
+                var kept = route.TimeTable.Entries.Where(e => e.Airliner == a && !keepPlan.Drop.Contains(e)).ToList();
+                string kc = TheAirline.Helpers.AircraftReplaceService.FirstClash(slow, kept);
+                Console.WriteLine("  keep plan: " + kept.Count + " of " + total + " kept, clash " + (kc ?? "none"));
+                if (kc != null) { Console.WriteLine("  FAILED keep plan clashes"); Environment.Exit(1); }
+            }
+            if (rd.CanShift)
+            {
+                rd.ShiftReplaceCommand.Execute(null);
+                Console.WriteLine("  shifted: " + rd.Status);
+                var now = route.TimeTable.Entries.Where(e => e.Airliner == slow).ToList();
+                string clash = TheAirline.Helpers.AircraftReplaceService.FirstClash(slow, now);
+                Console.WriteLine("  " + slow.Name + " has " + now.Count + " of " + total + " flights, clash " + (clash ?? "none") + ", status " + slow.Status);
+                if (now.Count != total || clash != null || a.Routes.Contains(route)) { Console.WriteLine("  FAILED shift"); Environment.Exit(1); }
+                int seats2 = route.ConnectSeats;
+                for (int i = 0; i < 3; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                Console.WriteLine("  three days later: seats flown " + (route.ConnectSeats - seats2));
+                if (route.ConnectSeats - seats2 <= 0) { Console.WriteLine("  FAILED the slow aircraft doesn't fly"); Environment.Exit(1); }
+                // put the first aircraft back for the last check
+                string back;
+                TheAirline.Helpers.AircraftReplaceService.Replace(route, slow, a, out back);
+                Console.WriteLine("  back: " + back);
+                // pack again and keep only the round trips that fit
+                var again = route.TimeTable.Entries.Where(e => e.Airliner == a).OrderBy(e => (int) e.Day*1440 + e.Time.TotalMinutes).ToList();
+                int t1 = (int) again[0].Day*1440 + (int) again[0].Time.TotalMinutes;
+                for (int k = 0; k < again.Count; k++)
+                {
+                    int m = t1 % (7*1440);
+                    again[k].Day = (DayOfWeek) (m/1440); again[k].Time = new TimeSpan(0, m%1440, 0);
+                    t1 += k % 2 == 0 ? needA*2 : needA + 5;
+                }
+                string keptMsg;
+                bool keptOk = TheAirline.Helpers.AircraftReplaceService.Replace(route, a, slow, TheAirline.Helpers.ReplaceMode.KeepFitting, out keptMsg);
+                var left = route.TimeTable.Entries.Where(e => e.Airliner == slow).ToList();
+                Console.WriteLine("  keep: " + keptOk + " | " + keptMsg + " | " + left.Count + " flights, clash " + (TheAirline.Helpers.AircraftReplaceService.FirstClash(slow, left) ?? "none") + ", route has " + route.TimeTable.Entries.Count + " flights");
+                if (!keptOk || left.Count == 0 || left.Count >= total || TheAirline.Helpers.AircraftReplaceService.FirstClash(slow, left) != null || route.TimeTable.Entries.Count != left.Count)
+                { Console.WriteLine("  FAILED keep"); Environment.Exit(1); }
+                TheAirline.Helpers.AircraftReplaceService.Replace(route, slow, a, out back);
+            }
+        }
+
         // something that can't: an aircraft whose range is too short
         var shortType = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().FirstOrDefault(t => t.TypeAirliner == a.Airliner.Type.TypeAirliner && t.Range < route.GetDistance() && t.Produced.From.Year <= TheAirline.Models.General.GameObject.GetInstance().GameTime.Year);
         if (shortType != null)

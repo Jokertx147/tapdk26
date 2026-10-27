@@ -3051,23 +3051,23 @@ namespace TheAirline.Helpers
             if (airliner.Airliner.Airline.MarketFocus == AirlineFocus.Global && distance > 3000
                 && airportCurrent.Profile.Country != airportDestination.Profile.Country)
             {
-                passengerDemand = passengerDemand*(115/100);
+                passengerDemand = passengerDemand*1.15;
             }
 
             if (airliner.Airliner.Airline.MarketFocus == AirlineFocus.Regional && distance < 1500)
             {
-                passengerDemand = passengerDemand*(115/100);
+                passengerDemand = passengerDemand*1.15;
             }
 
             if (airliner.Airliner.Airline.MarketFocus == AirlineFocus.Domestic && distance < 1500
                 && airportDestination.Profile.Country == airportCurrent.Profile.Country)
             {
-                passengerDemand = passengerDemand*(115/100);
+                passengerDemand = passengerDemand*1.15;
             }
 
             if (airliner.Airliner.Airline.MarketFocus == AirlineFocus.Local && distance < 1000)
             {
-                passengerDemand = passengerDemand*(115/100);
+                passengerDemand = passengerDemand*1.15;
             }
 
             pf = Profiler.Start();
@@ -3530,7 +3530,7 @@ namespace TheAirline.Helpers
                 if (holiday.Holiday.Travel == Holiday.TravelType.Both
                     || holiday.Holiday.Travel == Holiday.TravelType.Travel)
                 {
-                    return 150/100;
+                    return 1.5;
                 }
             }
             return 1;
