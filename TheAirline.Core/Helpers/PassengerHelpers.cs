@@ -3536,6 +3536,24 @@ namespace TheAirline.Helpers
             return 1;
         }
 
+        /// <summary>Passengers from airports near the start who would use the flight (for the route forecast).</summary>
+        public static double NearbyDemandFor(Airport from, Airport to, FleetAirliner airliner, AirlinerClass.ClassType type)
+        {
+            return GetNearbyPassengerDemand(from, to, airliner, type);
+        }
+
+        /// <summary>The season's effect on the demand to an airport today (for the route forecast).</summary>
+        public static double SeasonFactorFor(Airport airport)
+        {
+            return GetSeasonFactor(airport);
+        }
+
+        /// <summary>The share the airline's reputation at the airport gives (0.75 to 1, as for a flight).</summary>
+        public static double ReputationShare(Airport airport, Airline airline)
+        {
+            return Math.Max(75, ReputationScale(airport, airline))/100;
+        }
+
         // a route's service score (aircraft age, meals, seats, fare and so on), worked out once a game day per route
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Route, Tuple<DateTime, double>> RouteScoreCache =
             new System.Runtime.CompilerServices.ConditionalWeakTable<Route, Tuple<DateTime, double>>();

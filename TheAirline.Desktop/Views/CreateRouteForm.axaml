@@ -42,6 +42,7 @@
       <CheckBox Content="Start flying straight away" IsChecked="{Binding StartAirliner}" />
     </StackPanel>
 
+    <TextBlock Text="{Binding Forecast}" TextWrapping="Wrap" IsVisible="{Binding HasForecast}" Foreground="#9CC3E6" />
     <TextBlock Text="{Binding Info}" TextWrapping="Wrap" Opacity="0.85" />
     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
       <Button Content="Cancel" Command="{Binding CancelCommand}" />

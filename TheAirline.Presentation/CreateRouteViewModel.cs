@@ -263,6 +263,7 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _trips, value))
                 {
                     RefreshStartTimes();
+                    RefreshForecast();
                 }
             }
         }
@@ -360,12 +361,96 @@ namespace TheAirline.Presentation
                 Trips.Add(i);
             }
 
+            // the default is the number of round trips the forecast says earns the most a day (passenger routes),
+            // not the most the aircraft can fly
+            _suggested = null;
+            int pick = max;
+            if (!_cargo && GameObject.GetInstance()?.HumanAirline != null)
+            {
+                try
+                {
+                    List<RouteForecast> all;
+                    _suggested = RouteForecastService.Best(GameObject.GetInstance().HumanAirline, _origin, _destination, Airliner, max, out all, _move ? _existing : null);
+                    pick = _suggested.RoundTrips;
+                }
+                catch (Exception ex)
+                {
+                    Infrastructure.StartupLog.Write("Route forecast failed: " + ex);
+                    _suggested = null;
+                }
+            }
+
             _updating = true;
-            _trips = max;
+            _trips = pick;
             OnPropertyChanged(nameof(RoundTrips));
             _updating = false;
 
             RefreshStartTimes();
+            RefreshForecast();
+        }
+
+        private RouteForecast _suggested;
+        private string _forecast;
+
+        /// <summary>The forecast at the chosen number of round trips (null for cargo, long-haul or no aircraft).</summary>
+        public RouteForecast CurrentForecast { get; private set; }
+
+        /// <summary>The forecast at the suggested number of round trips.</summary>
+        public RouteForecast SuggestedForecast => _suggested;
+
+        /// <summary>What the route is expected to do at the chosen number of round trips, and the suggestion.</summary>
+        public string Forecast
+        {
+            get { return _forecast; }
+            private set
+            {
+                if (SetProperty(ref _forecast, value)) OnPropertyChanged(nameof(HasForecast));
+            }
+        }
+
+        public bool HasForecast => !string.IsNullOrEmpty(_forecast);
+
+        private static string Cash(double v)
+        {
+            return (v < 0 ? "-$" : "$") + Math.Abs(Math.Round(v)).ToString("N0");
+        }
+
+        private void RefreshForecast()
+        {
+            CurrentForecast = null;
+            if (_cargo || Airliner == null || _suggested == null || !DetailEnabled || GameObject.GetInstance()?.HumanAirline == null)
+            {
+                Forecast = null;
+                return;
+            }
+            RouteForecast now;
+            try
+            {
+                now = RouteForecastService.Forecast(GameObject.GetInstance().HumanAirline, _origin, _destination, Airliner, Math.Max(1, _trips), _move ? _existing : null);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.StartupLog.Write("Route forecast failed: " + ex);
+                Forecast = null;
+                return;
+            }
+            CurrentForecast = now;
+            string text = string.Format("Forecast at {0} round trip{1} a day: about {2:0}% full ({3:0} of {4} seats), {5} income and {6} costs a flight, {7} a day.",
+                now.RoundTrips, now.RoundTrips == 1 ? "" : "s", now.Load*100, now.PassengersPerFlight, now.Seats, Cash(now.RevenuePerFlight), Cash(now.CostPerFlight), Cash(now.ProfitPerDay));
+            if (_suggested.ProfitPerDay < 0)
+            {
+                text += string.Format(" This aircraft is likely to lose money here however often it flies (the least loss is at {0} a day, {1} a day){2}. A different aircraft or destination may do better.",
+                    _suggested.RoundTrips, Cash(_suggested.ProfitPerDay), _suggested.Rivals > 0 ? ": " + _suggested.Rivals + " other route" + (_suggested.Rivals == 1 ? "" : "s") + " already fly the pair" : "");
+            }
+            else if (_suggested.RoundTrips != now.RoundTrips)
+            {
+                text += string.Format(" Suggested: {0} a day (about {1:0}% full, {2} a day).", _suggested.RoundTrips, _suggested.Load*100, Cash(_suggested.ProfitPerDay));
+            }
+            else
+            {
+                text += " This is the suggested number: the most profit a day.";
+            }
+            Forecast = text + " An estimate: rivals change fares and schedules, and connecting passengers come on top.";
         }
 
         private void RefreshStartTimes()

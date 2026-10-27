@@ -727,6 +727,7 @@ static class VmTest
         }
         double reportTotal = rp.Rows.Sum(r => r.Figures.LastMonth);
         if (Math.Abs(reportTotal) < 1) { Console.WriteLine("  FAILED no money on the routes last month"); Environment.Exit(1); }
+        rp.Selected = rp.Rows.First(r => r.Figures.Route.HasAirliner);
         Console.WriteLine("  detail: " + rp.Detail);
         foreach (var m in rp.Months) Console.WriteLine("    " + m);
         foreach (var b in rp.Breakdown) Console.WriteLine("    " + b);
@@ -746,6 +747,88 @@ static class VmTest
         Console.WriteLine("  open: tab " + av.RoutesTab + ", selected " + av.SelectedRoute?.Name);
         if (av.RoutesTab != 0 || av.SelectedRoute?.Route != rp.Selected.Figures.Route) { Console.WriteLine("  FAILED open"); Environment.Exit(1); }
         Console.WriteLine("ROUTE PROFIT TEST OK");
+    }
+
+    /// <summary>
+    ///     "vm forecast": the route planner suggests a number of round trips from a forecast; two routes are made (one at
+    ///     the suggestion, one at the most the aircraft can fly), flown for a month, and the forecast is compared.
+    /// </summary>
+    static async Task ForecastTest(AirlineViewModel av)
+    {
+        Console.WriteLine("FORECAST TEST");
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var mk = av.Market;
+        var ap = av.Airports;
+        var made = new System.Collections.Generic.List<Tuple<TheAirline.Models.Routes.Route, TheAirline.Helpers.RouteForecast, bool>>();
+        // two aircraft of one type with at least 15 seats, the cheapest such type with two for sale
+        var forSale = mk.Aircraft.Where(x => x.Airliner.Type is TheAirline.Models.Airliners.AirlinerPassengerType && x.Airliner.GetTotalSeatCapacity() >= 15 && x.Airliner.Range >= 1000)
+                        .GroupBy(x => x.Airliner.Type).Where(gr => gr.Count() >= 2).OrderBy(gr => gr.Min(x => x.Airliner.GetPrice())).First().OrderBy(x => x.Airliner.GetPrice()).ToList();
+        for (int n = 0; n < 2; n++)
+        {
+            mk.Selected = mk.Aircraft.First(x => x.Airliner == forSale[n].Airliner);
+            mk.BuyCommand.Execute(null);
+            av.Refresh();
+            ap.ReloadAdvice();
+            await Wait(() => !ap.IsBusy, "advice");
+            var advice = ap.Advice.Where(x => x.Advice.FleetCanFly).FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination));
+            if (advice == null) break;
+            ap.SelectedAdvice = advice;
+            var cr = ap.Create;
+            int max = cr.Trips.Count == 0 ? 0 : cr.Trips.Max();
+            Console.WriteLine("  " + cr.Title + " with " + cr.SelectedAircraft?.Name + ": trips 1-" + max + ", suggested " + cr.RoundTrips);
+            Console.WriteLine("    " + cr.Forecast);
+            bool atSuggestion = n == 0;
+            if (!atSuggestion && max > 0) { cr.RoundTrips = max; Console.WriteLine("    at the most: " + cr.Forecast); }
+            if (string.IsNullOrEmpty(cr.Forecast) || cr.CurrentForecast == null) { Console.WriteLine("  FAILED no forecast"); Environment.Exit(1); }
+            var aircraft = cr.SelectedAircraft.Airliner;
+            var fc = cr.CurrentForecast;
+            foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+            cr.CreateCommand.Execute(null);
+            foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+            if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+            var route = h.Routes.FirstOrDefault(r => r.GetAirliners().Contains(aircraft));
+            if (route == null) { Console.WriteLine("  FAILED route not made"); Environment.Exit(1); }
+            made.Add(Tuple.Create(route, fc, atSuggestion));
+        }
+        foreach (var f in h.Fleet)
+        {
+            if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+            if (f.Routes.Count > 0 && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        }
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        if (Environment.GetEnvironmentVariable("TAP_TRACE") == "1")
+        {
+            int shown = 0;
+            var r0 = made[0].Item1;
+            TheAirline.Helpers.PassengerHelpers.FlightTrace = t =>
+            {
+                if (t.Route != r0 || shown++ > 5) return;
+                Console.WriteLine("    trace " + t.Type + ": direct " + t.Direct.ToString("0.0") + " conn " + t.Connecting.ToString("0.0") + " nearby " + t.Nearby.ToString("0.0") + " daily " + t.DailyDemand.ToString("0.0") + " flights/day " + t.FlightsPerDay.ToString("0.0") + " per flight " + t.PerFlight.ToString("0.00") + " cap " + t.TotalCapacity + " cap% " + t.CapacityPercent.ToString("0.000") + " comp " + t.Competition.ToString("0.000") + " rep " + t.Reputation.ToString("0.00") + " score " + t.Score.ToString("0.00") + " seats " + t.Seats + " -> " + t.Passengers);
+            };
+            Console.WriteLine("    difficulty: passengers " + g.Difficulty.PassengersLevel + ", price " + g.Difficulty.PriceLevel);
+        }
+        int startMonth = g.GameTime.Month;
+        while (g.GameTime.Month == startMonth) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        for (int i = 0; i < 31 && g.GameTime.Day != 1 || i == 0; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        while (g.GameTime.Day != 1) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+        foreach (var m in made)
+        {
+            var route = m.Item1;
+            var atCreation = m.Item2;
+            // the model checked against the network as it is now (the other route brings connecting passengers)
+            var fc = TheAirline.Helpers.RouteForecastService.Forecast(h, route.Destination1, route.Destination2, route.GetAirliners()[0], atCreation.RoundTrips, route);
+            Console.WriteLine(string.Format("    at creation the forecast was {0:0}% full, {1:N0} a flight", atCreation.Load*100, atCreation.ProfitPerFlight));
+            double load = route.ConnectLastSeats > 0 ? (double) route.ConnectLastAllPassengers/route.ConnectLastSeats : 0;
+            double flights = route.TimeTable.Entries.Count*DateTime.DaysInMonth(last.Year, last.Month)/7.0;
+            double profit = TheAirline.Helpers.RouteProfitService.Month(route, last.Year, last.Month);
+            double ownership = TheAirline.Helpers.OwnershipService.MonthlyCost(route.GetAirliners()[0]);
+            double perFlight = flights > 0 ? (profit - ownership)/flights : 0;
+            Console.WriteLine(string.Format("  {0}-{1} {2}, {3} trips a day: forecast {4:0}% full, {5:N0} a flight | {6:MMM}: {7:0}% full, {8:N0} a flight (route figures less ownership)",
+                route.Destination1.Profile.IATACode, route.Destination2.Profile.IATACode, m.Item3 ? "at the suggestion" : "at the most", fc.RoundTrips, fc.Load*100, fc.ProfitPerFlight, last, load*100, perFlight));
+            if (Math.Abs(load - fc.Load) > 0.25) { Console.WriteLine("  FAILED forecast load far off"); Environment.Exit(1); }
+        }
+        Console.WriteLine("FORECAST TEST OK");
     }
 
     static void DemandCheck(string when)
@@ -1849,6 +1932,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("replace")) { await ReplaceTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("renewal")) { await RenewalTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

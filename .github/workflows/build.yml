@@ -68,6 +68,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm routeprofit | tee routeprofittest.log
           grep -q "ROUTE PROFIT TEST OK" routeprofittest.log
 
+      - name: Route forecast test (the planner's suggestion and forecast against a month of flying)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm forecast | tee forecasttest.log
+          grep -q "FORECAST TEST OK" forecasttest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

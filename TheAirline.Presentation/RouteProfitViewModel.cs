@@ -171,7 +171,7 @@ namespace TheAirline.Presentation
                     if (r.StartDate != default(DateTime) && new DateTime(d.Year, d.Month, DateTime.DaysInMonth(d.Year, d.Month)) < r.StartDate) break;
                     double income, costs;
                     RouteProfitService.IncomeAndCosts(r, d.Year, d.Month, out income, out costs);
-                    Months.Add(d.ToString("MMM yyyy") + (i == 0 ? " (so far)" : "") + ":  income " + Money(income) + ",  costs " + Money(-costs) + ",  profit " + Money(income + costs));
+                    Months.Add(d.ToString("MMM yyyy") + (i == 0 ? " (so far)" : "") + ":  income " + Money(income) + ",  costs " + Money(Math.Abs(costs)) + ",  profit " + Money(income + costs));
                 }
                 DateTime last = now.AddMonths(-1);
                 var parts = RouteProfitService.Breakdown(r, last.Year, last.Month);
