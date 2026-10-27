@@ -348,6 +348,39 @@ static class VmTest
         }
     }
 
+    /// <summary>"vm demand": rebuild every airport's demand a few times, timing it, and time its parts on a sample.</summary>
+    static void DemandProbe()
+    {
+        if (Environment.GetEnvironmentVariable("TAP_WORLD") == "1") TheAirline.Infrastructure.Setup.LoadAirports();
+        var airports = TheAirline.Models.Airports.Airports.GetAllAirports();
+        Console.WriteLine("airports: " + airports.Count);
+        DemandCheck("at start");
+        for (int k = 0; k < 2; k++)
+        {
+            foreach (var a in airports) a.Statics = new TheAirline.Models.Airports.AirportStatics(a);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            TheAirline.Helpers.PassengerHelpers.CreateDestinationDemand();
+            Console.WriteLine("DEMAND BUILD " + k + ": " + sw.ElapsedMilliseconds + " ms, memory " + GC.GetTotalMemory(true)/1048576 + " MB");
+            DemandCheck("after build " + k);
+        }
+        var sample = airports.Take(300).ToList();
+        var t = System.Diagnostics.Stopwatch.StartNew();
+        double x = 0;
+        foreach (var a in sample) foreach (var b in sample) x += TheAirline.Helpers.MathHelpers.GetDistance(a, b);
+        Console.WriteLine("PART distance x90k: " + t.ElapsedMilliseconds + " ms");
+        TheAirline.Helpers.Profiler.Reset(); TheAirline.Helpers.Profiler.Enabled = true;
+        t.Restart();
+        foreach (var a in sample) foreach (var b in sample) if (a != b) TheAirline.Helpers.PassengerHelpers.CreateDestinationPassengers(a, b);
+        Console.WriteLine("PART passengers x90k: " + t.ElapsedMilliseconds + " ms");
+        TheAirline.Helpers.Profiler.Enabled = false; Console.Write(TheAirline.Helpers.Profiler.Report());
+        t.Restart();
+        foreach (var a in sample) foreach (var b in sample) if (a != b) TheAirline.Helpers.PassengerHelpers.CreateDestinationCargo(a, b);
+        Console.WriteLine("PART cargo x90k: " + t.ElapsedMilliseconds + " ms");
+        t.Restart();
+        foreach (var a in sample) foreach (var b in sample) x += a.GetDestinationPassengersRate(b, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+        Console.WriteLine("PART demand lookup x90k: " + t.ElapsedMilliseconds + " ms");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1392,10 +1425,13 @@ static class VmTest
             adv.StartCommand.Execute(null); adv.ConfirmCommand.Execute(null);
             Console.WriteLine("  start: " + adv.Status + " | running " + adv.Campaigns.Count);
             var atl2 = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
-            var lhr2 = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "LHR");
+            // an airport outside the United States that is in this game (London when the game has it)
+            var lhr2 = TheAirline.Models.Airports.Airports.GetAllAirports().FirstOrDefault(x => x.Profile.IATACode == "LHR")
+                       ?? TheAirline.Models.Airports.Airports.GetAllAirports().Where(x => x.Profile.Country != atl2.Profile.Country && x.Profile.IATACode?.Length == 3).OrderByDescending(x => x.Profile.Pax).First();
+            Console.WriteLine("  other airport: " + lhr2.Profile.IATACode + " " + lhr2.Profile.Name);
             Console.WriteLine("  factor ATL " + TheAirline.Helpers.AdvertisingService.AirportFactor(me5, atl2).ToString("0.000") + " | LHR " + TheAirline.Helpers.AdvertisingService.AirportFactor(me5, lhr2).ToString("0.000"));
             if (TheAirline.Helpers.AdvertisingService.CampaignFactor(me5, atl2) < 1.3) { Console.WriteLine("  FAILED campaign"); Environment.Exit(1); }
-            adv.AirportTarget = true; adv.Search = "LHR"; adv.Size = "Small"; adv.Months = 1; Console.WriteLine("  airport: " + adv.CampaignText);
+            adv.AirportTarget = true; adv.Search = lhr2.Profile.IATACode; adv.Size = "Small"; adv.Months = 1; Console.WriteLine("  airport: " + adv.CampaignText);
             adv.StartCommand.Execute(null); adv.ConfirmCommand.Execute(null); Console.WriteLine("  start: " + adv.Status);
             g2.GameTime = g2.GameTime.AddMonths(2); TheAirline.Helpers.AdvertisingService.ProcessMonth(me5); adv.Reload();
             Console.WriteLine("  two months later: running " + adv.Campaigns.Count + " | LHR factor " + TheAirline.Helpers.AdvertisingService.CampaignFactor(me5, lhr2));
@@ -1441,6 +1477,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("perf")) { PerfProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("savetime")) { SaveProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("demand")) { DemandProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }
@@ -2836,7 +2873,18 @@ static class VmTest
                 var lcg = TheAirline.Models.General.GameObject.GetInstance();
                 var la = lcg.HumanAirline;
                 var lall = TheAirline.Models.Airports.Airports.GetAllAirports();
-                var atl = lall.First(x => x.Profile.IATACode == "ATL"); var lhr = lall.First(x => x.Profile.IATACode == "SYD");
+                var atl = lall.First(x => x.Profile.IATACode == "ATL"); var lhr = lall.FirstOrDefault(x => x.Profile.IATACode == "SYD");
+                if (lhr == null)
+                {
+                    // a North America game has no airport on another continent: read Sydney from the data files
+                    // without adding it to the game
+                    var keepAirports = lall.ToList();
+                    TheAirline.Infrastructure.Setup.LoadAirports();
+                    lhr = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "SYD");
+                    TheAirline.Models.Airports.Airports.Clear();
+                    foreach (var ka in keepAirports) TheAirline.Models.Airports.Airports.AddAirport(ka);
+                    Console.WriteLine("  (Sydney read from the data files: " + TheAirline.Models.Airports.Airports.GetAllAirports().Count + " airports in the game)");
+                }
                 TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(la, lcg.GameTime, TheAirline.Models.General.Finances.Invoice.InvoiceType.Rents, 100000000);
                 var keepLicense = la.License;
                 la.License = TheAirline.Models.Airlines.Airline.AirlineLicense.Regional;

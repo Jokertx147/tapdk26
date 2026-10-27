@@ -256,9 +256,12 @@ namespace TheAirline.Helpers
             }
         }
 
+        private static readonly Dictionary<int, double> YearCoeffs =
+            new Dictionary<int, double> {{1960, 1.3}, {1970, 1.2}, {1980, 1.15}, {1990, 1.10}, {2000, 1.0658}, {2010, 1}};
+
         public static GeneralHelpers.Size ConvertAirportPaxToSize(double size)
         {
-            var yearCoeffs = new Dictionary<int, double> {{1960, 1.3}, {1970, 1.2}, {1980, 1.15}, {1990, 1.10}, {2000, 1.0658}, {2010, 1}};
+            var yearCoeffs = YearCoeffs;
 
             int decade = (GameObject.GetInstance().GameTime.Year - 1960)/10*10 + 1960;
 

@@ -97,12 +97,18 @@ namespace TheAirline.Helpers
                         }
 
                         // airports added to the data files after this game was saved (like a new addon airport)
-                        // are in neither list, so bring them in from the data files
+                        // are in neither list, so bring them in from the data files. Only those: a game set in one
+                        // region (or with major airports only) leaves most data file airports out on purpose, and
+                        // adding them made the game world four times bigger after a load. Saves made before the
+                        // save remembered the data file airports don't say which are new, so nothing is added.
                         var known = new HashSet<string>(
                             Airports.GetAllAirports().Select(a => a.Profile.IATACode));
+                        var inDataWhenSaved = deserializedSaveObject.DataAirportsList == null
+                            ? null
+                            : new HashSet<string>(deserializedSaveObject.DataAirportsList);
                         int added = 0;
 
-                        foreach (Airport airport in airports.Where(a => !known.Contains(a.Profile.IATACode)))
+                        foreach (Airport airport in airports.Where(a => inDataWhenSaved != null && !known.Contains(a.Profile.IATACode) && !inDataWhenSaved.Contains(a.Profile.IATACode)))
                         {
                             Airports.AddAirport(airport);
                             known.Add(airport.Profile.IATACode);
@@ -309,6 +315,7 @@ namespace TheAirline.Helpers
             StartupLog.Write("SaveGame: " + name + " start");
             var so = new SaveObject();
             so.DemandOverridesList = DemandOverrides.ToStrings();
+            so.DataAirportsList = Setup.DataAirportCodes?.ToList();
             Parallel.Invoke(
                 () =>
                     {
@@ -541,6 +548,10 @@ namespace TheAirline.Helpers
 
         [Versioning("instance")]
         public GameObject Instance { get; set; }
+
+        // the codes of every airport in the data files at the time of saving, to tell new ones on load
+        [Versioning("dataairports")]
+        public List<string> DataAirportsList { get; set; }
 
         [Versioning("routefacilities")]
         public List<RouteFacility> RouteFacilitiesList { get; set; }

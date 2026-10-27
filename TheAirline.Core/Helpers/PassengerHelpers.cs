@@ -224,6 +224,8 @@ namespace TheAirline.Helpers
 
             List<Airport> airports = Airports.GetAllAirports(a => a.Statics.GetDestinationPassengersSum() == 0);
             int count = airports.Count;
+            // each airport's position once, instead of converting it for every pair
+            var points = airports.Select(a => a.Profile.Coordinates.ConvertToGeoCoordinate()).ToArray();
 
             //var airports = Airports.GetAirports(a => a != airport && a.Profile.Town != airport.Profile.Town && MathHelpers.GetDistance(a.Profile.Coordinates, airport.Profile.Coordinates) > 50);
 
@@ -232,17 +234,15 @@ namespace TheAirline.Helpers
                 count - 1,
                 i =>
                     {
-                        Parallel.For(
-                            i + 1,
-                            count,
-                            j =>
+                        // the pairs of one airport in a plain loop: the outer loop already uses every processor,
+                        // and starting a parallel loop for each airport cost more than the work in it
+                        for (int j = i + 1; j < count; j++)
                                 {
-                                    if (airports[i].Profile.Town != airports[j].Profile.Town
-                                        && MathHelpers.GetDistance(airports[i], airports[j]) > 50)
+                                    if (airports[i].Profile.Town == airports[j].Profile.Town) continue;
+                                    double distance = points[i].GetDistanceTo(points[j])/1000;
+                                    if (distance > 50)
                                     {
-                                        airports[j].Statics.AddDistance(
-                                            airports[i],
-                                            MathHelpers.GetDistance(airports[j], airports[i]));
+                                        airports[j].Statics.AddDistance(airports[i], distance);
 
                                         CreateDestinationPassengers(airports[j], airports[i]);
                                         CreateDestinationPassengers(airports[i], airports[j]);
@@ -250,7 +250,7 @@ namespace TheAirline.Helpers
                                         CreateDestinationCargo(airports[j], airports[i]);
                                         CreateDestinationCargo(airports[i], airports[j]);
                                     }
-                                });
+                                }
 
                         if (airports[i].GetDestinationPassengersSum() == 0)
                         {
@@ -307,18 +307,25 @@ namespace TheAirline.Helpers
             }
         }
 
+        // airport size names for the demand table (an enum's name was asked for twice per airport pair)
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<GeneralHelpers.Size, string> SizeNames =
+            new System.Collections.Concurrent.ConcurrentDictionary<GeneralHelpers.Size, string>();
+
+        private static string SizeName(GeneralHelpers.Size size)
+        {
+            return SizeNames.GetOrAdd(size, s => s.ToString());
+        }
+
         public static void CreateDestinationPassengers(Airport airport, Airport dAirport)
         {
             //short_haul, long_haul, demand both ways
-            Array values = Enum.GetValues(typeof (GeneralHelpers.Size));
-
             double estimatedPassengerLevel = 0;
             bool isSameCountry = airport.Profile.Country == dAirport.Profile.Country;
             bool isSameContinent = airport.Profile.Country.Region == dAirport.Profile.Country.Region
                                       && !isSameCountry;
 
-            String dAirportSize = dAirport.Profile.Size.ToString();
-            String airportSize = airport.Profile.Size.ToString();
+            String dAirportSize = SizeName(dAirport.Profile.Size);
+            String airportSize = SizeName(airport.Profile.Size);
             double dist = MathHelpers.GetDistance(dAirport, airport);
 
             if (airport.Profile.MajorDestionations.Keys.Contains(dAirport.Profile.IATACode))
@@ -2864,8 +2871,6 @@ namespace TheAirline.Helpers
             #endregion
 
             double value = estimatedPassengerLevel*GetDemandYearFactor(GameObject.GetInstance().GameTime.Year);
-
-            double distance = MathHelpers.GetDistance(airport, dAirport);
 
             var rate = (ushort) value;
 

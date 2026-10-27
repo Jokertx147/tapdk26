@@ -617,9 +617,10 @@ namespace TheAirline.Helpers
         /// </summary>
         public double NextDouble()
         {
-            var b = new byte[4];
-            _r.GetBytes(b);
-            return (double) BitConverter.ToUInt32(b, 0)/ uint.MaxValue;
+            // the game's random numbers came from the cryptographic generator, which is far slower than needed for
+            // dice rolls (and was asked for millions of times when building the demand); the shared generator is
+            // fast and safe to use from several threads
+            return Random.Shared.NextDouble();
         }
 
         #endregion

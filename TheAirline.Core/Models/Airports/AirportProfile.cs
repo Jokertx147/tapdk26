@@ -132,7 +132,7 @@ namespace TheAirline.Models.Airports
         [Versioning("gmt")]
         public TimeSpan OffsetGMT { get; set; }
 
-        public double Pax => GetCurrentPaxValue();
+        public double Pax => CurrentPax().Pax;
 
         [Versioning("paxvalues")]
         public List<PaxValue> PaxValues { get; set; }
@@ -226,7 +226,42 @@ namespace TheAirline.Models.Airports
 
         private GeneralHelpers.Size GetCurrentSize()
         {
-            return AirportHelpers.ConvertAirportPaxToSize(GetCurrentPaxValue());
+            return CurrentPax().Size;
+        }
+
+        // the passenger figure and size for the current year, worked out once a year (they were worked out every
+        // time, and the size is asked for constantly: for every airport pair when building the demand, for example)
+        private sealed class PaxCache
+        {
+            public int Year;
+            public List<PaxValue> Values;
+            public int Count;
+            public PaxValue First;
+            public double Pax;
+            public GeneralHelpers.Size Size;
+        }
+
+        [NonSerialized]
+        private PaxCache _paxCache;
+
+        private PaxCache CurrentPax()
+        {
+            int year = GameObject.GetInstance().GameTime.Year;
+            List<PaxValue> values = PaxValues;
+            PaxCache c = _paxCache;
+            if (c != null && c.Year == year && ReferenceEquals(c.Values, values) && values != null && c.Count == values.Count
+                && (values.Count == 0 || ReferenceEquals(c.First, values[0])))
+            {
+                return c;
+            }
+            double pax = GetCurrentPaxValue();
+            c = new PaxCache
+            {
+                Year = year, Values = values, Count = values?.Count ?? 0, First = values != null && values.Count > 0 ? values[0] : null,
+                Pax = pax, Size = AirportHelpers.ConvertAirportPaxToSize(pax)
+            };
+            _paxCache = c;
+            return c;
         }
 
         private GameTimeZone GetTimeZone()

@@ -315,6 +315,9 @@ namespace TheAirline.Infrastructure
             return null;
         }
 
+        /// <summary>The codes of every airport in the data files when they were last read (saved with a game).</summary>
+        public static HashSet<string> DataAirportCodes { get; private set; }
+
         public static void LoadAirports()
         {
             //LoadAirports(AppSettings.getDataPath() + "/airports.xml");
@@ -341,6 +344,7 @@ namespace TheAirline.Infrastructure
                 file.WriteLine(e.StackTrace);
                 file.Close();
             }
+            DataAirportCodes = new HashSet<string>(Airports.GetAllAirports().Select(a => a.Profile.IATACode));
             Airports.LargestAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Largest).Count;
             Airports.VeryLargeAirports =
                 Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.VeryLarge).Count;
