@@ -116,6 +116,7 @@ namespace TheAirline.Presentation
             Maintenance = new MaintenanceViewModel(OnGameChanged);
             Charter = new CharterViewModel(OnGameChanged);
             Deals = new AircraftDealsViewModel(OnGameChanged);
+            Renewal = new FleetRenewalViewModel(OnGameChanged);
             License = new LicenseViewModel(OnGameChanged);
             Demand = new DemandViewModel(OnGameChanged);
             Ratings = new RatingsViewModel();
@@ -267,6 +268,7 @@ namespace TheAirline.Presentation
         public MaintenanceViewModel Maintenance { get; }
         public CharterViewModel Charter { get; }
         public AircraftDealsViewModel Deals { get; }
+        public FleetRenewalViewModel Renewal { get; }
         public LicenseViewModel License { get; }
         public DemandViewModel Demand { get; }
         public RatingsViewModel Ratings { get; }
@@ -377,6 +379,7 @@ namespace TheAirline.Presentation
             Contracts?.Reload();
             Charter?.Reload();
             Deals?.Reload();
+            Renewal?.Reload();
             License?.Reload();
             Demand?.Reload();
             Ratings?.Reload();

@@ -261,6 +261,11 @@ namespace TheAirline.Helpers
             return GetMinTimeBetweenFlights(airliner.Airliner.GetTotalSeatCapacity());
         }
 
+        public static TimeSpan GetMinTimeBetweenFlights(Airliner airliner)
+        {
+            return GetMinTimeBetweenFlights(airliner.GetTotalSeatCapacity());
+        }
+
         public static TimeSpan GetMinTimeBetweenFlights(AirlinerType type)
         {
             if (type == null || type is AirlinerCargoType)

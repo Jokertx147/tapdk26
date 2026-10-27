@@ -616,6 +616,69 @@ static class VmTest
         Console.WriteLine("REPLACE TEST OK");
     }
 
+    /// <summary>"vm renewal": a route flown by an old type and an idle one of that type, renewed to another type from the market.</summary>
+    static async Task RenewalTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RENEWAL TEST");
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var mk = av.Market;
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        mk.BuyCommand.Execute(null);
+        av.Refresh();
+        var ap = av.Airports;
+        await Wait(() => !ap.IsBusy, "advice");
+        ap.SelectedAdvice = ap.Advice.First(x => x.Advice.FleetCanFly);
+        var cr = ap.Create;
+        foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+        cr.CreateCommand.Execute(null);
+        foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+        if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+        var route = h.Routes.First(r => r.HasAirliner);
+        var a = route.GetAirliners()[0];
+        if (a.Pilots.Count < a.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(a);
+        if (a.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) a.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        var oldType = a.Airliner.Type;
+        // an idle one of the same type
+        var idleOld = TheAirline.Helpers.AirlineHelpers.CreateAirliner(h, oldType);
+        h.AddAirliner(idleOld);
+        for (int i = 0; i < 2; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var oldTimes = route.TimeTable.Entries.Where(e => e.Airliner == a).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+        Console.WriteLine("  route " + route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode + " flown by " + a.Name + " (" + oldType.Name + ", " + oldTimes.Count + " weekly flights); idle " + idleOld.Name);
+
+        var rn = av.Renewal;
+        rn.Reload();
+        Console.WriteLine("  old types: " + string.Join(" / ", rn.OldTypes.Select(t => t.Name)));
+        rn.OldType = rn.OldTypes.First(t => t.Value == oldType);
+        Console.WriteLine("  new types: " + rn.NewTypes.Count + ", e.g. " + string.Join(" / ", rn.NewTypes.Take(4).Select(t => t.Name)));
+        // a type from the market that can fly the route, as fast or faster (same times)
+        var pick = rn.NewTypes.Where(t => t.Value.Range >= route.GetDistance() && t.Value.CruisingSpeed >= oldType.CruisingSpeed && t.Value.MinRunwaylength <= Math.Min(route.Destination1.GetMaxRunwayLength(), route.Destination2.GetMaxRunwayLength()))
+                              .OrderBy(t => TheAirline.Models.Airliners.Airliners.GetAirlinersForSale(x => x.Type == t.Value).Select(x => (double) x.GetPrice()).DefaultIfEmpty(double.MaxValue).Min()).FirstOrDefault();
+        if (pick == null) { Console.WriteLine("  FAILED no new type to pick"); Environment.Exit(1); }
+        rn.NewType = pick;
+        Console.WriteLine("  picked " + pick.Name);
+        Console.WriteLine("  " + rn.Summary);
+        foreach (var r in rn.Rows) Console.WriteLine("    " + r);
+        double money0 = h.Money;
+        rn.RenewCommand.Execute(null);
+        Console.WriteLine("  asks: " + rn.PendingText);
+        rn.ConfirmCommand.Execute(null);
+        await Wait(() => rn.Status == "Done." || (rn.Status ?? "").StartsWith("That failed"), "renewal");
+        foreach (var r in rn.Report) Console.WriteLine("    done: " + r);
+        var now = route.GetAirliners();
+        var nw = now.FirstOrDefault();
+        var newTimes = route.TimeTable.Entries.Where(e => e.Airliner == nw).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+        Console.WriteLine("  route now flown by " + string.Join(", ", now.Select(f => f.Name + " (" + f.Airliner.Type.Name + ", pilots " + f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + ", " + f.Status + ")"))
+                          + " | same times " + oldTimes.SequenceEqual(newTimes) + " | old ones in the fleet " + h.Fleet.Count(f => f.Airliner.Type == oldType) + " | money " + money0.ToString("N0") + " -> " + h.Money.ToString("N0"));
+        if (nw == null || nw.Airliner.Type != pick.Value || !oldTimes.SequenceEqual(newTimes) || h.Fleet.Any(f => f.Airliner.Type == oldType) || nw.Pilots.Count < nw.Airliner.Type.CockpitCrew)
+        { Console.WriteLine("  FAILED renewal"); Environment.Exit(1); }
+        int seats = route.ConnectSeats;
+        for (int i = 0; i < 3; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  three days later: seats flown " + (route.ConnectSeats - seats));
+        if (route.ConnectSeats - seats <= 0) { Console.WriteLine("  FAILED the new aircraft doesn't fly"); Environment.Exit(1); }
+        Console.WriteLine("  after: " + string.Join(" / ", rn.OldTypes.Select(t => t.Name)));
+        Console.WriteLine("RENEWAL TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1715,6 +1778,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("demand")) { DemandProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("bloat")) { await BloatTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("replace")) { await ReplaceTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("renewal")) { await RenewalTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

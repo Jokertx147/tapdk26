@@ -58,6 +58,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm replace | tee replacetest.log
           grep -q "REPLACE TEST OK" replacetest.log
 
+      - name: Fleet renewal test (every aircraft of one type replaced by another from the market)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm renewal | tee renewaltest.log
+          grep -q "RENEWAL TEST OK" renewaltest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

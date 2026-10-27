@@ -37,6 +37,24 @@ namespace TheAirline.Helpers
         public string Summary { get; set; }
     }
 
+    /// <summary>What decides whether an aircraft can fly a timetable: its type (speed) and its turnaround (seats).</summary>
+    public class AircraftSpec
+    {
+        public AirlinerType Type { get; set; }
+        public double TurnaroundMinutes { get; set; }
+
+        public static AircraftSpec Of(FleetAirliner f)
+        {
+            return new AircraftSpec {Type = f.Airliner.Type, TurnaroundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(f).TotalMinutes};
+        }
+
+        /// <summary>For an aircraft that isn't in the fleet yet (on the market).</summary>
+        public static AircraftSpec Of(Airliner a)
+        {
+            return new AircraftSpec {Type = a.Type, TurnaroundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(a).TotalMinutes};
+        }
+    }
+
     public enum ReplaceMode
     {
         SameTimes,
@@ -76,9 +94,14 @@ namespace TheAirline.Helpers
         /// </summary>
         public static string FirstClash(FleetAirliner airliner, List<RouteTimeTableEntry> entries)
         {
+            return FirstClash(AircraftSpec.Of(airliner), entries);
+        }
+
+        public static string FirstClash(AircraftSpec airliner, List<RouteTimeTableEntry> entries)
+        {
             var list = entries.OrderBy(WeekMinute).ToList();
             if (list.Count < 2) return null;
-            TimeSpan turnaround = FleetAirlinerHelpers.GetMinTimeBetweenFlights(airliner);
+            TimeSpan turnaround = TimeSpan.FromMinutes(airliner.TurnaroundMinutes);
             const int week = 7*24*60;
             for (int i = 0; i < list.Count; i++)
             {
@@ -86,7 +109,7 @@ namespace TheAirline.Helpers
                 RouteTimeTableEntry next = list[(i + 1)%list.Count];
                 int start = WeekMinute(e);
                 int nextStart = WeekMinute(next) + (i + 1 == list.Count ? week : 0);
-                double needs = e.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes + turnaround.TotalMinutes;
+                double needs = e.TimeTable.Route.GetFlightTime(airliner.Type).TotalMinutes + turnaround.TotalMinutes;
                 if (start + needs > nextStart)
                 {
                     return e.Day + " " + e.Time.ToString(@"hh\:mm") + " from " + e.DepartureAirport.Profile.IATACode + " (" + Code(e.TimeTable.Route)
@@ -98,10 +121,9 @@ namespace TheAirline.Helpers
 
         private const int Week = 7*24*60;
 
-        private static int Need(FleetAirliner airliner, RouteTimeTableEntry e)
+        private static int Need(AircraftSpec airliner, RouteTimeTableEntry e)
         {
-            return (int) Math.Ceiling(e.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes
-                                      + FleetAirlinerHelpers.GetMinTimeBetweenFlights(airliner).TotalMinutes);
+            return (int) Math.Ceiling(e.TimeTable.Route.GetFlightTime(airliner.Type).TotalMinutes + airliner.TurnaroundMinutes);
         }
 
         private static string When(int weekMinute)
@@ -111,7 +133,7 @@ namespace TheAirline.Helpers
         }
 
         // the aircraft's flights on its other routes, as busy stretches of the week (also a week before and after)
-        private static List<Tuple<int, int>> Busy(FleetAirliner to, IEnumerable<RouteTimeTableEntry> own)
+        private static List<Tuple<int, int>> Busy(AircraftSpec to, IEnumerable<RouteTimeTableEntry> own)
         {
             var list = new List<Tuple<int, int>>();
             foreach (RouteTimeTableEntry e in own)
@@ -150,10 +172,16 @@ namespace TheAirline.Helpers
         /// </summary>
         public static FitPlan PlanShift(Route route, FleetAirliner from, FleetAirliner to)
         {
+            return PlanShift(route, from, AircraftSpec.Of(to), Own(to));
+        }
+
+        /// <summary>As above for an aircraft described by its type and turnaround, with its flights on other routes.</summary>
+        public static FitPlan PlanShift(Route route, FleetAirliner from, AircraftSpec to, List<RouteTimeTableEntry> own)
+        {
             if (route.HasStopovers) return null;
             var moving = Moving(route, from);
             if (moving.Count == 0) return null;
-            var busy = Busy(to, Own(to));
+            var busy = Busy(to, own);
             var plan = new FitPlan {Total = moving.Count};
             int prevEnd = int.MinValue, first = 0, maxShift = 0, moved = 0;
             for (int i = 0; i < moving.Count; i++)
@@ -184,10 +212,15 @@ namespace TheAirline.Helpers
         /// </summary>
         public static FitPlan PlanKeep(Route route, FleetAirliner from, FleetAirliner to)
         {
+            return PlanKeep(route, from, AircraftSpec.Of(to), Own(to));
+        }
+
+        public static FitPlan PlanKeep(Route route, FleetAirliner from, AircraftSpec to, List<RouteTimeTableEntry> own)
+        {
             if (route.HasStopovers) return null;
             var moving = Moving(route, from);
             if (moving.Count == 0) return null;
-            var busy = Busy(to, Own(to));
+            var busy = Busy(to, own);
 
             // out and back pairs (a flight and the next one from the other end)
             var trips = new List<List<RouteTimeTableEntry>>();

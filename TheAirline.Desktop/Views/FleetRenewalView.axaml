@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TheAirline.Desktop.Views.FleetRenewalView">
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="Fleet renewal" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="Replace every aircraft of one type by another type. Each new aircraft takes over the old one's routes; idle aircraft of the new type are used first, then aircraft from the market. Pilots who can fly the new type move with it, the rest are hired." Opacity="0.7" TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" >
+        <TextBlock Grid.Row="0" Text="Replace" VerticalAlignment="Center" Margin="0,0,10,6" />
+        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding OldTypes}" SelectedItem="{Binding OldType}" MinWidth="360" Margin="0,0,0,6" />
+        <TextBlock Grid.Row="1" Text="with" VerticalAlignment="Center" Margin="0,0,10,6" />
+        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding NewTypes}" SelectedItem="{Binding NewType}" MinWidth="360" Margin="0,0,0,6" />
+        <TextBlock Grid.Row="2" Text="If slower" VerticalAlignment="Center" Margin="0,0,10,6" />
+        <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding SlowerChoices}" SelectedItem="{Binding Slower}" MinWidth="360" Margin="0,0,0,6" />
+        <TextBlock Grid.Row="3" Text="Old aircraft" VerticalAlignment="Center" Margin="0,0,10,6" />
+        <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding AfterChoices}" SelectedItem="{Binding After}" MinWidth="360" Margin="0,0,0,6" />
+      </Grid>
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <CheckBox Content="Get missing aircraft from the market" IsChecked="{Binding BuyMissing}" />
+        <CheckBox Content="Lease them instead of buying" IsChecked="{Binding Lease}" IsEnabled="{Binding BuyMissing}" />
+      </StackPanel>
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontWeight="SemiBold" />
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding}" TextWrapping="Wrap" Opacity="0.85" Margin="0,1" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button Content="Renew" Command="{Binding RenewCommand}" HorizontalAlignment="Left" />
+      <Border IsVisible="{Binding HasPending}" Background="#3a3320" CornerRadius="6" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Yes" Command="{Binding ConfirmCommand}" />
+            <Button Content="No" Command="{Binding CancelCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+      <StackPanel Spacing="2" IsVisible="{Binding HasReport}">
+        <TextBlock Text="What was done" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Report}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

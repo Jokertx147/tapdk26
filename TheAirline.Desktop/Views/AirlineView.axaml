@@ -123,6 +123,9 @@
             <TabItem Header="Aircraft deals">
               <v:AircraftDealsView DataContext="{Binding Deals}" />
             </TabItem>
+            <TabItem Header="Fleet renewal">
+              <v:FleetRenewalView DataContext="{Binding Renewal}" />
+            </TabItem>
             <TabItem Header="Charters">
               <v:CharterView DataContext="{Binding Charter}" />
             </TabItem>
