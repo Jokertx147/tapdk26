@@ -63,6 +63,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm renewal | tee renewaltest.log
           grep -q "RENEWAL TEST OK" renewaltest.log
 
+      - name: Route profit test (two routes flown for six weeks, then the report)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm routeprofit | tee routeprofittest.log
+          grep -q "ROUTE PROFIT TEST OK" routeprofittest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

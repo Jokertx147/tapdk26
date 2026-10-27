@@ -302,6 +302,9 @@
           <TabItem Header="Connections">
             <v:ConnectionsView DataContext="{Binding Connections}" />
           </TabItem>
+          <TabItem Header="Route profits">
+            <v:RouteProfitView DataContext="{Binding RouteProfits}" />
+          </TabItem>
         </TabControl>
         </TabItem>
 

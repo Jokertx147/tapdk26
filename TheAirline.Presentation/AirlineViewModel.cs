@@ -124,6 +124,11 @@ namespace TheAirline.Presentation
             Advertising = new AdvertisingViewModel(OnGameChanged);
             AirportStats = new AirportStatsViewModel();
             FleetPerformance = new FleetPerformanceViewModel();
+            RouteProfits = new RouteProfitViewModel(route =>
+                {
+                    RoutesTab = 0;
+                    SelectedRoute = Routes.FirstOrDefault(r => r.Route == route);
+                });
             CompareTypes = new CompareTypesViewModel();
             NewAircraft.CompareRequested = t =>
                 {
@@ -250,7 +255,7 @@ namespace TheAirline.Presentation
             {
                 case "My Airline": FleetPerformance.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
-                case "Routes": Connections.Reload(); break;
+                case "Routes": Connections.Reload(); RouteProfits.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
                 case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); break;
                 case "News": News.Reload(); break;
@@ -276,11 +281,14 @@ namespace TheAirline.Presentation
         public AdvertisingViewModel Advertising { get; }
         public AirportStatsViewModel AirportStats { get; }
         public FleetPerformanceViewModel FleetPerformance { get; }
+
+        /// <summary>Routes > Route profits.</summary>
+        public RouteProfitViewModel RouteProfits { get; }
         public CompareTypesViewModel CompareTypes { get; }
 
         private int _airlinersTab, _routesTab;
 
-        /// <summary>The open sub tab under Routes: 0 my routes, 1 create route, 2 connections.</summary>
+        /// <summary>The open sub tab under Routes: 0 my routes, 1 create route, 2 connections, 3 route profits.</summary>
         public int RoutesTab
         {
             get { return _routesTab; }
@@ -532,6 +540,7 @@ namespace TheAirline.Presentation
                     Advertising.Reload();
                     AirportStats.Reload();
                     FleetPerformance.Reload();
+                    RouteProfits.Reload();
                 }
                 Charter.Reload();
                 Deals.Reload();

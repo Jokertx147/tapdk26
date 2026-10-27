@@ -679,6 +679,75 @@ static class VmTest
         Console.WriteLine("RENEWAL TEST OK");
     }
 
+    /// <summary>"vm routeprofit": two routes flown for six weeks, then the route profit report.</summary>
+    static async Task RouteProfitTest(AirlineViewModel av)
+    {
+        Console.WriteLine("ROUTE PROFIT TEST");
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var mk = av.Market;
+        var ap = av.Airports;
+        for (int n = 0; n < 2; n++)
+        {
+            foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(n).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+            mk.BuyCommand.Execute(null);
+            av.Refresh();
+            ap.ReloadAdvice();
+            await Wait(() => !ap.IsBusy, "advice");
+            var advice = ap.Advice.Where(x => x.Advice.FleetCanFly).FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination));
+            if (advice == null) break;
+            ap.SelectedAdvice = advice;
+            var cr = ap.Create;
+            foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+            cr.CreateCommand.Execute(null);
+            foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+            if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+        }
+        foreach (var f in h.Fleet)
+        {
+            if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+            if (f.Routes.Count > 0 && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        }
+        Console.WriteLine("  routes: " + string.Join(", ", h.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode + " (" + string.Join(",", r.GetAirliners().Select(x => x.Name)) + ")")));
+        if (h.Routes.Count < 2) { Console.WriteLine("  FAILED could not make two routes"); Environment.Exit(1); }
+        for (int i = 0; i < 45; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+
+        var rp = av.RouteProfits;
+        rp.Reload();
+        Console.WriteLine("  " + rp.Summary);
+        foreach (var r in rp.Rows) Console.WriteLine("    " + r.Name + " | " + r.Profit + " | " + r.Numbers + " | " + r.Advice);
+        if (rp.Rows.Count != h.Routes.Count) { Console.WriteLine("  FAILED rows"); Environment.Exit(1); }
+        // the report adds up what the route's own invoices say
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var last = g.GameTime.AddMonths(-1);
+        foreach (var route in h.Routes)
+        {
+            double report = TheAirline.Helpers.RouteProfitService.Month(route, last.Year, last.Month);
+            double invoices = route.GetInvoices().GetAmount(last.Year, last.Month);
+            if (Math.Abs(report - invoices) > 1) { Console.WriteLine("  FAILED month figure " + report + " vs " + invoices); Environment.Exit(1); }
+        }
+        double reportTotal = rp.Rows.Sum(r => r.Figures.LastMonth);
+        if (Math.Abs(reportTotal) < 1) { Console.WriteLine("  FAILED no money on the routes last month"); Environment.Exit(1); }
+        Console.WriteLine("  detail: " + rp.Detail);
+        foreach (var m in rp.Months) Console.WriteLine("    " + m);
+        foreach (var b in rp.Breakdown) Console.WriteLine("    " + b);
+        if (rp.Months.Count == 0 || rp.Breakdown.Count == 0) { Console.WriteLine("  FAILED detail"); Environment.Exit(1); }
+        // sorting and filters
+        rp.SortBy = "Loss first";
+        var lossFirst = rp.Rows.Select(r => r.Figures.Last12).ToList();
+        if (!lossFirst.SequenceEqual(lossFirst.OrderBy(x => x))) { Console.WriteLine("  FAILED sort"); Environment.Exit(1); }
+        rp.Show = "Losing money";
+        Console.WriteLine("  losing: " + rp.Rows.Count + (rp.Rows.All(r => r.IsLoss) ? "" : " FAILED"));
+        if (!rp.Rows.All(r => r.IsLoss)) Environment.Exit(1);
+        rp.Show = "All routes";
+        // open a route on the routes page
+        av.RoutesTab = 3;
+        rp.Selected = rp.Rows.Last();
+        rp.OpenCommand.Execute(null);
+        Console.WriteLine("  open: tab " + av.RoutesTab + ", selected " + av.SelectedRoute?.Name);
+        if (av.RoutesTab != 0 || av.SelectedRoute?.Route != rp.Selected.Figures.Route) { Console.WriteLine("  FAILED open"); Environment.Exit(1); }
+        Console.WriteLine("ROUTE PROFIT TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1779,6 +1848,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("bloat")) { await BloatTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("replace")) { await ReplaceTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("renewal")) { await RenewalTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }
