@@ -556,8 +556,9 @@ namespace TheAirline.Helpers
             List<AirportContract> contracts,
             Weather.Season season)
         {
-            var occupiedSlots = new List<KeyValuePair<Route, TimeSpan>>();
-            var occupiedSet = new HashSet<KeyValuePair<Route, TimeSpan>>();
+            // (a value tuple: KeyValuePair has no fast equality, and comparing it was the slow part here)
+            var occupiedSlots = new List<(Route Route, TimeSpan Time)>();
+            var occupiedSet = new HashSet<(Route, TimeSpan)>();
 
             var gateTimeBefore = new TimeSpan(0, 15, 0);
             var gateTimeAfter = new TimeSpan(0, 15, 0);
@@ -619,7 +620,7 @@ namespace TheAirline.Helpers
 
                     while (tTakeoffTime < entryEndTakeoffTime)
                     {
-                        var takeoffSlot = new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tTakeoffTime);
+                        var takeoffSlot = (entry.TimeTable.Route, tTakeoffTime);
                         if (occupiedSet.Add(takeoffSlot))
                         {
                             occupiedSlots.Add(takeoffSlot);
@@ -641,7 +642,7 @@ namespace TheAirline.Helpers
 
                     while (tLandingTime < entryEndLandingTime)
                     {
-                        var landingSlot = new KeyValuePair<Route, TimeSpan>(entry.TimeTable.Route, tLandingTime);
+                        var landingSlot = (entry.TimeTable.Route, tLandingTime);
                         if (occupiedSet.Add(landingSlot))
                         {
                             occupiedSlots.Add(landingSlot);
@@ -651,9 +652,27 @@ namespace TheAirline.Helpers
                 }
             }
 
-            var slots = (from s in occupiedSlots group s.Value by s.Value into g select new {Time = g.Key, Slots = g});
-
-            return slots.Where(s => s.Slots.Count() >= gates).SelectMany(s => s.Slots).ToList();
+            // the times where all the gates are taken, each listed once per route using it (in the order first seen)
+            var counts = new Dictionary<TimeSpan, int>();
+            var order = new List<TimeSpan>();
+            foreach (var slot in occupiedSlots)
+            {
+                int c;
+                if (counts.TryGetValue(slot.Time, out c)) counts[slot.Time] = c + 1;
+                else
+                {
+                    counts[slot.Time] = 1;
+                    order.Add(slot.Time);
+                }
+            }
+            var result = new List<TimeSpan>();
+            foreach (TimeSpan time in order)
+            {
+                int c = counts[time];
+                if (c >= gates)
+                    for (int i = 0; i < c; i++) result.Add(time);
+            }
+            return result;
         }
 
         public static List<TimeSpan> GetOccupiedSlotTimes(Airport airport, Airline airline, Weather.Season season, Terminal.TerminalType type)

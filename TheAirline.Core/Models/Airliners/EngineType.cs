@@ -141,12 +141,18 @@ namespace TheAirline.Models.Airliners
         public static void Clear()
         {
             _types = new List<EngineType>();
+            _standard = new System.Collections.Concurrent.ConcurrentDictionary<AirlinerType, EngineType>();
         }
 
         public static void AddEngineType(EngineType type)
         {
             _types.Add(type);
+            _standard = new System.Collections.Concurrent.ConcurrentDictionary<AirlinerType, EngineType>();
         }
+
+        // the standard (cheapest) engine of each aircraft type; an aircraft's price asks for it every time
+        private static System.Collections.Concurrent.ConcurrentDictionary<AirlinerType, EngineType> _standard =
+            new System.Collections.Concurrent.ConcurrentDictionary<AirlinerType, EngineType>();
 
         //returns the list of engine types
         public static List<EngineType> GetEngineTypes()
@@ -179,6 +185,16 @@ namespace TheAirline.Models.Airliners
         }
 
         public static EngineType GetStandardEngineType(AirlinerType type)
+        {
+            var cache = _standard;
+            EngineType found;
+            if (type != null && cache.TryGetValue(type, out found)) return found;
+            found = FindStandardEngineType(type);
+            if (type != null) cache[type] = found;
+            return found;
+        }
+
+        private static EngineType FindStandardEngineType(AirlinerType type)
         {
             List<EngineType> allTypes = GetEngineTypes(type);
 

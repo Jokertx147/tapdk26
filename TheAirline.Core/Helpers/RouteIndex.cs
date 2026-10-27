@@ -22,6 +22,7 @@ namespace TheAirline.Helpers
             public System.DateTime Day;
             public readonly Dictionary<Airport, Dictionary<Airport, List<Route>>> Direct = new Dictionary<Airport, Dictionary<Airport, List<Route>>>();
             public readonly Dictionary<Airport, Dictionary<Airport, List<Route>>> Legs = new Dictionary<Airport, Dictionary<Airport, List<Route>>>();
+            public readonly Dictionary<Airport, List<Route>> At = new Dictionary<Airport, List<Route>>();
         }
 
         private static readonly object BuildLock = new object();
@@ -54,6 +55,8 @@ namespace TheAirline.Helpers
                     {
                         if (r?.Destination1 == null || r.Destination2 == null) continue;
                         AddBoth(s.Direct, r.Destination1, r.Destination2, r);
+                        AddAt(s.At, r.Destination1, r);
+                        if (r.Destination2 != r.Destination1) AddAt(s.At, r.Destination2, r);
                         foreach (var stop in r.Stopovers.ToList())
                         {
                             foreach (var leg in stop.Legs.ToList())
@@ -67,6 +70,21 @@ namespace TheAirline.Helpers
                 Volatile.Write(ref _snapshot, s);
                 return s;
             }
+        }
+
+        private static void AddAt(Dictionary<Airport, List<Route>> map, Airport a, Route r)
+        {
+            List<Route> list;
+            if (!map.TryGetValue(a, out list)) map[a] = list = new List<Route>();
+            list.Add(r);
+        }
+
+        /// <summary>Every airline's routes that start or end at the airport, in airline order. Don't change the list.</summary>
+        public static List<Route> At(Airport airport)
+        {
+            List<Route> list;
+            if (airport != null && Current().At.TryGetValue(airport, out list)) return list;
+            return None;
         }
 
         private static void AddBoth(Dictionary<Airport, Dictionary<Airport, List<Route>>> map, Airport a, Airport b, Route r)

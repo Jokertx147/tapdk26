@@ -156,8 +156,10 @@ namespace TheAirline.Helpers
             double leg = MathHelpers.GetDistance(near, via);
             string hubName;
             double own = OwnWeightAt(airline, via, out hubName);
-            var feeders = airline.Routes.ToList().Select(r => new { r, partner = false })
-                                 .Concat(Partners(airline).SelectMany(p => p.Routes.ToList()).Select(r => new { r, partner = true }));
+            // only routes touching via can feed it: take them from the route index instead of every route of the network
+            var atVia = RouteIndex.At(via);
+            var feeders = atVia.Where(r => r.Airline == airline).Select(r => new { r, partner = false })
+                               .Concat(Partners(airline).SelectMany(p => atVia.Where(r => r.Airline == p)).Select(r => new { r, partner = true }));
             var seen = new HashSet<Airport>();
             foreach (var f in feeders)
             {
@@ -224,6 +226,7 @@ namespace TheAirline.Helpers
                     if (cached.Day == day && cached.Values.TryGetValue(key, out hit)) return hit;
                 }
             }
+            long pfMiss = Profiler.Start();
             double v = 0;
             foreach (var m in MarketsAt(airline, route, current, destination, type, true)) v += m.Added;
             foreach (var m in MarketsAt(airline, route, destination, current, type, false)) v += m.Added;
@@ -239,6 +242,7 @@ namespace TheAirline.Helpers
                     cached.Values[key] = v;
                 }
             }
+            Profiler.Stop("pax: connecting demand (worked out)", pfMiss);
             return v;
         }
 

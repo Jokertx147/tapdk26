@@ -357,7 +357,22 @@ static class VmTest
         var sw = System.Diagnostics.Stopwatch.StartNew();
         for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         Console.WriteLine("warm-up " + warm + " days: " + (sw.ElapsedMilliseconds / 1000.0).ToString("0.0") + " s, " + (sw.ElapsedMilliseconds / Math.Max(1, warm)) + " ms per day");
-        Console.WriteLine(all.Count(a => a.Fleet.Count > 0) + " airlines flying, " + all.Sum(a => a.Fleet.Count) + " aircraft, " + all.Sum(a => a.Routes.Count) + " routes");
+        Console.WriteLine(all.Count(a => a.Fleet.Count > 0) + " airlines flying, " + all.Sum(a => a.Fleet.Count) + " aircraft, " + all.Sum(a => a.Routes.Count) + " routes, " + TheAirline.Models.Airliners.Airliners.GetAllAirliners().Count + " aircraft in the world (" + TheAirline.Models.Airliners.Airliners.GetAllAirliners().Count(a => a.Airline == null) + " not owned)");
+        if (Environment.GetEnvironmentVariable("TAP_MICRO") == "1")
+        {
+            var sale = TheAirline.Models.Airliners.Airliners.GetAirlinersForSale(a => a.Type is TheAirline.Models.Airliners.AirlinerPassengerType);
+            var t = System.Diagnostics.Stopwatch.StartNew();
+            for (int k = 0; k < 10; k++) TheAirline.Models.Airliners.Airliners.GetAirlinersForSale(a => a.Type is TheAirline.Models.Airliners.AirlinerPassengerType);
+            Console.WriteLine("MICRO for sale list x10: " + t.ElapsedMilliseconds + " ms (" + sale.Count + ")");
+            t.Restart(); long x = 0; foreach (var a in sale) x += a.GetPrice(); Console.WriteLine("MICRO GetPrice all: " + t.ElapsedMilliseconds + " ms");
+            t.Restart(); foreach (var a in sale) x += a.GetAge(); Console.WriteLine("MICRO GetAge all: " + t.ElapsedMilliseconds + " ms");
+            t.Restart(); foreach (var a in sale) x += a.Range; Console.WriteLine("MICRO Range all: " + t.ElapsedMilliseconds + " ms");
+            t.Restart(); foreach (var a in sale) x += a.LeasingPrice; Console.WriteLine("MICRO LeasingPrice all: " + t.ElapsedMilliseconds + " ms");
+            t.Restart(); for (int k = 0; k < 10; k++) TheAirline.Models.Airliners.Airliners.GetAirlinersForLeasing(); Console.WriteLine("MICRO leasing list x10: " + t.ElapsedMilliseconds + " ms");
+            var al = all.First(a => !a.IsHuman && a.Fleet.Count > 0 && a.Airports.Count > 1);
+            t.Restart(); for (int k = 0; k < 10; k++) TheAirline.Helpers.AIHelpers.GetAirlinerForRoute(al, al.Airports[0], al.Airports[1], true, al.AirlineRouteFocus); Console.WriteLine("MICRO GetAirlinerForRoute lease x10: " + t.ElapsedMilliseconds + " ms, preferred types " + al.Profile.PreferedAircrafts.Count);
+            t.Restart(); for (int k = 0; k < 10; k++) TheAirline.Helpers.AIHelpers.GetAirlinerForRoute(al, al.Airports[0], al.Airports[1], false, al.AirlineRouteFocus); Console.WriteLine("MICRO GetAirlinerForRoute buy x10: " + t.ElapsedMilliseconds + " ms");
+        }
         TheAirline.Helpers.Profiler.Reset();
         TheAirline.Helpers.Profiler.Enabled = true;
         var times = new System.Collections.Generic.List<long>();

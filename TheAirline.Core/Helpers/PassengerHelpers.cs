@@ -3015,7 +3015,7 @@ namespace TheAirline.Helpers
 
             long pfAll = Profiler.Start();
             long pf = Profiler.Start();
-            double routeScoreFactor = RouteHelpers.GetRouteTotalScore(currentRoute)/5;
+            double routeScoreFactor = RouteScore(currentRoute)/5;
             Profiler.Stop("pax: route score", pf);
 
             double demand = airportCurrent.GetDestinationPassengersRate(airportDestination, type);
@@ -3529,6 +3529,20 @@ namespace TheAirline.Helpers
                 }
             }
             return 1;
+        }
+
+        // a route's service score (aircraft age, meals, seats, fare and so on), worked out once a game day per route
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Route, Tuple<DateTime, double>> RouteScoreCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Route, Tuple<DateTime, double>>();
+
+        private static double RouteScore(Route route)
+        {
+            DateTime day = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, double> cached;
+            if (RouteScoreCache.TryGetValue(route, out cached) && cached.Item1 == day) return cached.Item2;
+            double score = RouteHelpers.GetRouteTotalScore(route);
+            RouteScoreCache.AddOrUpdate(route, Tuple.Create(day, score));
+            return score;
         }
 
         // each airline's reputation at an airport on a 1-100 scale against all airlines, worked out once a game day
