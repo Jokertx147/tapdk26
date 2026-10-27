@@ -282,6 +282,13 @@ namespace TheAirline.Helpers
             // background let the player start the clock first, and the flights then ran with no demand
             StartupLog.Write("LoadGame: creating the demand");
             var demandWatch = Stopwatch.StartNew();
+            // the demand is built only for airports without any, and only between those: when an earlier game in this
+            // session left demand on the other airports, the saved airports got demand only to each other. Start every
+            // airport afresh so the demand is built between all of them, as on the first load.
+            foreach (Airport airport in Airports.GetAllAirports())
+            {
+                airport.Statics = new AirportStatics(airport);
+            }
             try
             {
                 action();
@@ -399,15 +406,8 @@ namespace TheAirline.Helpers
             sw.Stop();
             Console.WriteLine(@"Saving: {0} ms", sw.ElapsedMilliseconds);
 
-            //Clearing stats because there is no need for saving those.
-            if (name != "autosave")
-            {
-                Airports.GetAllAirports().ForEach(a => a.ClearDestinationPassengerStatistics());
-                Airports.GetAllAirports().ForEach(a => a.ClearDestinationCargoStatistics());
-                AirlineHelpers.ClearRoutesStatistics();
-                AirlineHelpers.ClearAirlinesStatistics();
-                AirportHelpers.ClearAirportStatistics();
-            }
+            // (the statistics of routes, airlines and airports used to be cleared here after every save but the
+            // autosave, so saving a game wiped the passenger totals shown on the route screens; they are kept now)
             /*
             SaveObject so = new SaveObject();
             Parallel.Invoke(() =>

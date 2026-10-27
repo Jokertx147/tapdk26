@@ -100,7 +100,16 @@ namespace TheAirline.Models.Airports
         [Versioning("playeredited")]
         public bool PlayerEdited { get; set; }
 
-        public AirportStatics Statics { get; set; }
+        // distances and demand to every other airport: worked out again when a game is loaded, so it is not saved
+        // (saving it made saves several times bigger and pulled every airport it named into the save)
+        [NonSerialized]
+        private AirportStatics _statics;
+
+        public AirportStatics Statics
+        {
+            get { return _statics ?? (_statics = new AirportStatics(this)); }
+            set { _statics = value; }
+        }
 
         [Versioning("statistics")]
         public AirportStatistics Statistics { get; set; }

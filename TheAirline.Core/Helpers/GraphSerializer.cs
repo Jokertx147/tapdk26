@@ -102,7 +102,20 @@ namespace TheAirline.Helpers
         }
 
         //values that are never saved: user interface objects, threads, delegates and the like
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> ExcludedCache =
+            new System.Collections.Concurrent.ConcurrentDictionary<Type, bool>();
+
+        // the answer only depends on the type, so it is worked out once per type
         private static bool IsExcluded(object value, Type t)
+        {
+            bool excluded;
+            if (ExcludedCache.TryGetValue(t, out excluded)) return excluded;
+            excluded = IsExcludedType(value, t);
+            ExcludedCache[t] = excluded;
+            return excluded;
+        }
+
+        private static bool IsExcludedType(object value, Type t)
         {
             if (value is Delegate || value is Type || value is MemberInfo || value is Assembly || value is Module)
             {
@@ -133,6 +146,8 @@ namespace TheAirline.Helpers
             public FieldInfo[] Fields;
         }
 
+
+
         #region Writing
 
         private sealed class GraphWriter
@@ -142,6 +157,8 @@ namespace TheAirline.Helpers
             private readonly Dictionary<Type, TypeEntry> _types = new Dictionary<Type, TypeEntry>();
             private readonly List<TypeEntry> _typeList = new List<TypeEntry>();
             private BinaryWriter _w;
+
+            private readonly System.Diagnostics.Stopwatch _watch = System.Diagnostics.Stopwatch.StartNew();
 
             public void Write(Stream output, object root)
             {
@@ -194,8 +211,17 @@ namespace TheAirline.Helpers
 
                     header.Write(payload.Length);
                     header.Flush();
+                    long walked = _watch.ElapsedMilliseconds;
                     payload.Position = 0;
                     payload.CopyTo(output);
+                    if (CollectStats)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine("objects " + _objects.Count + ", types " + _typeList.Count + ", payload " + payload.Length/1024 + " KB, walk " + walked + " ms, compress+write " + (_watch.ElapsedMilliseconds - walked) + " ms");
+                        foreach (var g in _objects.GroupBy(o => o.GetType()).OrderByDescending(g => g.Count()).Take(25))
+                            sb.AppendLine("  " + g.Count().ToString("N0").PadLeft(10) + "  " + g.Key.Name + (g.Key.IsGenericType ? "<" + string.Join(",", g.Key.GetGenericArguments().Select(a => a.Name)) + ">" : ""));
+                        LastStats = sb.ToString();
+                    }
                 }
             }
 
@@ -748,6 +774,10 @@ namespace TheAirline.Helpers
         #endregion
 
         #region Public Methods and Operators
+
+        /// <summary>Set to get a breakdown of the last save in LastStats (for finding what makes saving slow).</summary>
+        public static bool CollectStats;
+        public static string LastStats;
 
         public static void Save(string filename, object root)
         {

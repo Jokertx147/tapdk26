@@ -348,6 +348,51 @@ static class VmTest
         }
     }
 
+    static void DemandCheck(string when)
+    {
+        var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var home = human.Airports.Count > 0 ? human.Airports[0] : TheAirline.Models.Airports.Airports.GetAllAirports().First();
+        var all = TheAirline.Models.Airports.Airports.GetAllAirports();
+        int withDemand = all.Count(a => a.Statics.GetDestinationPassengersSum() > 0);
+        Console.WriteLine("DEMAND " + when + ": " + home.Profile.IATACode + " has demand to " + home.GetDestinationDemands().Count + " airports, total " + home.Statics.GetDestinationPassengersSum() + "; " + withDemand + " of " + all.Count + " airports have demand");
+    }
+
+    /// <summary>"vm savetime": play TAP_WARM days (default 60), then save a few times and show where the time goes.</summary>
+    static void SaveProbe()
+    {
+        int warm = int.TryParse(Environment.GetEnvironmentVariable("TAP_WARM"), out var w) ? w : 60;
+        string loadFirst = Environment.GetEnvironmentVariable("TAP_LOADFILE");
+        if (!string.IsNullOrEmpty(loadFirst))
+        {
+            var lf = System.Diagnostics.Stopwatch.StartNew();
+            TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame(loadFirst);
+            Console.WriteLine("LOADED " + loadFirst + " in " + lf.ElapsedMilliseconds + " ms: " + TheAirline.Models.General.GameObject.GetInstance().GameTime.ToShortDateString() + ", " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Sum(a => a.Fleet.Count) + " aircraft");
+        }
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var all = TheAirline.Models.Airlines.Airlines.GetAllAirlines();
+        Console.WriteLine("after " + warm + " days: " + all.Sum(a => a.Fleet.Count) + " aircraft, " + all.Sum(a => a.Routes.Count) + " routes");
+        DemandCheck("before saving");
+        TheAirline.Helpers.GraphSerializer.CollectStats = true;
+        for (int k = 0; k < 3; k++)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("autosave");
+            Console.WriteLine("SAVE " + k + ": " + sw.ElapsedMilliseconds + " ms");
+            if (k == 0) Console.WriteLine(TheAirline.Helpers.GraphSerializer.LastStats);
+        }
+        TheAirline.Helpers.GraphSerializer.CollectStats = false;
+        var lw = System.Diagnostics.Stopwatch.StartNew();
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("autosave");
+        Console.WriteLine("LOAD: " + lw.ElapsedMilliseconds + " ms");
+        DemandCheck("after the second load");
+        for (int i = 0; i < 2; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("after load: " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Sum(a => a.Fleet.Count) + " aircraft, " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Sum(a => a.Routes.Count) + " routes");
+        var sw2 = System.Diagnostics.Stopwatch.StartNew();
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("autosave");
+        string file = TheAirline.Infrastructure.AppSettings.GetCommonApplicationDataPath() + "/saves/autosave.sav";
+        Console.WriteLine("SAVE after load: " + sw2.ElapsedMilliseconds + " ms, " + new System.IO.FileInfo(file).Length/1024 + " KB");
+    }
+
     /// <summary>"vm perf": warm up (TAP_WARM days, default 40), then time TAP_DAYS game days (default 10) and show where the time goes.</summary>
     static void PerfProbe()
     {
@@ -1395,6 +1440,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("airlines")) { AirlinesProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("year")) { YearProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("perf")) { PerfProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("savetime")) { SaveProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }
