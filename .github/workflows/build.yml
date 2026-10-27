@@ -73,6 +73,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm forecast | tee forecasttest.log
           grep -q "FORECAST TEST OK" forecasttest.log
 
+      - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip | tee skiptest.log
+          grep -q "SKIP TEST OK" skiptest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

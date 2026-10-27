@@ -63,6 +63,75 @@ namespace TheAirline.Helpers.Workers
             }
         }
 
+        // ---- fast-forward: play without waiting between days until a date, then pause ----
+
+        private DateTime? _skipTo;
+        private double _skipStartMoney;
+
+        /// <summary>The date the game is fast-forwarding to, or null.</summary>
+        public DateTime? SkipTo => _skipTo;
+
+        public bool IsSkipping => _skipTo != null;
+
+        /// <summary>Why the last fast-forward stopped (null while one runs or when none ran): set once, read with TakeSkipResult.</summary>
+        private string _skipResult;
+
+        /// <summary>
+        ///     Plays day after day as fast as the computer can until the date, then pauses. It stops early when a scenario
+        ///     ends or when the player's cash goes below zero. Call with the clock stopped (GameSession.StopClock).
+        /// </summary>
+        public void SkipUntil(DateTime target)
+        {
+            var game = GameObject.GetInstance();
+            if (game?.HumanAirline == null || target <= game.GameTime) return;
+            _skipStartMoney = game.HumanAirline.Money;
+            _skipResult = null;
+            _skipTo = target;
+            IsPaused = false;
+            if (!_worker.IsBusy)
+            {
+                _worker.RunWorkerAsync();
+            }
+        }
+
+        /// <summary>The message about the fast-forward that just ended, once (null otherwise).</summary>
+        public string TakeSkipResult()
+        {
+            string r = _skipResult;
+            _skipResult = null;
+            return r;
+        }
+
+        // after a turn of a fast-forward: true when it should stop here
+        private bool SkipDone()
+        {
+            var game = GameObject.GetInstance();
+            if (_skipTo == null || game?.HumanAirline == null) return false;
+            string reason = null;
+            // (the monthly bills come on the 1st, the day a 'next month' ends: say so when they took the cash below zero)
+            if (game.Scenario != null && game.Scenario.IsEnded)
+            {
+                reason = "the scenario ended";
+            }
+            else if (_skipStartMoney >= 0 && game.HumanAirline.Money < 0)
+            {
+                reason = "your cash went below zero";
+            }
+            else if (game.GameTime >= _skipTo.Value)
+            {
+                reason = "reached";
+            }
+            if (reason == null) return false;
+
+            double change = game.HumanAirline.Money - _skipStartMoney;
+            _skipResult = (reason == "reached" ? "Fast-forwarded to " : "Fast-forward stopped on ")
+                          + game.GameTime.ToString("d MMM yyyy") + (reason == "reached" ? "" : ": " + reason)
+                          + ". Cash " + (change >= 0 ? "+" : "-") + Math.Abs(Math.Round(change)).ToString("N0") + " meanwhile.";
+            _skipTo = null;
+            IsPaused = true;
+            return true;
+        }
+
         #endregion
 
         #region Public Methods and Operators
@@ -98,6 +167,11 @@ namespace TheAirline.Helpers.Workers
         {
             Cancel();
 
+            if (_skipTo != null)
+            {
+                _skipTo = null;
+                _skipResult = "Fast-forward stopped on " + GameObject.GetInstance().GameTime.ToString("d MMM yyyy") + ".";
+            }
             IsPaused = true;
         }
 
@@ -180,6 +254,13 @@ namespace TheAirline.Helpers.Workers
                     sw.Stop();
 
                     failures = 0;
+
+                    if (_skipTo != null)
+                    {
+                        // fast-forward: no waiting between days
+                        if (SkipDone()) break;
+                        continue;
+                    }
 
                     long waittime = GetTurnDuration() - sw.ElapsedMilliseconds;
 

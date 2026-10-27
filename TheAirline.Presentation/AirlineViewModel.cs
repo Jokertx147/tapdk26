@@ -90,6 +90,9 @@ namespace TheAirline.Presentation
             _speed = Speeds.First(s => s.Value == current);
 
             TogglePauseCommand = new RelayCommand(TogglePause);
+            SkipDayCommand = new AsyncCommand(() => SkipAsync(g => g.AddDays(1)), () => !GameObjectWorker.GetInstance().IsSkipping);
+            SkipWeekCommand = new AsyncCommand(() => SkipAsync(g => g.AddDays(7)), () => !GameObjectWorker.GetInstance().IsSkipping);
+            SkipMonthCommand = new AsyncCommand(() => SkipAsync(g => new DateTime(g.Year, g.Month, 1).AddMonths(1)), () => !GameObjectWorker.GetInstance().IsSkipping);
             SaveCommand = new AsyncCommand(SaveAsync);
             GameSession.InGame = true;
             DateDisplay.Formatter = DateFormatter.Date;
@@ -406,6 +409,25 @@ namespace TheAirline.Presentation
         public string Summary { get; private set; }
 
         public ICommand TogglePauseCommand { get; }
+
+        /// <summary>Fast-forward: one day, a week, or to the 1st of next month, as fast as the computer can, then pause.</summary>
+        public ICommand SkipDayCommand { get; }
+        public ICommand SkipWeekCommand { get; }
+        public ICommand SkipMonthCommand { get; }
+
+        private async System.Threading.Tasks.Task SkipAsync(Func<DateTime, DateTime> until)
+        {
+            var worker = GameObjectWorker.GetInstance();
+            if (worker.IsSkipping) return;
+            DateTime target = until(GameObject.GetInstance().GameTime.Date);
+            Status = "Fast-forwarding to " + DateFormatter.Date(target) + "... (Pause stops it)";
+            await System.Threading.Tasks.Task.Run(() =>
+                {
+                    GameSession.StopClock();
+                    worker.SkipUntil(target);
+                });
+            Refresh();
+        }
         public ICommand SaveCommand { get; }
         public ICommand MainMenuCommand { get; }
 
@@ -450,6 +472,8 @@ namespace TheAirline.Presentation
         {
             get { return IsRunning ? "Pause" : "Play"; }
         }
+
+        private bool _wasSkipping;
 
         public SpeedChoice Speed
         {
@@ -549,6 +573,16 @@ namespace TheAirline.Presentation
             }
             Money = Convert.ToString(new ValueCurrencyFormatter().Convert(airline.Money));
             IsRunning = !GameObjectWorker.GetInstance().IsPaused;
+            bool skipping = GameObjectWorker.GetInstance().IsSkipping;
+            string skipResult = GameObjectWorker.GetInstance().TakeSkipResult();
+            if (skipResult != null) Status = skipResult;
+            if (skipping != _wasSkipping)
+            {
+                _wasSkipping = skipping;
+                (SkipDayCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+                (SkipWeekCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+                (SkipMonthCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            }
 
             var fleet = airline.Fleet.ToList();
             var routes = airline.Routes.ToList();

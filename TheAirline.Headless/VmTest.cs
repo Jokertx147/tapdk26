@@ -575,10 +575,13 @@ static class VmTest
                 string clash = TheAirline.Helpers.AircraftReplaceService.FirstClash(slow, now);
                 Console.WriteLine("  " + slow.Name + " has " + now.Count + " of " + total + " flights, clash " + (clash ?? "none") + ", status " + slow.Status);
                 if (now.Count != total || clash != null || a.Routes.Contains(route)) { Console.WriteLine("  FAILED shift"); Environment.Exit(1); }
-                int seats2 = route.ConnectSeats;
-                for (int i = 0; i < 3; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
-                Console.WriteLine("  three days later: seats flown " + (route.ConnectSeats - seats2));
-                if (route.ConnectSeats - seats2 <= 0) { Console.WriteLine("  FAILED the slow aircraft doesn't fly"); Environment.Exit(1); }
+                // a whole week: the packed timetable has flights on a few days only
+                int seats2 = route.ConnectSeats + route.ConnectLastSeats;
+                int month2 = route.ConnectMonth;
+                for (int i = 0; i < 7; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+                int flownWeek = route.ConnectMonth == month2 ? route.ConnectSeats + route.ConnectLastSeats - seats2 : route.ConnectSeats + route.ConnectLastSeats;
+                Console.WriteLine("  a week later: seats flown " + flownWeek);
+                if (flownWeek <= 0) { Console.WriteLine("  FAILED the slow aircraft doesn't fly"); Environment.Exit(1); }
                 // put the first aircraft back for the last check
                 string back;
                 TheAirline.Helpers.AircraftReplaceService.Replace(route, slow, a, out back);
@@ -829,6 +832,54 @@ static class VmTest
             if (Math.Abs(load - fc.Load) > 0.25) { Console.WriteLine("  FAILED forecast load far off"); Environment.Exit(1); }
         }
         Console.WriteLine("FORECAST TEST OK");
+    }
+
+    /// <summary>"vm skip": fast-forward a day, a week and to next month; stop one with Pause; stop when cash goes below zero.</summary>
+    static async Task SkipTest(AirlineViewModel av)
+    {
+        Console.WriteLine("SKIP TEST");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var worker = TheAirline.Helpers.Workers.GameObjectWorker.GetInstance();
+        Func<System.Windows.Input.ICommand, string, Task<DateTime>> run = async (cmd, name) =>
+        {
+            DateTime before = g.GameTime;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            cmd.Execute(null);
+            await Wait(() => worker.IsSkipping, name + " started");
+            await Wait(() => !worker.IsSkipping, name + " finished");
+            av.Refresh();
+            Console.WriteLine("  " + name + ": " + before.ToString("d MMM yyyy") + " -> " + g.GameTime.ToString("d MMM yyyy") + " in " + sw.ElapsedMilliseconds + " ms, paused " + worker.IsPaused + " | " + av.Status);
+            return before;
+        };
+        DateTime b = await run(av.SkipDayCommand, "+1 day");
+        if (g.GameTime.Date != b.Date.AddDays(1) || !worker.IsPaused) { Console.WriteLine("  FAILED day"); Environment.Exit(1); }
+        b = await run(av.SkipWeekCommand, "+1 week");
+        if (g.GameTime.Date != b.Date.AddDays(7) || !worker.IsPaused) { Console.WriteLine("  FAILED week"); Environment.Exit(1); }
+        b = await run(av.SkipMonthCommand, "next month");
+        if (g.GameTime.Day != 1 || g.GameTime.Month == b.Month || !worker.IsPaused || !av.Status.StartsWith("Fast-forwarded")) { Console.WriteLine("  FAILED month"); Environment.Exit(1); }
+
+        // Pause stops a fast-forward part way
+        DateTime start = g.GameTime;
+        av.SkipMonthCommand.Execute(null);
+        await Wait(() => worker.IsSkipping, "skip started");
+        await Wait(() => g.GameTime >= start.AddDays(3), "a few days");
+        av.TogglePauseCommand.Execute(null);
+        av.Refresh();
+        Console.WriteLine("  stopped by Pause on " + g.GameTime.ToString("d MMM yyyy") + ", skipping " + worker.IsSkipping + ", paused " + worker.IsPaused + " | " + av.Status);
+        if (worker.IsSkipping || !worker.IsPaused || g.GameTime.Day == 1 || !av.Status.Contains("stopped")) { Console.WriteLine("  FAILED stop"); Environment.Exit(1); }
+        DateTime stopped = g.GameTime;
+        await Task.Delay(500);
+        if (g.GameTime != stopped) { Console.WriteLine("  FAILED the clock ran on after Pause"); Environment.Exit(1); }
+
+        // cash below zero stops it early: a few dollars and a month of rents and wages ahead
+        g.HumanAirline.Money = 1000;
+        av.SkipMonthCommand.Execute(null);
+        await Wait(() => worker.IsSkipping, "skip started");
+        await Wait(() => !worker.IsSkipping, "skip finished");
+        av.Refresh();
+        Console.WriteLine("  low cash: stopped on " + g.GameTime.ToString("d MMM yyyy") + " with " + g.HumanAirline.Money.ToString("N0") + " | " + av.Status);
+        if (g.HumanAirline.Money >= 0 || !av.Status.Contains("below zero")) { Console.WriteLine("  FAILED cash stop"); Environment.Exit(1); }
+        Console.WriteLine("SKIP TEST OK");
     }
 
     static void DemandCheck(string when)
@@ -1933,6 +1984,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("renewal")) { await RenewalTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

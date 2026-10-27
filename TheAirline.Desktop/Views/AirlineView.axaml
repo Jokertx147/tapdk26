@@ -19,6 +19,9 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" MinWidth="70" HorizontalContentAlignment="Center" />
+          <Button Content="+1 day" Command="{Binding SkipDayCommand}" ToolTip.Tip="Play one day as fast as possible, then pause" />
+          <Button Content="+1 week" Command="{Binding SkipWeekCommand}" ToolTip.Tip="Play seven days as fast as possible, then pause" />
+          <Button Content="Next month" Command="{Binding SkipMonthCommand}" ToolTip.Tip="Play to the 1st of next month as fast as possible, then pause (stops early if your cash goes below zero)" />
           <ComboBox ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed}" MinWidth="230" />
           <Button Content="Save" Command="{Binding SaveCommand}" />
           <Button Content="Main menu" Command="{Binding MainMenuCommand}" />
