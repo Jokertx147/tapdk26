@@ -88,6 +88,9 @@ namespace TheAirline.Presentation
             AssignCommand = new RelayCommand(() => Assign = new CreateRouteViewModel(_route, OnAssignDone), () => CanAssign);
             MoveCommand = new RelayCommand(() => Assign = new CreateRouteViewModel(_route, OnAssignDone, true), () => CanMove);
             DeleteCommand = new RelayCommand(() => ConfirmDelete = true);
+            OpenReplaceCommand = new RelayCommand(OpenReplace, () => CanMove);
+            CloseReplaceCommand = new RelayCommand(() => IsReplacing = false);
+            ReplaceCommand = new RelayCommand(DoReplace, () => _replaceFrom != null && _replaceTo != null && _replaceTo.Value.CanReplace);
             ConfirmDeleteCommand = new RelayCommand(Delete);
             CancelDeleteCommand = new RelayCommand(() => ConfirmDelete = false);
 
@@ -191,6 +194,121 @@ namespace TheAirline.Presentation
         public ICommand AssignCommand { get; }
         public ICommand MoveCommand { get; }
 
+        // ---- replace one aircraft of the route by another, on the same flights ----
+
+        private bool _replacing;
+        private NamedChoice<FleetAirliner> _replaceFrom;
+        private NamedChoice<ReplacementOption> _replaceTo;
+
+        public ICommand OpenReplaceCommand { get; }
+        public ICommand CloseReplaceCommand { get; }
+        public ICommand ReplaceCommand { get; }
+
+        public ObservableCollection<NamedChoice<FleetAirliner>> ReplaceFromChoices { get; } = new ObservableCollection<NamedChoice<FleetAirliner>>();
+        public ObservableCollection<NamedChoice<ReplacementOption>> ReplaceToChoices { get; } = new ObservableCollection<NamedChoice<ReplacementOption>>();
+
+        public bool IsReplacing
+        {
+            get { return _replacing; }
+            private set
+            {
+                if (SetProperty(ref _replacing, value))
+                {
+                    OnPropertyChanged(nameof(ShowReplaceButton));
+                }
+            }
+        }
+
+        public bool ShowReplaceButton => CanMove && !_replacing && _assign == null;
+
+        public NamedChoice<FleetAirliner> ReplaceFrom
+        {
+            get { return _replaceFrom; }
+            set
+            {
+                if (SetProperty(ref _replaceFrom, value))
+                {
+                    LoadReplaceTo();
+                }
+            }
+        }
+
+        public NamedChoice<ReplacementOption> ReplaceTo
+        {
+            get { return _replaceTo; }
+            set
+            {
+                if (SetProperty(ref _replaceTo, value))
+                {
+                    OnPropertyChanged(nameof(ReplaceText));
+                    (ReplaceCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        public string ReplaceText
+        {
+            get
+            {
+                if (_replaceFrom == null) return null;
+                if (ReplaceToChoices.Count == 0) return "No other aircraft of the right kind in your fleet.";
+                if (_replaceTo == null) return null;
+                var from = _replaceFrom.Value;
+                int flights = _route.TimeTable.Entries.Count(e => e.Airliner == from);
+                return _replaceTo.Value.CanReplace
+                    ? _replaceTo.Value.Airliner.Name + " takes over the " + flights + " weekly flights of " + from.Name + " on this route, at the same times."
+                    : _replaceTo.Value.Airliner.Name + " can't take over: " + _replaceTo.Value.Note + ".";
+            }
+        }
+
+        private void OpenReplace()
+        {
+            ReplaceFromChoices.Clear();
+            foreach (FleetAirliner f in _route.GetAirliners().OrderBy(f => f.Name))
+            {
+                ReplaceFromChoices.Add(new NamedChoice<FleetAirliner> {Name = f.Name + " (" + f.Airliner.Type.Name + ")", Value = f});
+            }
+            _replaceFrom = null;
+            ReplaceFrom = ReplaceFromChoices.FirstOrDefault();
+            IsReplacing = true;
+        }
+
+        private void LoadReplaceTo()
+        {
+            ReplaceToChoices.Clear();
+            if (_replaceFrom != null)
+            {
+                foreach (ReplacementOption o in AircraftReplaceService.Options(_route, _replaceFrom.Value))
+                {
+                    ReplaceToChoices.Add(new NamedChoice<ReplacementOption>
+                    {
+                        Name = o.Airliner.Name + " (" + o.Airliner.Airliner.Type.Name + "): " + (o.CanReplace ? o.Note : "can't, " + o.Note),
+                        Value = o
+                    });
+                }
+            }
+            _replaceTo = null;
+            ReplaceTo = ReplaceToChoices.FirstOrDefault(c => c.Value.CanReplace);
+            OnPropertyChanged(nameof(ReplaceText));
+        }
+
+        private void DoReplace()
+        {
+            string message;
+            bool ok = AircraftReplaceService.Replace(_route, _replaceFrom?.Value, _replaceTo?.Value?.Airliner, out message);
+            Status = message;
+            if (ok)
+            {
+                IsReplacing = false;
+                _changed();
+                RefreshNumbers();
+            }
+            else
+            {
+                LoadReplaceTo();
+            }
+        }
+
         /// <summary>The form to put an aircraft on this route, or null when it is closed.</summary>
         public CreateRouteViewModel Assign
         {
@@ -202,6 +320,7 @@ namespace TheAirline.Presentation
                     OnPropertyChanged(nameof(HasAssign));
                     OnPropertyChanged(nameof(ShowAssignButton));
                     OnPropertyChanged(nameof(ShowMoveButton));
+                    OnPropertyChanged(nameof(ShowReplaceButton));
                 }
             }
         }
@@ -271,6 +390,8 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(ShowAssignButton));
             OnPropertyChanged(nameof(CanMove));
             OnPropertyChanged(nameof(ShowMoveButton));
+            OnPropertyChanged(nameof(ShowReplaceButton));
+            (OpenReplaceCommand as RelayCommand)?.RaiseCanExecuteChanged();
             Service?.RefreshScores();
         }
 

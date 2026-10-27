@@ -53,6 +53,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm bloat | tee bloattest.log
           grep -q "BLOAT TEST OK" bloattest.log
 
+      - name: Replace aircraft test (one aircraft of a route replaced by another on the route screen)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm replace | tee replacetest.log
+          grep -q "REPLACE TEST OK" replacetest.log
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline

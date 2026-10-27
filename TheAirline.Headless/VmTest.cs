@@ -446,6 +446,83 @@ static class VmTest
         Console.WriteLine("BLOAT TEST OK");
     }
 
+    /// <summary>"vm replace": a route flown by one aircraft, replaced by another on the route screen (and back).</summary>
+    static async Task ReplaceTest(AirlineViewModel av)
+    {
+        Console.WriteLine("REPLACE TEST");
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var mk = av.Market;
+        // two aircraft of the same type, the cheapest that has a home base
+        foreach (var item in mk.Aircraft.OrderBy(a => a.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        var type = mk.Selected.Airliner.Type;
+        mk.BuyCommand.Execute(null);
+        av.Refresh();
+        var second = mk.Aircraft.Where(a => a.Airliner.Type == type).OrderBy(a => a.Airliner.GetPrice()).FirstOrDefault();
+        if (second != null) { mk.Selected = second; mk.BuyCommand.Execute(null); }
+        av.Refresh();
+        Console.WriteLine("  fleet: " + string.Join(", ", h.Fleet.Select(f => f.Name + " " + f.Airliner.Type.Name)));
+        if (h.Fleet.Count < 2) { Console.WriteLine("  FAILED could not buy two aircraft"); Environment.Exit(1); }
+
+        var ap = av.Airports;
+        await Wait(() => !ap.IsBusy, "advice");
+        ap.SelectedAdvice = ap.Advice.First(a => a.Advice.FleetCanFly);
+        var cr = ap.Create;
+        foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+        cr.CreateCommand.Execute(null);
+        foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+        if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+        var route = h.Routes.First(r => r.HasAirliner);
+        var a = route.GetAirliners()[0];
+        var b = h.Fleet.First(f => f != a);
+        if (b.Pilots.Count < b.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(b);
+        int flights = route.TimeTable.Entries.Count(e => e.Airliner == a);
+        Console.WriteLine("  route " + route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode + " flown by " + a.Name + " (" + flights + " weekly flights), spare " + b.Name);
+        for (int i = 0; i < 3; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var times = route.TimeTable.Entries.Where(e => e.Airliner == a).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+
+        var rd = new TheAirline.Presentation.RouteDetailViewModel(route, () => { });
+        Console.WriteLine("  button shown " + rd.ShowReplaceButton);
+        rd.OpenReplaceCommand.Execute(null);
+        Console.WriteLine("  replace: " + string.Join(" / ", rd.ReplaceFromChoices.Select(c => c.Name)));
+        foreach (var c in rd.ReplaceToChoices) Console.WriteLine("    with: " + c.Name);
+        rd.ReplaceTo = rd.ReplaceToChoices.First(c => c.Value.Airliner == b);
+        Console.WriteLine("  " + rd.ReplaceText);
+        rd.ReplaceCommand.Execute(null);
+        Console.WriteLine("  done: " + rd.Status + " | " + rd.AircraftText);
+        var timesB = route.TimeTable.Entries.Where(e => e.Airliner == b).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+        bool sameTimes = times.SequenceEqual(timesB);
+        Console.WriteLine("  " + b.Name + " has " + timesB.Count + " flights, same times " + sameTimes + " | " + a.Name + " routes " + a.Routes.Count + " status " + a.Status + " | " + b.Name + " status " + b.Status);
+        if (!sameTimes || route.TimeTable.Entries.Any(e => e.Airliner == a) || a.Routes.Contains(route) || !b.Routes.Contains(route) || rd.IsReplacing)
+        { Console.WriteLine("  FAILED replace"); Environment.Exit(1); }
+
+        double paxBefore = route.Statistics.GetTotalValue(TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
+        for (int i = 0; i < 4; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        double paxAfter = route.Statistics.GetTotalValue(TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
+        Console.WriteLine("  four days later: " + b.Name + " at " + b.CurrentPosition?.Profile.IATACode + ", status " + b.Status + " | passengers on the route " + paxBefore + " -> " + paxAfter);
+        if (paxAfter <= paxBefore) { Console.WriteLine("  FAILED the new aircraft doesn't fly the route"); Environment.Exit(1); }
+
+        // and back again: the first aircraft is free now
+        rd.OpenReplaceCommand.Execute(null);
+        rd.ReplaceTo = rd.ReplaceToChoices.FirstOrDefault(c => c.Value.Airliner == a);
+        Console.WriteLine("  back: " + rd.ReplaceText);
+        rd.ReplaceCommand.Execute(null);
+        Console.WriteLine("  " + rd.Status);
+        if (!a.Routes.Contains(route) || b.Routes.Contains(route)) { Console.WriteLine("  FAILED replace back"); Environment.Exit(1); }
+
+        // something that can't: an aircraft whose range is too short
+        var shortType = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().FirstOrDefault(t => t.TypeAirliner == a.Airliner.Type.TypeAirliner && t.Range < route.GetDistance() && t.Produced.From.Year <= TheAirline.Models.General.GameObject.GetInstance().GameTime.Year);
+        if (shortType != null)
+        {
+            var c = TheAirline.Helpers.AirlineHelpers.CreateAirliner(h, shortType);
+            h.AddAirliner(c);
+            string msg;
+            bool ok = TheAirline.Helpers.AircraftReplaceService.Replace(route, a, c, out msg);
+            Console.WriteLine("  short range " + c.Name + " (" + shortType.Name + ", " + shortType.Range + " km): " + ok + " | " + msg);
+            if (ok) { Console.WriteLine("  FAILED short range accepted"); Environment.Exit(1); }
+        }
+        Console.WriteLine("REPLACE TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1544,6 +1621,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("savetime")) { SaveProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("demand")) { DemandProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("bloat")) { await BloatTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("replace")) { await ReplaceTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

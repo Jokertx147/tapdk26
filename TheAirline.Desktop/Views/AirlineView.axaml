@@ -161,6 +161,26 @@
                   <TextBlock Text="{Binding AircraftText}" TextWrapping="Wrap" Opacity="0.8" />
                   <Button Content="Assign an aircraft..." Command="{Binding AssignCommand}" IsVisible="{Binding ShowAssignButton}" HorizontalAlignment="Left" />
                   <Button Content="Move to another aircraft..." Command="{Binding MoveCommand}" IsVisible="{Binding ShowMoveButton}" HorizontalAlignment="Left" />
+                  <Button Content="Replace one aircraft by another..." Command="{Binding OpenReplaceCommand}" IsVisible="{Binding ShowReplaceButton}" HorizontalAlignment="Left" />
+                  <Border IsVisible="{Binding IsReplacing}" Background="#262626" CornerRadius="6" Padding="14" MaxWidth="520" HorizontalAlignment="Left">
+                    <StackPanel Spacing="8">
+                      <TextBlock Text="Replace an aircraft" FontWeight="SemiBold" />
+                      <TextBlock Text="The other aircraft takes over the same flights at the same times; the rest of the route stays as it is." Opacity="0.7" TextWrapping="Wrap" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Replace" VerticalAlignment="Center" Width="60" />
+                        <ComboBox ItemsSource="{Binding ReplaceFromChoices}" SelectedItem="{Binding ReplaceFrom}" MinWidth="320" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="with" VerticalAlignment="Center" Width="60" />
+                        <ComboBox ItemsSource="{Binding ReplaceToChoices}" SelectedItem="{Binding ReplaceTo}" MinWidth="320" MaxWidth="420" />
+                      </StackPanel>
+                      <TextBlock Text="{Binding ReplaceText}" TextWrapping="Wrap" Opacity="0.8" />
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="Replace" Command="{Binding ReplaceCommand}" />
+                        <Button Content="Cancel" Command="{Binding CloseReplaceCommand}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
                   <Border IsVisible="{Binding HasAssign}" Background="#262626" CornerRadius="6" Padding="14" MaxWidth="380" HorizontalAlignment="Left">
                     <v:CreateRouteForm DataContext="{Binding Assign}" />
                   </Border>
