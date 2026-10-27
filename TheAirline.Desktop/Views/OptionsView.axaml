@@ -60,6 +60,16 @@
       </StackPanel>
       <TextBlock Text="{Binding MoneyStatus}" TextWrapping="Wrap" />
 
+      <TextBlock Text="Game area" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <TextBlock Text="{Binding AreaText}" Opacity="0.7" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" />
+      <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasAreas}">
+        <TextBlock Text="The game is set in" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding Areas}" SelectedItem="{Binding Area}" MinWidth="320" />
+        <Button Content="Take out the others" Command="{Binding CleanAreaCommand}" />
+      </StackPanel>
+      <TextBlock Text="{Binding AreaPreview}" Opacity="0.7" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" IsVisible="{Binding HasAreas}" />
+      <TextBlock Text="{Binding AreaStatus}" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" />
+
       <TextBlock Text="Leave" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <Button Content="Main menu" Command="{Binding MainMenuCommand}" />

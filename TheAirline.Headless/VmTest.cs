@@ -381,6 +381,71 @@ static class VmTest
         Console.WriteLine("PART demand lookup x90k: " + t.ElapsedMilliseconds + " ms");
     }
 
+    /// <summary>
+    ///     "vm bloat": make a save the way an earlier version did after a load (the whole world's airports in a North
+    ///     America game, saved in the old format), load it, check the hint in the news, and take the airports outside
+    ///     North America out through Options > Game area.
+    /// </summary>
+    static async Task BloatTest(AirlineViewModel av)
+    {
+        Console.WriteLine("BLOAT TEST");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int i = 0; i < 20; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var game = TheAirline.Models.Airports.Airports.GetAllAirports().ToList();
+        int gameCount = game.Count;
+        var codes = new System.Collections.Generic.HashSet<string>(game.Select(a => a.Profile.IATACode));
+        TheAirline.Infrastructure.Setup.LoadAirports();
+        var extra = TheAirline.Models.Airports.Airports.GetAllAirports().Where(a => !codes.Contains(a.Profile.IATACode)).GroupBy(a => a.Profile.IATACode).Select(x => x.First()).ToList();
+        TheAirline.Models.Airports.Airports.Clear();
+        foreach (var a in game) TheAirline.Models.Airports.Airports.AddAirport(a);
+        foreach (var a in extra) TheAirline.Models.Airports.Airports.AddAirport(a);
+        // one of the extra airports is in use (the player's airline has London): it must be kept
+        var keepAirport = extra.First(a => a.Profile.IATACode == "LHR");
+        g.HumanAirline.AddAirport(keepAirport);
+        Console.WriteLine("  game " + gameCount + " airports, made it " + TheAirline.Models.Airports.Airports.GetAllAirports().Count + " (as an old load did)");
+        // an old save: it doesn't list the data file airports
+        typeof(TheAirline.Infrastructure.Setup).GetProperty("DataAirportCodes").SetValue(null, null);
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("bloattest");
+        string file = TheAirline.Infrastructure.AppSettings.GetCommonApplicationDataPath() + "/saves/bloattest.sav";
+        Console.WriteLine("  bloated save " + new System.IO.FileInfo(file).Length/1024 + " KB");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("bloattest");
+        int loaded = TheAirline.Models.Airports.Airports.GetAllAirports().Count;
+        var hint = TheAirline.Models.General.GameObject.GetInstance().NewsBox.GetNews().FirstOrDefault(n => n.Subject == "Airports outside your area?");
+        Console.WriteLine("  loaded in " + sw.ElapsedMilliseconds + " ms: " + loaded + " airports | news: " + hint?.Body);
+        if (loaded < gameCount + 1000 || hint == null) { Console.WriteLine("  FAILED load or hint"); Environment.Exit(1); }
+
+        var op = av.Options;
+        op.Reload();
+        Console.WriteLine("  " + op.AreaText);
+        foreach (var a in op.Areas) Console.WriteLine("    area: " + a.Name);
+        op.Area = op.Areas.First();
+        Console.WriteLine("  picked " + op.Area.Name + " | " + op.AreaPreview);
+        op.CleanAreaCommand.Execute(null);
+        Console.WriteLine("  asks: " + op.PendingText);
+        op.ConfirmCommand.Execute(null);
+        await Wait(() => op.AreaStatus != null && op.AreaStatus.StartsWith("Took out"), "airports taken out");
+        int after = TheAirline.Models.Airports.Airports.GetAllAirports().Count;
+        bool lhrKept = TheAirline.Models.Airports.Airports.GetAllAirports().Any(a => a.Profile.IATACode == "LHR");
+        Console.WriteLine("  " + op.AreaStatus + " | LHR kept " + lhrKept + " | after: " + op.AreaPreview);
+        var atl = TheAirline.Models.Airports.Airports.GetAllAirports().First(a => a.Profile.IATACode == "ATL");
+        Console.WriteLine("  ATL demand to " + atl.GetDestinationDemands().Count + " airports");
+        if (after != gameCount + 1 || !lhrKept || atl.GetDestinationDemands().Count < 300) { Console.WriteLine("  FAILED clean-up"); Environment.Exit(1); }
+        for (int i = 0; i < 5; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Infrastructure.Setup.LoadAirports();
+        TheAirline.Models.Airports.Airports.Clear();
+        foreach (var a in game.Concat(new[] {keepAirport})) TheAirline.Models.Airports.Airports.AddAirport(a);
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("bloattest");
+        Console.WriteLine("  saved again " + new System.IO.FileInfo(file).Length/1024 + " KB");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("bloattest");
+        int again = TheAirline.Models.Airports.Airports.GetAllAirports().Count;
+        bool hintAgain = TheAirline.Models.General.GameObject.GetInstance().NewsBox.GetNews().Count(n => n.Subject == "Airports outside your area?") > 1;
+        Console.WriteLine("  loaded again: " + again + " airports, hint again " + hintAgain);
+        if (again != after || hintAgain) { Console.WriteLine("  FAILED second load"); Environment.Exit(1); }
+        TheAirline.Helpers.SerializedLoadSaveHelpers.DeleteSavedGame("bloattest");
+        Console.WriteLine("BLOAT TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1478,6 +1543,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("perf")) { PerfProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("savetime")) { SaveProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("demand")) { DemandProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("bloat")) { await BloatTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

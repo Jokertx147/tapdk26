@@ -286,6 +286,32 @@ namespace TheAirline.Helpers
             //Task is needed this unlocks the game agian.
             // the demand is built before the load finishes (the loading screen stays up meanwhile); building it in the
             // background let the player start the clock first, and the flights then ran with no demand
+            // saves made after loading with an earlier version can hold every airport of the world. Which area the
+            // game was started in isn't saved, so point the player to Options when an older save looks like that
+            try
+            {
+                if (deserializedSaveObject.DataAirportsList == null && AirportCleanupService.ContinentCount() > 1)
+                {
+                    var areas = AirportCleanupService.Areas().Where(a => a.IsContinent).ToList();
+                    var used = AirportCleanupService.InUse();
+                    // nearly everything the airlines use on one continent
+                    var main = areas.OrderByDescending(a => used.Count(a.Contains)).FirstOrDefault();
+                    int inMain = main == null ? 0 : used.Count(main.Contains);
+                    var usedAreas = main == null ? new List<GameArea>() : new List<GameArea> {main};
+                    if (main != null && used.Count > 0 && inMain >= 0.9*used.Count)
+                    {
+                        StartupLog.Write("LoadGame: older save with airports on " + areas.Count + " continents, " + inMain + " of " + used.Count + " used ones in " + usedAreas[0].Name);
+                        GameObject.GetInstance().NewsBox.AddNews(new News(News.NewsType.StandardNews, GameObject.GetInstance().GameTime,
+                            "Airports outside your area?",
+                            "This game has " + Airports.GetAllAirports().Count + " airports on " + areas.Count + " continents, but nearly everything the airlines use is in " + usedAreas[0].Name.Replace(" (the whole continent)", "") + ". If you started it in one continent or region, an earlier version may have added the others by mistake when it loaded the game. Options > Game area can take out the unused ones, which makes the game faster. Keep them if this is a world game."));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StartupLog.Write("LoadGame: checking the game area failed: " + ex);
+            }
+
             StartupLog.Write("LoadGame: creating the demand");
             var demandWatch = Stopwatch.StartNew();
             // the demand is built only for airports without any, and only between those: when an earlier game in this

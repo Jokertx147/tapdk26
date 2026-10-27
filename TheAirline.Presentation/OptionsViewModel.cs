@@ -41,6 +41,7 @@ namespace TheAirline.Presentation
                     });
             CancelCommand = new RelayCommand(() => PendingText = null);
             SetMoneyCommand = new RelayCommand(SetMoney);
+            CleanAreaCommand = new RelayCommand(AskCleanArea, () => !_busy && _area != null && _areaRemovable > 0);
 
             var airline = GameObject.GetInstance().HumanAirline;
             _saveName = GameSession.SafeFileName(airline?.Profile?.Name ?? "save");
@@ -48,6 +49,120 @@ namespace TheAirline.Presentation
         }
 
         public ObservableCollection<SaveItem> Saves { get; } = new ObservableCollection<SaveItem>();
+
+        // ---- game area: take out airports outside the continent or region the game is set in ----
+
+        private NamedChoice<GameArea> _area;
+        private int _areaRemovable;
+        private string _areaStatus;
+
+        public ObservableCollection<NamedChoice<GameArea>> Areas { get; } = new ObservableCollection<NamedChoice<GameArea>>();
+        public ICommand CleanAreaCommand { get; }
+        public bool HasAreas => Areas.Count > 0;
+
+        public string AreaText
+        {
+            get
+            {
+                if (GameObject.GetInstance()?.HumanAirline == null) return "Start or load a game first.";
+                int continents = AirportCleanupService.ContinentCount();
+                return "This game has " + TheAirline.Models.Airports.Airports.GetAllAirports().Count.ToString("N0") + " airports on " + continents + (continents == 1 ? " continent" : " continents")
+                       + ". If you started it in one continent or region, you can take out the airports outside it that nobody uses (a load with an earlier version could add the whole world). Fewer airports make game days, saving and loading faster.";
+            }
+        }
+
+        public NamedChoice<GameArea> Area
+        {
+            get { return _area; }
+            set
+            {
+                if (SetProperty(ref _area, value))
+                {
+                    UpdateAreaPreview();
+                }
+            }
+        }
+
+        public string AreaPreview { get; private set; }
+        public string AreaStatus { get => _areaStatus; private set => SetProperty(ref _areaStatus, value); }
+
+        private void LoadAreas()
+        {
+            Areas.Clear();
+            if (GameObject.GetInstance()?.HumanAirline != null)
+            {
+                try
+                {
+                    foreach (GameArea area in AirportCleanupService.Areas())
+                    {
+                        Areas.Add(new NamedChoice<GameArea> {Name = area.Name + ": " + area.Airports.ToString("N0") + " airports", Value = area});
+                    }
+                }
+                catch (Exception ex)
+                {
+                    StartupLog.Write("Options: listing the game areas failed: " + ex);
+                }
+            }
+            _area = Areas.FirstOrDefault();
+            OnPropertyChanged(nameof(Area));
+            OnPropertyChanged(nameof(HasAreas));
+            OnPropertyChanged(nameof(AreaText));
+            UpdateAreaPreview();
+        }
+
+        private void UpdateAreaPreview()
+        {
+            _areaRemovable = 0;
+            if (_area == null)
+            {
+                AreaPreview = null;
+            }
+            else
+            {
+                int kept;
+                _areaRemovable = AirportCleanupService.Outside(_area.Value, out kept).Count;
+                AreaPreview = _areaRemovable == 0
+                    ? "Every airport outside it is in use (or there are none): nothing to take out."
+                    : _areaRemovable.ToString("N0") + " unused airports outside it would be taken out"
+                      + (kept > 0 ? "; " + kept + " outside it are kept because an airline uses them." : ".");
+            }
+            OnPropertyChanged(nameof(AreaPreview));
+            (CleanAreaCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void AskCleanArea()
+        {
+            var area = _area?.Value;
+            if (area == null) return;
+            int count = _areaRemovable;
+            _pending = async () =>
+                {
+                    SetBusy(true);
+                    AreaStatus = "Taking out " + count.ToString("N0") + " airports and building the passenger demand again...";
+                    try
+                    {
+                        bool wasRunning = !TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused;
+                        int removed = await Task.Run(() =>
+                            {
+                                GameSession.StopClock();
+                                return AirportCleanupService.RemoveOutside(area);
+                            });
+                        if (wasRunning) TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().Restart();
+                        AreaStatus = "Took out " + removed.ToString("N0") + " airports; " + TheAirline.Models.Airports.Airports.GetAllAirports().Count.ToString("N0") + " are left. Save the game to keep the change.";
+                    }
+                    catch (Exception ex)
+                    {
+                        StartupLog.Write("Options: taking out airports failed: " + ex);
+                        AreaStatus = "That failed: " + ex.Message;
+                    }
+                    finally
+                    {
+                        SetBusy(false);
+                        LoadAreas();
+                    }
+                };
+            PendingText = "Take out " + count.ToString("N0") + " unused airports outside " + area.Name.Replace(" (the whole continent)", "") + "? Airlines can't fly to them afterwards. This can't be undone, except by loading a save made before.";
+        }
 
         // ---- setting the money ----
 
@@ -248,6 +363,7 @@ namespace TheAirline.Presentation
 
         public void Reload()
         {
+            LoadAreas();
             OnPropertyChanged(nameof(CostLevel));
             OnPropertyChanged(nameof(CostLevelText));
             OnPropertyChanged(nameof(MoneyText));
@@ -331,6 +447,7 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(IsBusy));
             (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (CleanAreaCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 }
