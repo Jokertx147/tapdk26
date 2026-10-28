@@ -86,9 +86,41 @@ namespace TheAirline.Helpers
                                      : (f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
                                         || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed))
                              .Where(f => f.Routes.Count == 0 && !AircraftDealService.IsLeasedOut(f))
-                             .Where(f => f.Airliner.Type.Range >= distance && f.Airliner.Type.MinRunwaylength <= runway)
+                             .Where(f => f.Airliner.Range >= distance && f.Airliner.MinRunwaylength <= runway)
                              .OrderBy(f => f.Name)
                              .ToList();
+        }
+
+        /// <summary>
+        ///     Why the player's idle aircraft of the route's kind can't fly it: "N010DL (Airbus A350-900) needs 2,810 m of
+        ///     runway: DUB has 2,800 m". One line per type and reason.
+        /// </summary>
+        public static List<string> WhyNot(Airport origin, Airport destination, Route.RouteType routeType = Route.RouteType.Passenger)
+        {
+            double distance = MathHelpers.GetDistance(origin, destination);
+            bool cargo = routeType == Route.RouteType.Cargo;
+            var lines = new List<string>();
+            var idle = GameObject.GetInstance().HumanAirline.DeliveredFleet
+                                 .Where(f => (cargo
+                                                  ? f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo
+                                                  : f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger || f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)
+                                             && f.Routes.Count == 0 && !AircraftDealService.IsLeasedOut(f));
+            foreach (var g in idle.GroupBy(f => f.Airliner.Type))
+            {
+                var f = g.OrderBy(x => x.Airliner.MinRunwaylength).First();
+                string names = string.Join(", ", g.Select(x => x.Name).Take(3)) + (g.Count() > 3 ? " and " + (g.Count() - 3) + " more" : "");
+                var shortEnds = new[] {origin, destination}.Where(a => a.GetMaxRunwayLength() < f.Airliner.MinRunwaylength).ToList();
+                if (shortEnds.Count > 0)
+                {
+                    lines.Add(names + " (" + g.Key.Name + ") need" + (g.Count() == 1 ? "s" : "") + " " + f.Airliner.MinRunwaylength.ToString("N0") + " m of runway: "
+                              + string.Join(", ", shortEnds.Select(RunwayService.Describe)) + ".");
+                }
+                else if (g.Max(x => x.Airliner.Range) < distance)
+                {
+                    lines.Add(names + " (" + g.Key.Name + "): range " + g.Max(x => x.Airliner.Range).ToString("N0") + " km, the route is " + Math.Round(distance).ToString("N0") + " km.");
+                }
+            }
+            return lines;
         }
 
         //true when a round trip takes so long that the schedule is made weekly instead of daily

@@ -155,11 +155,11 @@ namespace TheAirline.Helpers
             if (MaintenanceService.IsCovering(f) || MaintenanceService.IsCovered(f)) return "tied up in a maintenance cover";
             if ((f.Airliner.Type is AirlinerCargoType) != o.IsCargo) return o.IsCargo ? "not a cargo aircraft" : "not a passenger aircraft";
             if (CapacityOf(f) < o.Amount) return "too small (" + CapacityOf(f) + ")";
-            if (f.Airliner.Type.Range < o.Distance) return "range too short";
+            if (f.Airliner.Range < o.Distance) return "range too short";
             if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) return "no full crew";
             if (f.CurrentPosition == null) return "position unknown";
-            if (f.Airliner.Type.Range < MathHelpers.GetDistance(f.CurrentPosition, o.From)) return "too far from the pick-up";
-            if (f.Airliner.Type.MinRunwaylength > o.From.GetMaxRunwayLength() || f.Airliner.Type.MinRunwaylength > o.To.GetMaxRunwayLength())
+            if (f.Airliner.Range < MathHelpers.GetDistance(f.CurrentPosition, o.From)) return "too far from the pick-up";
+            if (f.Airliner.MinRunwaylength > o.From.GetMaxRunwayLength() || f.Airliner.MinRunwaylength > o.To.GetMaxRunwayLength())
                 return "runway too short";
             return null;
         }

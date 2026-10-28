@@ -265,9 +265,12 @@ namespace TheAirline.Presentation
                 long to = ParseMeters(_extendLength);
                 string blocker = RunwayService.GetExtendBlocker(_selected.Airport, r, to);
                 if (blocker != null) return blocker;
+                // which of the player's aircraft the new length is still too short for
+                var stillShort = RunwayService.TooShortFor(to, false).Concat(RunwayService.TooShortFor(to, true)).ToList();
                 return string.Format(
                     "{0:N0} m to {1:N0} m: {2}, about {3} days. The runway stays in use meanwhile.",
-                    r.Length, to, Money(RunwayService.ExtensionPrice(_selected.Airport, r, to)), RunwayService.ExtensionDays(to - r.Length));
+                    r.Length, to, Money(RunwayService.ExtensionPrice(_selected.Airport, r, to)), RunwayService.ExtensionDays(to - r.Length))
+                       + (stillShort.Count > 0 ? " Still too short for your " + string.Join(", ", stillShort) + "." : " Long enough for all your aircraft.");
             }
         }
 

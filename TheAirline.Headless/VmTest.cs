@@ -969,6 +969,62 @@ static class VmTest
         Console.WriteLine("RENEWAL ORDER TEST OK");
     }
 
+    /// <summary>
+    ///     "vm runway": an Airbus A350-900 (needs 2,810 m) and an airport with a shorter runway: the planner says why it
+    ///     can't fly; extended to 2,800 m it still can't (and says so), to 2,900 m it can; an engine that needs 5% less
+    ///     runway makes 2,800 m enough.
+    /// </summary>
+    static void RunwayTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RUNWAY TEST");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var type = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(t => t.Name == "Airbus A350-900");
+        var a350 = TheAirline.Helpers.AirlineHelpers.CreateAirliner(h, type);
+        h.AddAirliner(a350);
+        a350.Airliner.EngineType = null;
+        var home = h.Airports[0];
+        var all = TheAirline.Models.Airports.Airports.GetAllAirports();
+        var target = all.Where(x => x != home && x.Runways.Any(r => r.Type == TheAirline.Models.Airports.Runway.RunwayType.Regular) && x.GetMaxRunwayLength() >= 2000 && x.GetMaxRunwayLength() < 2700
+                                    && TheAirline.Helpers.MathHelpers.GetDistance(home, x) > 500 && TheAirline.Helpers.MathHelpers.GetDistance(home, x) < 5000)
+                        .OrderByDescending(x => x.Profile.Pax).First();
+        Console.WriteLine("  " + a350.Name + " " + type.Name + " needs " + a350.Airliner.MinRunwaylength + " m; " + home.Profile.IATACode + " " + home.GetMaxRunwayLength() + " m, " + target.Profile.IATACode + " " + target.GetMaxRunwayLength() + " m");
+        Func<bool> canPlan = () =>
+        {
+            var cr = new TheAirline.Presentation.CreateRouteViewModel(home, target, _ => { });
+            Console.WriteLine("    planner: aircraft " + string.Join(" / ", cr.Aircraft.Select(x => x.Name)) + " | " + cr.CantFly);
+            return cr.Aircraft.Any(x => x.Airliner == a350);
+        };
+        if (canPlan() || !(new TheAirline.Presentation.CreateRouteViewModel(home, target, _ => { }).CantFly ?? "").Contains("2,810 m")) { Console.WriteLine("  FAILED before extending"); Environment.Exit(1); }
+
+        var runway = target.Runways.Where(r => r.Type == TheAirline.Models.Airports.Runway.RunwayType.Regular).OrderByDescending(r => r.Length).First();
+        string m;
+        h.Money = Math.Max(h.Money, 500000000);
+        if (!TheAirline.Helpers.RunwayService.Extend(h, target, runway, 2800, out m)) { Console.WriteLine("  FAILED extend: " + m); Environment.Exit(1); }
+        Console.WriteLine("  " + m + " | still too short for: " + string.Join(", ", TheAirline.Helpers.RunwayService.TooShortFor(2800, false)));
+        Console.WriteLine("  while extending: " + TheAirline.Helpers.RunwayService.Describe(target));
+        while (runway.IsExtending) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  extended: " + TheAirline.Helpers.RunwayService.Describe(target));
+        if (canPlan()) { Console.WriteLine("  FAILED 2,800 m should still be too short"); Environment.Exit(1); }
+
+        // an engine that needs 5% less runway: 2,670 m, so 2,800 m is enough
+        var engine = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(type).Where(e => e.RunwayModifier < 1).OrderBy(e => e.RunwayModifier).FirstOrDefault();
+        if (engine != null)
+        {
+            a350.Airliner.EngineType = engine;
+            Console.WriteLine("  with " + engine.Model + " (runway x" + engine.RunwayModifier + "): needs " + a350.Airliner.MinRunwaylength + " m");
+            if (!canPlan()) { Console.WriteLine("  FAILED the engine's shorter run is not used"); Environment.Exit(1); }
+            a350.Airliner.EngineType = null;
+        }
+
+        if (!TheAirline.Helpers.RunwayService.Extend(h, target, runway, 2900, out m)) { Console.WriteLine("  FAILED extend again: " + m); Environment.Exit(1); }
+        Console.WriteLine("  " + m + " | still too short for: " + string.Join(", ", TheAirline.Helpers.RunwayService.TooShortFor(2900, false)));
+        while (runway.IsExtending) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  extended: " + TheAirline.Helpers.RunwayService.Describe(target));
+        if (!canPlan()) { Console.WriteLine("  FAILED 2,900 m should be enough"); Environment.Exit(1); }
+        Console.WriteLine("RUNWAY TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -2073,6 +2129,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("renewalorder")) { await RenewalOrderTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("runway")) { RunwayTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

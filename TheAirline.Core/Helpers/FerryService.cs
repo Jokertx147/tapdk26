@@ -49,8 +49,8 @@ namespace TheAirline.Helpers
         /// </summary>
         public static List<Airport> Plan(FleetAirliner f, Airport from, Airport to)
         {
-            double range = f.Airliner.Type.Range*0.92;
-            long runway = f.Airliner.Type.MinRunwaylength;
+            double range = f.Airliner.Range*0.92;
+            long runway = f.Airliner.MinRunwaylength;
             if (to.GetMaxRunwayLength() < runway || from.GetMaxRunwayLength() < runway) return null;
             var path = new List<Airport>();
             Airport at = from;
@@ -123,9 +123,9 @@ namespace TheAirline.Helpers
         /// <summary>Why the aircraft cannot ferry between two airports, or null when it can.</summary>
         public static string GetBlocker(FleetAirliner f, Airport from, Airport to)
         {
-            if (f.Airliner.Type.MinRunwaylength > to.GetMaxRunwayLength()) return "the runway at " + to.Profile.IATACode + " is too short for it";
-            if (f.Airliner.Type.MinRunwaylength > from.GetMaxRunwayLength()) return "the runway at " + from.Profile.IATACode + " is too short for it";
-            if (Plan(f, from, to) == null) return "no way found with its range of " + DistanceFormatter(f.Airliner.Type.Range) + " and runway needs (" + DistanceFormatter(MathHelpers.GetDistance(from, to)) + " away)";
+            if (f.Airliner.MinRunwaylength > to.GetMaxRunwayLength()) return "the runway at " + to.Profile.IATACode + " is too short for it";
+            if (f.Airliner.MinRunwaylength > from.GetMaxRunwayLength()) return "the runway at " + from.Profile.IATACode + " is too short for it";
+            if (Plan(f, from, to) == null) return "no way found with its range of " + DistanceFormatter(f.Airliner.Range) + " and runway needs (" + DistanceFormatter(MathHelpers.GetDistance(from, to)) + " away)";
             return null;
         }
 

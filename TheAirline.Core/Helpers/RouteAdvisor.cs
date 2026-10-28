@@ -144,7 +144,7 @@ namespace TheAirline.Helpers
 
                 bool fleetCanFly = fleet.Any(
                     f => f.Airliner.Type.TypeAirliner != AirlinerType.TypeOfAirliner.Cargo
-                         && f.Airliner.Type.Range >= distance && f.Airliner.Type.MinRunwaylength <= minRunway);
+                         && f.Airliner.Range >= distance && f.Airliner.MinRunwaylength <= minRunway);
 
                 result.Add(
                     new RouteAdvice
@@ -329,7 +329,7 @@ namespace TheAirline.Helpers
                         RevenuePerDay = Math.Min(refCapacity, demand * 1000.0 / (1 + others)) * price
                                         * Math.Max(1.0, Math.Min(8.0, 24.0 / (distance / 800.0 + 1.5))),
                         FacilitiesOk = AIHelpers.IsCargoRouteDestinationsCorrect(origin, destination, airline),
-                        FleetCanFly = fleet.Any(f => f.Airliner.Type.Range >= distance && f.Airliner.Type.MinRunwaylength <= minRunway)
+                        FleetCanFly = fleet.Any(f => f.Airliner.Range >= distance && f.Airliner.MinRunwaylength <= minRunway)
                     });
             }
 

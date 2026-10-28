@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TheAirline.Models.Airliners;
 using TheAirline.Models.Airlines;
 using TheAirline.Models.Airports;
 using TheAirline.Models.General;
@@ -121,6 +122,30 @@ namespace TheAirline.Helpers
                 "{0} at {1} is being extended from {2:N0} m to {3:N0} m for {4}. Ready {5}; it stays in use until then.",
                 runway.Name, airport.Profile.IATACode, runway.Length, newLength, Money(price), runway.ExtendDate.ToShortDateString());
             return true;
+        }
+
+        /// <summary>"DUB has 2,800 m", plus an extension or a new runway on the way.</summary>
+        public static string Describe(Airport airport)
+        {
+            var now = GameObject.GetInstance().GameTime;
+            string text = airport.Profile.IATACode + " has " + airport.GetMaxRunwayLength().ToString("N0") + " m";
+            var ext = airport.Runways.Where(r => r.IsExtending).OrderByDescending(r => r.ExtendTo).FirstOrDefault();
+            var built = airport.Runways.Where(r => r.BuiltDate > now).OrderByDescending(r => r.Length).FirstOrDefault();
+            if (ext != null) text += " (an extension to " + ext.ExtendTo.ToString("N0") + " m is ready " + ext.ExtendDate.ToShortDateString() + ")";
+            else if (built != null) text += " (a " + built.Length.ToString("N0") + " m runway opens " + built.BuiltDate.ToShortDateString() + ")";
+            return text;
+        }
+
+        /// <summary>
+        ///     The player's aircraft (of a kind, delivered and not on a route) whose runway need is above the length: one
+        ///     entry per type with what it needs, longest first.
+        /// </summary>
+        public static List<string> TooShortFor(long length, bool cargo)
+        {
+            var airline = GameObject.GetInstance().HumanAirline;
+            return airline.DeliveredFleet.Where(f => (f.Airliner.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo) == cargo && f.Airliner.MinRunwaylength > length)
+                          .GroupBy(f => f.Airliner.Type.Name).Select(g => Tuple.Create(g.Key, g.Max(f => f.Airliner.MinRunwaylength)))
+                          .OrderByDescending(t => t.Item2).Select(t => t.Item1 + " (needs " + t.Item2.ToString("N0") + " m)").ToList();
         }
 
         /// <summary>Finishes extensions and announces finished runways. Called once a day.</summary>

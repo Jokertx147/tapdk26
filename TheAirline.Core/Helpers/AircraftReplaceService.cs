@@ -297,7 +297,7 @@ namespace TheAirline.Helpers
                 else if (AircraftDealService.IsListed(f)) o.Note = "for sale";
                 else if (CharterService.IsOnCharter(f)) o.Note = "on a charter";
                 else if (f.Airliner.Range < distance) o.Note = "range too short (" + f.Airliner.Range.ToString("N0") + " km)";
-                else if (f.Airliner.Type.MinRunwaylength > runway) o.Note = "runway too short";
+                else if (f.Airliner.MinRunwaylength > runway) o.Note = "runway too short";
                 else
                 {
                     var own = f.Routes.SelectMany(r => r.TimeTable.Entries.Where(e => e.Airliner == f)).ToList();

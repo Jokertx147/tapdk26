@@ -68,6 +68,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm renewalorder | tee renewalordertest.log
           grep -q "RENEWAL ORDER TEST OK" renewalordertest.log
 
+      - name: Runway test (an A350-900 against a runway extended to 2,800 m and 2,900 m)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm runway | tee runwaytest.log
+          grep -q "RUNWAY TEST OK" runwaytest.log
+
       - name: Route profit test (two routes flown for six weeks, then the report)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm routeprofit | tee routeprofittest.log

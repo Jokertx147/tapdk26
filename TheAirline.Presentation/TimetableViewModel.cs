@@ -361,7 +361,7 @@ namespace TheAirline.Presentation
                 {
                     double distance = r.GetDistance();
                     long runway = Math.Min(r.Destination1.GetMaxRunwayLength(), r.Destination2.GetMaxRunwayLength());
-                    if (type.Range < distance || type.MinRunwaylength > runway)
+                    if (_aircraft.Airliner.Airliner.Range < distance || _aircraft.Airliner.Airliner.MinRunwaylength > runway)
                     {
                         continue;
                     }

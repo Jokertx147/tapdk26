@@ -146,6 +146,16 @@ namespace TheAirline.Presentation
                 ? (Aircraft.Count > 1 ? Aircraft[1] : Aircraft[0])
                 : Aircraft.FirstOrDefault();
 
+            try
+            {
+                var why = RouteCreator.WhyNot(origin, destination, cargo ? Route.RouteType.Cargo : Route.RouteType.Passenger);
+                CantFly = why.Count == 0 ? null : "Can't fly it: " + string.Join(" ", why);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.StartupLog.Write("Route planner: listing the aircraft that can't fly failed: " + ex);
+            }
+
             CreateCommand = new RelayCommand(Create);
             CancelCommand = new RelayCommand(() => _done(null));
 
@@ -155,6 +165,11 @@ namespace TheAirline.Presentation
         }
 
         public string Title { get; }
+
+        /// <summary>The player's idle aircraft that can't fly the route, and why (runway or range), or null.</summary>
+        public string CantFly { get; }
+
+        public bool HasCantFly => !string.IsNullOrEmpty(CantFly);
         public List<ServiceTier> Tiers { get; }
         public List<AircraftChoice> Aircraft { get; }
         public List<OpsType> Operations { get; }
