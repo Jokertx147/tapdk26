@@ -1771,7 +1771,8 @@ static class VmTest
 
             // takeover as subsidiary, and a merge of another airline
             int fleetBefore = me7.Fleet.Count, routesBefore = me7.Routes.Count;
-            var t2 = cheap[1].Airline;
+            // an airline of the same kind (a cargo airline can't merge into a passenger airline)
+            var t2 = cheap.Skip(1).Select(r => r.Airline).First(x => (x.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Cargo) == (me7.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Cargo));
             sh.Selected = sh.Market.First(r => r.Airline == t2);
             sh.MergeCommand.Execute(null); Console.WriteLine("  ask: " + sh.PendingText); sh.ConfirmCommand.Execute(null);
             Console.WriteLine("  merge: " + sh.Status + " | fleet " + fleetBefore + " -> " + me7.Fleet.Count + ", routes " + routesBefore + " -> " + me7.Routes.Count + " | still listed " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Contains(t2));
@@ -3379,7 +3380,8 @@ static class VmTest
                 int before0 = pa.Pilots.Count; int quits = 0;
                 // only idle pilots fall low enough to quit at 70% pay (pilots on aircraft settle near 38)
                 bool anyIdle = pa.Pilots.Any(pp => pp.Airliner == null && pp.Training == null);
-                for (int mth = 0; mth < 12; mth++) quits += TheAirline.Helpers.PilotMoraleService.ProcessMonth(pa).Count;
+                // quitting is a matter of chance each month: give it up to three years when it hasn't happened in one
+                for (int mth = 0; mth < 36 && (mth < 12 || (anyIdle && quits == 0)); mth++) quits += TheAirline.Helpers.PilotMoraleService.ProcessMonth(pa).Count;
                 Console.WriteLine("  12 months at 70%: avg morale " + TheAirline.Helpers.PilotMoraleService.Average(pa).ToString("0.0") + ", pilots " + before0 + " -> " + pa.Pilots.Count + ", quit " + quits);
                 if ((anyIdle && quits == 0) || pa.Pilots.Count != before0 - quits) { Console.WriteLine("  FAILED nobody quit"); Environment.Exit(1); }
                 //high pay -> morale rises

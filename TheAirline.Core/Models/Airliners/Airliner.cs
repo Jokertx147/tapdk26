@@ -273,16 +273,36 @@ namespace TheAirline.Models.Airliners
         {
             double basePrice = Type.Price;
 
-            var classes = new List<AirlinerClass>(Classes);
+            // a copy of the cabin: a computer airline may be refitting this aircraft on another thread, so a class can be
+            // there without its facilities yet (that used to fail the whole game day); a missing one adds nothing
+            AirlinerClass[] classes;
+            try
+            {
+                classes = Classes.ToArray();
+            }
+            catch (ArgumentException)
+            {
+                classes = new AirlinerClass[0];
+            }
 
-            var facilityPrice = (from aClass in classes
-                let audioFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Audio)
-                let videoFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Video)
-                let seatFacility = aClass.GetFacility(AirlinerFacility.FacilityType.Seat)
-                let audioPrice = audioFacility.PricePerSeat*(audioFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
-                let videoPrice = videoFacility.PricePerSeat*(videoFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
-                let seatPrice = seatFacility.PricePerSeat*(seatFacility.PercentOfSeats/100.0)*aClass.SeatingCapacity
-                select audioPrice + videoPrice + seatPrice).Sum();
+            double facilityPrice = 0;
+            foreach (AirlinerClass aClass in classes)
+            {
+                if (aClass == null) continue;
+                foreach (var kind in new[] {AirlinerFacility.FacilityType.Audio, AirlinerFacility.FacilityType.Video, AirlinerFacility.FacilityType.Seat})
+                {
+                    AirlinerFacility facility;
+                    try
+                    {
+                        facility = aClass.GetFacility(kind);
+                    }
+                    catch (Exception)
+                    {
+                        facility = null;
+                    }
+                    if (facility != null) facilityPrice += facility.PricePerSeat*(facility.PercentOfSeats/100.0)*aClass.SeatingCapacity;
+                }
+            }
 
             basePrice += facilityPrice;
 

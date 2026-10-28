@@ -926,19 +926,36 @@ namespace TheAirline.Helpers
         }
 
         //updates a cpu airline
+        // one of a computer airline's daily decisions; an error in it (another airline changing the same airport or
+        // aircraft at the same moment) is logged and the decision skipped for the day, instead of failing the whole day
+        private static void Safe(Airline airline, string name, Action decision)
+        {
+            using (Profiler.Measure("ai: " + name))
+            {
+                try
+                {
+                    decision();
+                }
+                catch (Exception ex)
+                {
+                    Infrastructure.StartupLog.Write("Computer airline " + airline.Profile?.Name + ": " + name + " failed and was skipped today: " + ex);
+                }
+            }
+        }
+
         public static void UpdateCPUAirline(Airline airline)
         {
             Parallel.Invoke(
-                () => { using (Profiler.Measure("ai: CheckForNewRoute")) CheckForNewRoute(airline); },
-                () => { using (Profiler.Measure("ai: CheckForNewHub")) CheckForNewHub(airline); },
-                () => { using (Profiler.Measure("ai: CheckForUpdateRoute")) CheckForUpdateRoute(airline); },
-                () => { using (Profiler.Measure("ai: CheckForAirlinersWithoutRoutes")) CheckForAirlinersWithoutRoutes(airline); },
-                () => { using (Profiler.Measure("ai: CheckForOrderOfAirliners")) CheckForOrderOfAirliners(airline); },
-                () => { using (Profiler.Measure("ai: CheckForAirlineAlliance")) CheckForAirlineAlliance(airline); },
-                () => { using (Profiler.Measure("ai: CheckForAirlineCodesharing")) CheckForAirlineCodesharing(airline); },
-                () => { using (Profiler.Measure("ai: CheckForSubsidiaryAirline")) CheckForSubsidiaryAirline(airline); },
-                () => { using (Profiler.Measure("ai: CheckForAirlineAirportFacilities")) CheckForAirlineAirportFacilities(airline); },
-                () => { using (Profiler.Measure("ai: CheckForOrderOfAirliners")) CheckForOrderOfAirliners(airline); }); //close parallel.invoke
+                () => Safe(airline, "CheckForNewRoute", () => CheckForNewRoute(airline)),
+                () => Safe(airline, "CheckForNewHub", () => CheckForNewHub(airline)),
+                () => Safe(airline, "CheckForUpdateRoute", () => CheckForUpdateRoute(airline)),
+                () => Safe(airline, "CheckForAirlinersWithoutRoutes", () => CheckForAirlinersWithoutRoutes(airline)),
+                () => Safe(airline, "CheckForOrderOfAirliners", () => CheckForOrderOfAirliners(airline)),
+                () => Safe(airline, "CheckForAirlineAlliance", () => CheckForAirlineAlliance(airline)),
+                () => Safe(airline, "CheckForAirlineCodesharing", () => CheckForAirlineCodesharing(airline)),
+                () => Safe(airline, "CheckForSubsidiaryAirline", () => CheckForSubsidiaryAirline(airline)),
+                () => Safe(airline, "CheckForAirlineAirportFacilities", () => CheckForAirlineAirportFacilities(airline)),
+                () => Safe(airline, "CheckForOrderOfAirliners", () => CheckForOrderOfAirliners(airline))); //close parallel.invoke
         }
 
         #endregion

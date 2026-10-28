@@ -103,6 +103,14 @@ namespace TheAirline.Presentation
             {
                 await _execute(parameter);
             }
+            catch (Exception ex)
+            {
+                // an error here used to end the whole program (a button's action runs without a caller to catch it)
+                Console.Error.WriteLine("Command failed: " + ex);
+                TheAirline.Infrastructure.StartupLog.Write("Command failed: " + ex);
+                TheAirline.Infrastructure.UserInterface.ShowMessage?.Invoke(
+                    "TheAirline", "Something went wrong: " + ex.Message + "\n\nThe details are in startup.log in your theairlineproject folder.");
+            }
             finally
             {
                 _running = false;

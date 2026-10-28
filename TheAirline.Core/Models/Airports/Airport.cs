@@ -394,11 +394,14 @@ namespace TheAirline.Models.Airports
 
         public AirportFacility GetAirlineBuildingFacility(Airline airline, AirportFacility.FacilityType type)
         {
-            AirlineAirportFacility facility =
-                _facilities.FirstOrDefault(
+            AirlineAirportFacility facility;
+            lock (_facilities)
+            {
+                facility = _facilities.FirstOrDefault(
                     f =>
                     f.Airline == airline && f.Facility.Type == type
                     && GameObject.GetInstance().GameTime < f.FinishedDate);
+            }
 
             return facility?.Facility;
         }
@@ -504,9 +507,12 @@ namespace TheAirline.Models.Airports
         {
             List<AirportFacility> facilities;
 
-            var tFacilities = new List<AirlineAirportFacility>(_facilities);
+            // the copy is taken under the lock: computer airlines add facilities from other threads, and copying the
+            // list while one was added failed the whole game day now and then
+            List<AirlineAirportFacility> tFacilities;
             lock (_facilities)
             {
+                tFacilities = new List<AirlineAirportFacility>(_facilities);
                 facilities = (from f in tFacilities
                               where
                                   f.Airline == airline && f.Facility.Type == type
@@ -716,7 +722,7 @@ namespace TheAirline.Models.Airports
         //returns if the airport has a facility for any airline
         public Boolean HasAirlineFacility()
         {
-            return _facilities.Exists(f => f.Airline != null && f.Facility.TypeLevel > 0);
+            lock (_facilities) return _facilities.Exists(f => f.Airline != null && f.Facility.TypeLevel > 0);
         }
 
         public Boolean HasAsHomebase(Airline airline)
