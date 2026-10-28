@@ -27,17 +27,47 @@ namespace TheAirline.Helpers
         KeepIdle
     }
 
+    /// <summary>Where the aircraft come from when the fleet hasn't enough idle ones of the new type.</summary>
+    public enum MissingSource
+    {
+        IdleOnly,
+        BuyUsed,
+        LeaseUsed,
+        OrderNew,
+
+        /// <summary>Used ones on the market first, new ones ordered for the rest.</summary>
+        UsedThenNew
+    }
+
     public class RenewalSettings
     {
         public AirlinerType OldType { get; set; }
         public AirlinerType NewType { get; set; }
+        public MissingSource Source { get; set; } = MissingSource.BuyUsed;
 
-        /// <summary>Buy (or lease) aircraft of the new type on the market when the fleet hasn't enough idle ones.</summary>
-        public bool BuyMissing { get; set; } = true;
+        /// <summary>For new aircraft: pay the down payment now and the rest on delivery (else all now).</summary>
+        public bool DownPayment { get; set; }
 
-        public bool Lease { get; set; }
         public SlowerChoice Slower { get; set; } = SlowerChoice.ShiftOrKeep;
         public OldAircraftChoice AfterOld { get; set; } = OldAircraftChoice.Sell;
+
+        public bool UsesMarket => Source == MissingSource.BuyUsed || Source == MissingSource.LeaseUsed || Source == MissingSource.UsedThenNew;
+        public bool Lease => Source == MissingSource.LeaseUsed;
+        public bool Orders => Source == MissingSource.OrderNew || Source == MissingSource.UsedThenNew;
+    }
+
+    /// <summary>A type that can replace the old one, with where it can come from.</summary>
+    public class RenewalTypeOption
+    {
+        public AirlinerType Type { get; set; }
+        public int Idle { get; set; }
+        public int ForSale { get; set; }
+        public double UsedFrom { get; set; }
+
+        /// <summary>The manufacturer builds it now (it can be ordered new).</summary>
+        public bool Orderable { get; set; }
+
+        public double NewPrice { get; set; }
     }
 
     /// <summary>One old aircraft and what the renewal does with it.</summary>
@@ -51,9 +81,15 @@ namespace TheAirline.Helpers
         /// <summary>An aircraft of the new type to buy or lease on the market, or null.</summary>
         public Airliner MarketNew { get; set; }
 
+        /// <summary>A new aircraft is ordered for this one: it takes over on delivery.</summary>
+        public bool Ordered { get; set; }
+
         public bool Ok { get; set; }
         public ReplaceMode Mode { get; set; }
         public double Cost { get; set; }
+
+        // the part of the row's text after the new aircraft is named (to finish ordered rows once the delivery is known)
+        internal string Head, Fit;
 
         /// <summary>One line: "N101AA on ATL-MIA: N201AA (idle), same times" or why it is skipped.</summary>
         public string Text { get; set; }
@@ -64,8 +100,14 @@ namespace TheAirline.Helpers
         public RenewalSettings Settings { get; set; }
         public List<RenewalRow> Rows { get; } = new List<RenewalRow>();
         public double Cost => Rows.Where(r => r.Ok).Sum(r => r.Cost);
-        public int Replacing => Rows.Count(r => r.Ok && (r.IdleNew != null || r.MarketNew != null));
+        public int Replacing => Rows.Count(r => r.Ok && (r.IdleNew != null || r.MarketNew != null || r.Ordered));
         public int Buying => Rows.Count(r => r.Ok && r.MarketNew != null);
+        public int Ordering => Rows.Count(r => r.Ok && r.Ordered);
+
+        /// <summary>For the new aircraft: the whole price, what is paid now, and the delivery day.</summary>
+        public double OrderTotal { get; set; }
+        public double OrderNow { get; set; }
+        public DateTime OrderDelivery { get; set; }
         public string Summary { get; set; }
     }
 
@@ -103,28 +145,85 @@ namespace TheAirline.Helpers
                           .Select(g => Tuple.Create(g.Key, g.Count())).ToList();
         }
 
+        private static bool KindMatches(AirlinerType oldType, AirlinerType t)
+        {
+            if (oldType.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo) return t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo;
+            if (oldType.TypeAirliner == AirlinerType.TypeOfAirliner.Helicopter) return t.TypeAirliner == AirlinerType.TypeOfAirliner.Helicopter;
+            return t.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed;
+        }
+
+        /// <summary>Whether the type is built now (can be ordered new), within a manufacturer contract.</summary>
+        public static bool Orderable(Airline airline, AirlinerType t)
+        {
+            DateTime now = GameObject.GetInstance().GameTime;
+            return t.Produced != null && t.Produced.From <= now && t.Produced.To >= now
+                   && (airline.Contract == null || airline.Contract.Manufacturer == t.Manufacturer);
+        }
+
+        /// <summary>The delivery day of an order of `amount` aircraft (from the production rate, as on the new aircraft page).</summary>
+        public static DateTime DeliveryDate(AirlinerType type, int amount)
+        {
+            DateTime now = GameObject.GetInstance().GameTime;
+            var date = new DateTime(now.Year, now.Month, now.Day);
+            int rate = Math.Max(1, type.ProductionRate);
+            if (amount <= rate/4) return date.AddMonths(3);
+            for (int i = (rate/4) + 1; i <= amount; i++)
+            {
+                date = date.AddDays(Math.Round((double) (365/rate), 0, MidpointRounding.AwayFromZero));
+            }
+            return date;
+        }
+
+        /// <summary>The price of ordering `amount` new aircraft of the type (quantity and contract discounts included).</summary>
+        public static double OrderPrice(Airline airline, AirlinerType type, int amount)
+        {
+            double total = type.Price*amount*(1 - GeneralHelpers.GetAirlinerOrderDiscount(amount));
+            if (airline.Contract != null && airline.Contract.Manufacturer == type.Manufacturer) total *= (100 - airline.Contract.Discount)/100;
+            return total;
+        }
+
+        /// <summary>What is paid when ordering: all of it, or the down payment (the rest on delivery).</summary>
+        public static double OrderNow(double total, bool downPayment)
+        {
+            return downPayment ? total*(GameObject.GetInstance().Difficulty.PriceLevel/10) : total;
+        }
+
         /// <summary>
-        ///     The types that can replace the old one: the same kind (passenger, cargo, helicopter), idle in the fleet or
-        ///     on the market. With how many are idle and how many are for sale.
+        ///     The types that can replace the old one: the same kind (passenger, cargo, helicopter), idle in the fleet, on the
+        ///     market, or built new now. With how many are idle and for sale, and the price new.
         /// </summary>
-        public static List<Tuple<AirlinerType, int, int, double>> NewTypes(AirlinerType oldType)
+        public static List<RenewalTypeOption> NewTypes(AirlinerType oldType)
         {
             Airline airline = GameObject.GetInstance().HumanAirline;
-            bool cargo = oldType.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo;
-            bool heli = oldType.TypeAirliner == AirlinerType.TypeOfAirliner.Helicopter;
-            Func<AirlinerType, bool> kind = t => cargo ? t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo
-                : heli ? t.TypeAirliner == AirlinerType.TypeOfAirliner.Helicopter
-                : t.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed;
-
-            var idle = airline.DeliveredFleet.Where(f => f.Routes.Count == 0 && Usable(f) && f.Airliner.Type != oldType && kind(f.Airliner.Type))
+            DateTime now = GameObject.GetInstance().GameTime;
+            var idle = airline.DeliveredFleet.Where(f => f.Routes.Count == 0 && Usable(f) && f.Airliner.Type != oldType && KindMatches(oldType, f.Airliner.Type))
                               .GroupBy(f => f.Airliner.Type).ToDictionary(g => g.Key, g => g.Count());
-            var market = Airliners.GetAirlinersForSale(a => a.Status == Airliner.StatusTypes.Normal && a.Type != oldType && kind(a.Type) && a.BuiltDate <= GameObject.GetInstance().GameTime)
+            var market = Airliners.GetAirlinersForSale(a => a.Status == Airliner.StatusTypes.Normal && a.Type != oldType && KindMatches(oldType, a.Type) && a.BuiltDate <= now)
                                   .Where(a => airline.Contract == null || airline.Contract.Manufacturer == a.Type.Manufacturer)
                                   .GroupBy(a => a.Type).ToDictionary(g => g.Key, g => g.ToList());
-            return idle.Keys.Union(market.Keys)
-                       .Select(t => Tuple.Create(t, idle.TryGetValue(t, out int i) ? i : 0, market.TryGetValue(t, out var m) ? m.Count : 0,
-                                                 market.TryGetValue(t, out var m2) ? m2.Min(a => (double) a.GetPrice()) : 0))
-                       .OrderByDescending(x => x.Item2).ThenBy(x => x.Item1.Name).ToList();
+            var built = AirlinerTypes.GetAllTypes().Where(t => t != oldType && KindMatches(oldType, t) && Orderable(airline, t)).ToList();
+            return idle.Keys.Union(market.Keys).Union(built).Distinct()
+                       .Select(t => new RenewalTypeOption
+                       {
+                           Type = t,
+                           Idle = idle.TryGetValue(t, out int i) ? i : 0,
+                           ForSale = market.TryGetValue(t, out var m) ? m.Count : 0,
+                           UsedFrom = market.TryGetValue(t, out var m2) ? m2.Min(a => (double) a.GetPrice()) : 0,
+                           Orderable = Orderable(airline, t),
+                           NewPrice = Orderable(airline, t) ? OrderPrice(airline, t, 1) : 0
+                       })
+                       .OrderByDescending(x => x.Idle).ThenByDescending(x => x.ForSale > 0).ThenBy(x => x.Type.Name).ToList();
+        }
+
+        /// <summary>The new aircraft from earlier renewals still waiting for delivery, one line each.</summary>
+        public static List<string> Pending()
+        {
+            Airline airline = GameObject.GetInstance().HumanAirline;
+            return airline.Fleet.Where(f => f.ReplacesOnDelivery != null).OrderBy(f => f.Airliner.BuiltDate)
+                          .Select(f => f.Name + " (" + f.Airliner.Type.Name + "), delivery " + f.Airliner.BuiltDate.ToString("d MMM yyyy") + ": takes over "
+                                       + (f.ReplacesOnDelivery.Routes.Count > 0 ? string.Join(", ", f.ReplacesOnDelivery.Routes.Select(Code)) + " from " : "from ")
+                                       + f.ReplacesOnDelivery.Name)
+                          .ToList();
         }
 
         private static double MarketCost(Airline airline, Airliner a, bool lease)
@@ -149,12 +248,20 @@ namespace TheAirline.Helpers
                                                       .Where(a => airline.Contract == null || airline.Contract.Manufacturer == a.Type.Manufacturer)
                                                       .OrderBy(a => a.GetAge()).ThenBy(a => a.GetPrice()));
             double money = airline.Money;
+            bool canOrder = s.Orders && Orderable(airline, s.NewType);
+            var waiting = airline.Fleet.Where(f => f.ReplacesOnDelivery != null).ToDictionary(f => f.ReplacesOnDelivery, f => f);
 
             foreach (FleetAirliner old in airline.DeliveredFleet.Where(f => f.Airliner.Type == s.OldType).OrderBy(f => f.Name))
             {
                 var row = new RenewalRow {Old = old};
                 plan.Rows.Add(row);
                 string head = old.Name;
+                FleetAirliner successor;
+                if (waiting.TryGetValue(old, out successor))
+                {
+                    row.Text = head + ": skipped, " + successor.Name + " (" + successor.Airliner.Type.Name + ") is ordered for it, delivery " + successor.Airliner.BuiltDate.ToString("d MMM yyyy") + ".";
+                    continue;
+                }
                 if (AircraftDealService.IsLeasedOut(old) || CharterService.IsOnCharter(old))
                 {
                     row.Text = head + ": skipped, it is " + (AircraftDealService.IsLeasedOut(old) ? "leased out" : "on a charter") + ".";
@@ -186,13 +293,15 @@ namespace TheAirline.Helpers
 
                 // the aircraft that takes over
                 FleetAirliner idleNew = idle.Count > 0 ? idle.Peek() : null;
-                Airliner marketNew = idleNew == null && s.BuyMissing && market.Count > 0 ? market.Peek() : null;
-                if (idleNew == null && marketNew == null)
+                Airliner marketNew = idleNew == null && s.UsesMarket && market.Count > 0 ? market.Peek() : null;
+                bool order = idleNew == null && marketNew == null && canOrder;
+                if (idleNew == null && marketNew == null && !order)
                 {
-                    row.Text = head + ": skipped, no " + s.NewType.Name + " is idle in the fleet" + (s.BuyMissing ? " or for sale on the market" : "") + ".";
+                    row.Text = head + ": skipped, no " + s.NewType.Name + " is idle in the fleet" + (s.UsesMarket ? " or for sale on the market" : "")
+                               + (s.Orders ? (Orderable(airline, s.NewType) ? "" : ", and it isn't built any more (or your manufacturer contract doesn't allow it)") : "") + ".";
                     continue;
                 }
-                AircraftSpec spec = idleNew != null ? AircraftSpec.Of(idleNew) : AircraftSpec.Of(marketNew);
+                AircraftSpec spec = idleNew != null ? AircraftSpec.Of(idleNew) : marketNew != null ? AircraftSpec.Of(marketNew) : AircraftSpec.OfType(s.NewType);
 
                 // the flights
                 var entries = old.Routes.SelectMany(r => r.TimeTable.Entries.Where(e => e.Airliner == old)).ToList();
@@ -235,7 +344,13 @@ namespace TheAirline.Helpers
                     }
                 }
 
-                if (marketNew != null)
+                if (order)
+                {
+                    row.Ordered = true;
+                    row.Head = head;
+                    row.Fit = fit;
+                }
+                else if (marketNew != null)
                 {
                     double cost = MarketCost(airline, marketNew, s.Lease);
                     if (cost > money)
@@ -256,7 +371,31 @@ namespace TheAirline.Helpers
                     row.IdleNew = idleNew;
                     row.Text = head + ": " + idleNew.Name + " (idle in the fleet), " + fit + ".";
                 }
-                row.Ok = true;
+                row.Ok = !row.Ordered;
+            }
+
+            // the new aircraft are one order: its price with the quantity discount, paid now (or the down payment); when the
+            // money isn't enough, fewer are ordered
+            var ordered = plan.Rows.Where(r => r.Ordered).ToList();
+            while (ordered.Count > 0 && OrderNow(OrderPrice(airline, s.NewType, ordered.Count), s.DownPayment) > money)
+            {
+                var last = ordered.Last();
+                last.Ordered = false;
+                last.Text = last.Head + ": skipped, not enough money to order another " + s.NewType.Name + ".";
+                ordered.Remove(last);
+            }
+            if (ordered.Count > 0)
+            {
+                plan.OrderTotal = OrderPrice(airline, s.NewType, ordered.Count);
+                plan.OrderNow = OrderNow(plan.OrderTotal, s.DownPayment);
+                plan.OrderDelivery = DeliveryDate(s.NewType, ordered.Count);
+                foreach (var r in ordered)
+                {
+                    r.Ok = true;
+                    r.Cost = plan.OrderNow/ordered.Count;
+                    r.Text = r.Head + ": a new " + s.NewType.Name + " is ordered, delivery " + plan.OrderDelivery.ToString("d MMM yyyy") + "; it takes over then ("
+                             + r.Fit + "), " + r.Old.Name + " flies until then.";
+                }
             }
 
             int skipped = plan.Rows.Count(r => !r.Ok);
@@ -264,7 +403,10 @@ namespace TheAirline.Helpers
             plan.Summary = plan.Rows.Count == 0
                 ? "You have no " + s.OldType.Name + "."
                 : plan.Replacing + " of " + plan.Rows.Count + " " + s.OldType.Name + " replaced by " + s.NewType.Name
-                  + (plan.Buying > 0 ? " (" + plan.Buying + " " + (s.Lease ? "leased" : "bought") + " for " + Math.Round(plan.Cost).ToString("N0") + ")" : "")
+                  + (plan.Buying > 0 ? " (" + plan.Buying + " " + (s.Lease ? "leased" : "bought") + " for " + Math.Round(plan.Rows.Where(r => r.Ok && r.MarketNew != null).Sum(r => r.Cost)).ToString("N0") + ")" : "")
+                  + (plan.Ordering > 0 ? " (" + plan.Ordering + " ordered new for " + Math.Round(plan.OrderTotal).ToString("N0")
+                                         + (s.DownPayment ? ", " + Math.Round(plan.OrderNow).ToString("N0") + " now and the rest on delivery" : "")
+                                         + ", delivery " + plan.OrderDelivery.ToString("d MMM yyyy") + ")" : "")
                   + "; the old ones without a route afterwards are " + after + "." + (skipped > 0 ? " " + skipped + " skipped (see the list)." : "");
             return plan;
         }
@@ -327,12 +469,41 @@ namespace TheAirline.Helpers
             Airline airline = GameObject.GetInstance().HumanAirline;
             RenewalPlan plan = Plan(settings);
             var report = new List<string>();
+            DateTime now = GameObject.GetInstance().GameTime;
+            var ordered = plan.Rows.Where(r => r.Ok && r.Ordered).ToList();
+            if (ordered.Count > 0)
+            {
+                // one order for all of them: paid now (or the down payment, the rest on each delivery)
+                AirlineHelpers.AddAirlineInvoice(airline, now, Invoice.InvoiceType.Purchases, -plan.OrderNow);
+                if (airline.Contract != null && airline.Contract.Manufacturer == settings.NewType.Manufacturer)
+                {
+                    airline.Contract.PurchasedAirliners += ordered.Count;
+                }
+            }
             foreach (RenewalRow row in plan.Rows)
             {
                 FleetAirliner old = row.Old;
                 if (!row.Ok)
                 {
                     report.Add(row.Text);
+                    continue;
+                }
+
+                if (row.Ordered)
+                {
+                    Airport home = HomebaseFor(airline, old, settings.NewType) ?? old.Homebase;
+                    var airliner = new Airliner(Guid.NewGuid().ToString(), settings.NewType, airline.Profile.Country.TailNumbers.GetNextTailNumber(airline), plan.OrderDelivery);
+                    Airliners.AddAirliner(airliner);
+                    var nw = new FleetAirliner(settings.DownPayment ? FleetAirliner.PurchasedType.BoughtDownPayment : FleetAirliner.PurchasedType.Bought, now, airline, airliner, home)
+                    {
+                        RemainingPayment = settings.DownPayment ? Math.Max(0, (plan.OrderTotal - plan.OrderNow)/ordered.Count) : 0,
+                        ReplacesOnDelivery = old,
+                        RenewalMode = (int) row.Mode,
+                        RenewalAfterOld = (int) settings.AfterOld
+                    };
+                    airline.AddAirliner(nw);
+                    report.Add("Ordered " + nw.Name + " (" + settings.NewType.Name + "), delivery " + plan.OrderDelivery.ToString("d MMM yyyy") + ": it takes over "
+                               + string.Join(", ", old.Routes.Select(Code)) + " from " + old.Name + " then.");
                     continue;
                 }
 
@@ -403,6 +574,49 @@ namespace TheAirline.Helpers
             }
             RouteIndex.Invalidate();
             return report;
+        }
+
+        /// <summary>
+        ///     Every day: aircraft ordered in a renewal that have been delivered (and paid) take over the routes of the
+        ///     aircraft they were ordered for, which is then sold, listed or kept idle as chosen. A news item says what
+        ///     happened.
+        /// </summary>
+        public static void ProcessDeliveries()
+        {
+            var game = GameObject.GetInstance();
+            Airline airline = game?.HumanAirline;
+            if (airline == null) return;
+            foreach (FleetAirliner nw in airline.Fleet.ToList())
+            {
+                if (nw.ReplacesOnDelivery == null || nw.Airliner.BuiltDate > game.GameTime || nw.Purchased == FleetAirliner.PurchasedType.BoughtDownPayment) continue;
+                FleetAirliner old = nw.ReplacesOnDelivery;
+                nw.ReplacesOnDelivery = null;
+                var mode = (ReplaceMode) nw.RenewalMode;
+                var after = (OldAircraftChoice) nw.RenewalAfterOld;
+                var lines = new List<string>();
+                if (!airline.Fleet.Contains(old) || old.Routes.Count == 0)
+                {
+                    lines.Add(nw.Name + " (" + nw.Airliner.Type.Name + ") has been delivered. " + old.Name + " has no routes any more, so there is nothing to take over: put "
+                              + nw.Name + " on a route yourself.");
+                }
+                else
+                {
+                    Crew(old, nw);
+                    foreach (Route route in old.Routes.ToList())
+                    {
+                        string m;
+                        bool ok = AircraftReplaceService.Replace(route, old, nw, mode, out m);
+                        // the timetable may have changed since the order: try shifting, then keeping what fits
+                        if (!ok && mode == ReplaceMode.SameTimes) ok = AircraftReplaceService.Replace(route, old, nw, ReplaceMode.ShiftTimes, out m);
+                        if (!ok && mode != ReplaceMode.KeepFitting) ok = AircraftReplaceService.Replace(route, old, nw, ReplaceMode.KeepFitting, out m);
+                        lines.Add(ok ? m : old.Name + " keeps " + Code(route) + ": " + m);
+                    }
+                    string done = DoneWithOld(airline, old, after);
+                    if (done != null) lines.Add(done);
+                }
+                RouteIndex.Invalidate();
+                game.NewsBox.AddNews(new News(News.NewsType.FleetNews, game.GameTime, "Fleet renewal: " + nw.Name + " delivered", string.Join("\n", lines)));
+            }
         }
     }
 }

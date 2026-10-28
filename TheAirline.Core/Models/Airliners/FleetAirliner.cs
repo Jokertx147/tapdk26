@@ -238,6 +238,19 @@ namespace TheAirline.Models.Airliners
         [Versioning("remainingpayment")]
         public double RemainingPayment { get; set; }
 
+        /// <summary>
+        ///     For an aircraft ordered in a fleet renewal: the aircraft whose routes it takes over when it is delivered
+        ///     (null otherwise), how (a ReplaceMode) and what then happens to the old one (an OldAircraftChoice).
+        /// </summary>
+        [Versioning("replacesondelivery")]
+        public FleetAirliner ReplacesOnDelivery { get; set; }
+
+        [Versioning("renewalmode")]
+        public int RenewalMode { get; set; }
+
+        [Versioning("renewalafterold")]
+        public int RenewalAfterOld { get; set; }
+
         [Versioning("date")]
         public DateTime PurchasedDate { get; set; }
 

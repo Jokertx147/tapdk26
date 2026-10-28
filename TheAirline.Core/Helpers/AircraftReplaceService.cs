@@ -48,6 +48,12 @@ namespace TheAirline.Helpers
             return new AircraftSpec {Type = f.Airliner.Type, TurnaroundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(f).TotalMinutes};
         }
 
+        /// <summary>For an aircraft not built yet (an order): the type with its usual cabin.</summary>
+        public static AircraftSpec OfType(AirlinerType t)
+        {
+            return new AircraftSpec {Type = t, TurnaroundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(t).TotalMinutes};
+        }
+
         /// <summary>For an aircraft that isn't in the fleet yet (on the market).</summary>
         public static AircraftSpec Of(Airliner a)
         {

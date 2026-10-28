@@ -882,6 +882,93 @@ static class VmTest
         Console.WriteLine("SKIP TEST OK");
     }
 
+    /// <summary>
+    ///     "vm renewalorder": a route's aircraft renewed with a new aircraft ordered from the manufacturer (down payment);
+    ///     saved and loaded while waiting; on delivery the new one takes over and the old one is sold.
+    /// </summary>
+    static async Task RenewalOrderTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RENEWAL ORDER TEST");
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var mk = av.Market;
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        mk.BuyCommand.Execute(null);
+        av.Refresh();
+        var ap = av.Airports;
+        await Wait(() => !ap.IsBusy, "advice");
+        ap.SelectedAdvice = ap.Advice.First(x => x.Advice.FleetCanFly);
+        var cr = ap.Create;
+        foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
+        cr.CreateCommand.Execute(null);
+        foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+        if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+        var route = h.Routes.First(r => r.HasAirliner);
+        var a = route.GetAirliners()[0];
+        if (a.Pilots.Count < a.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(a);
+        if (a.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) a.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        var oldType = a.Airliner.Type;
+        var oldTimes = route.TimeTable.Entries.Where(e => e.Airliner == a).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+        string code = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
+        Console.WriteLine("  route " + code + " flown by " + a.Name + " (" + oldType.Name + ", " + oldTimes.Count + " weekly flights)");
+
+        var rn = av.Renewal;
+        rn.Reload();
+        rn.OldType = rn.OldTypes.First(t => t.Value == oldType);
+        rn.Source = rn.SourceChoices.First(c => c.Value == TheAirline.Helpers.MissingSource.OrderNew);
+        rn.DownPayment = true;
+        // a type built now that can fly the route at the same times, the cheapest
+        var options = TheAirline.Helpers.FleetRenewalService.NewTypes(oldType);
+        var pickType = options.Where(o => o.Orderable && o.Type.Range >= route.GetDistance() && o.Type.CruisingSpeed >= oldType.CruisingSpeed
+                                          && o.Type.MinRunwaylength <= Math.Min(route.Destination1.GetMaxRunwayLength(), route.Destination2.GetMaxRunwayLength()))
+                              .OrderBy(o => o.NewPrice).FirstOrDefault();
+        if (pickType == null) { Console.WriteLine("  FAILED no type to order"); Environment.Exit(1); }
+        rn.NewType = rn.NewTypes.First(t => t.Value == pickType.Type);
+        Console.WriteLine("  picked " + rn.NewType.Name);
+        Console.WriteLine("  " + rn.Summary);
+        foreach (var r in rn.Rows) Console.WriteLine("    " + r);
+        double money0 = h.Money;
+        rn.RenewCommand.Execute(null);
+        rn.ConfirmCommand.Execute(null);
+        await Wait(() => rn.Status == "Done." || (rn.Status ?? "").StartsWith("That failed"), "renewal");
+        foreach (var r in rn.Report) Console.WriteLine("    done: " + r);
+        foreach (var w in rn.Waiting) Console.WriteLine("    waiting: " + w);
+        var nw = h.Fleet.FirstOrDefault(f => f.ReplacesOnDelivery == a);
+        if (nw == null || !route.GetAirliners().Contains(a) || rn.Waiting.Count != 1) { Console.WriteLine("  FAILED order"); Environment.Exit(1); }
+        DateTime delivery = nw.Airliner.BuiltDate;
+        Console.WriteLine("  ordered " + nw.Name + ", delivery " + delivery.ToShortDateString() + ", paid now " + (money0 - h.Money).ToString("N0") + ", to pay on delivery " + nw.RemainingPayment.ToString("N0") + "; " + a.Name + " still flies");
+        // a second renewal of the same type skips the aircraft that waits for its successor
+        rn.Reload();
+        rn.OldType = rn.OldTypes.First(t => t.Value == oldType);
+        Console.WriteLine("  again: " + string.Join(" | ", rn.Rows));
+        if (!rn.Rows.Any(r => r.Contains("is ordered for it"))) { Console.WriteLine("  FAILED waiting aircraft not skipped"); Environment.Exit(1); }
+
+        // save and load while waiting: the link must be kept
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("ordertest");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("ordertest");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.DeleteSavedGame("ordertest");
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        h = g.HumanAirline;
+        nw = h.Fleet.First(f => f.Name == nw.Name);
+        a = h.Fleet.First(f => f.Name == a.Name);
+        route = h.Routes.First(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode == code);
+        Console.WriteLine("  after load: " + nw.Name + " replaces " + nw.ReplacesOnDelivery?.Name + " (same object as in the fleet: " + (nw.ReplacesOnDelivery == a) + ")");
+        if (nw.ReplacesOnDelivery != a) { Console.WriteLine("  FAILED link lost on load"); Environment.Exit(1); }
+        if (a.Pilots.Count < a.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(a);
+
+        double moneyBefore = h.Money;
+        while (g.GameTime.Date <= delivery.AddDays(1)) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var news = g.NewsBox.GetNews().LastOrDefault(n => n.Subject.StartsWith("Fleet renewal"));
+        Console.WriteLine("  " + g.GameTime.ToShortDateString() + ": " + news?.Subject + " | " + news?.Body?.Replace("\n", " / "));
+        var now = route.GetAirliners();
+        var newTimes = route.TimeTable.Entries.Where(e => e.Airliner == nw).Select(e => e.Day + " " + e.Time).OrderBy(x => x).ToList();
+        Console.WriteLine("  route now flown by " + string.Join(", ", now.Select(f => f.Name + " " + f.Airliner.Type.Name + " pilots " + f.Pilots.Count + "/" + f.Airliner.Type.CockpitCrew + " " + f.Status))
+                          + " | same times " + oldTimes.SequenceEqual(newTimes) + " | " + a.Name + " in fleet " + h.Fleet.Contains(a) + " | paid " + nw.Purchased + " | waiting " + TheAirline.Helpers.FleetRenewalService.Pending().Count);
+        if (!now.Contains(nw) || now.Contains(a) || h.Fleet.Contains(a) || nw.ReplacesOnDelivery != null || news == null || nw.Purchased != TheAirline.Models.Airliners.FleetAirliner.PurchasedType.Bought)
+        { Console.WriteLine("  FAILED handover"); Environment.Exit(1); }
+        Console.WriteLine("RENEWAL ORDER TEST OK");
+    }
+
     static void DemandCheck(string when)
     {
         var human = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
@@ -1985,6 +2072,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("renewalorder")) { await RenewalOrderTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("pax")) { PaxProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("costs")) { CostProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cargounit")) { CargoUnitTable(); return; }

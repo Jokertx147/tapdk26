@@ -15,10 +15,12 @@
         <TextBlock Grid.Row="3" Text="Old aircraft" VerticalAlignment="Center" Margin="0,0,10,6" />
         <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding AfterChoices}" SelectedItem="{Binding After}" MinWidth="360" Margin="0,0,0,6" />
       </Grid>
-      <StackPanel Orientation="Horizontal" Spacing="16">
-        <CheckBox Content="Get missing aircraft from the market" IsChecked="{Binding BuyMissing}" />
-        <CheckBox Content="Lease them instead of buying" IsChecked="{Binding Lease}" IsEnabled="{Binding BuyMissing}" />
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Missing aircraft" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding SourceChoices}" SelectedItem="{Binding Source}" MinWidth="320" />
+        <CheckBox Content="Down payment now, the rest on delivery" IsChecked="{Binding DownPayment}" IsVisible="{Binding Orders}" />
       </StackPanel>
+      <TextBlock Text="New aircraft keep the old ones flying until they are delivered, then take over their routes automatically." Opacity="0.6" TextWrapping="Wrap" IsVisible="{Binding Orders}" />
       <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontWeight="SemiBold" />
       <ItemsControl ItemsSource="{Binding Rows}">
         <ItemsControl.ItemTemplate>
@@ -38,6 +40,16 @@
         </StackPanel>
       </Border>
       <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+      <StackPanel Spacing="2" IsVisible="{Binding HasWaiting}">
+        <TextBlock Text="Waiting for delivery" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Waiting}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" Opacity="0.85" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
       <StackPanel Spacing="2" IsVisible="{Binding HasReport}">
         <TextBlock Text="What was done" FontWeight="SemiBold" Margin="0,6,0,0" />
         <ItemsControl ItemsSource="{Binding Report}">

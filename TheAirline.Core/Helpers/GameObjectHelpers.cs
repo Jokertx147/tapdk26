@@ -841,6 +841,16 @@ namespace TheAirline.Helpers
         {
             RunwayService.ProcessDaily();
 
+            // aircraft ordered in a fleet renewal take over their routes on delivery
+            try
+            {
+                FleetRenewalService.ProcessDeliveries();
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.StartupLog.Write("Fleet renewal deliveries failed: " + ex);
+            }
+
             //Clear stats when it on daily update
             if (Infrastructure.Settings.GetInstance().ClearStats == Intervals.Daily)
             {

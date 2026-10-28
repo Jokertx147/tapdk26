@@ -21,7 +21,8 @@ namespace TheAirline.Presentation
         private NamedChoice<AirlinerType> _oldType, _newType;
         private NamedChoice<SlowerChoice> _slower;
         private NamedChoice<OldAircraftChoice> _after;
-        private bool _buyMissing = true, _lease, _busy, _loading;
+        private NamedChoice<MissingSource> _source;
+        private bool _downPayment, _busy, _loading;
         private string _summary, _status, _pendingText;
         private RenewalPlan _plan;
 
@@ -34,6 +35,12 @@ namespace TheAirline.Presentation
             AfterChoices.Add(new NamedChoice<OldAircraftChoice> {Name = "Sell them (leased ones go back)", Value = OldAircraftChoice.Sell});
             AfterChoices.Add(new NamedChoice<OldAircraftChoice> {Name = "List them for sale", Value = OldAircraftChoice.ListForSale});
             AfterChoices.Add(new NamedChoice<OldAircraftChoice> {Name = "Keep them idle", Value = OldAircraftChoice.KeepIdle});
+            SourceChoices.Add(new NamedChoice<MissingSource> {Name = "Buy used ones on the market", Value = MissingSource.BuyUsed});
+            SourceChoices.Add(new NamedChoice<MissingSource> {Name = "Lease used ones on the market", Value = MissingSource.LeaseUsed});
+            SourceChoices.Add(new NamedChoice<MissingSource> {Name = "Order new ones from the manufacturer", Value = MissingSource.OrderNew});
+            SourceChoices.Add(new NamedChoice<MissingSource> {Name = "Buy used ones, order new ones for the rest", Value = MissingSource.UsedThenNew});
+            SourceChoices.Add(new NamedChoice<MissingSource> {Name = "Don't get any (idle ones in the fleet only)", Value = MissingSource.IdleOnly});
+            _source = SourceChoices[0];
             _slower = SlowerChoices[0];
             _after = AfterChoices[0];
             RenewCommand = new RelayCommand(AskRenew, () => !_busy && _plan != null && _plan.Rows.Any(r => r.Ok));
@@ -92,23 +99,38 @@ namespace TheAirline.Presentation
             }
         }
 
-        public bool BuyMissing
+        public ObservableCollection<NamedChoice<MissingSource>> SourceChoices { get; } = new ObservableCollection<NamedChoice<MissingSource>>();
+
+        /// <summary>Where the aircraft come from when the fleet hasn't enough idle ones of the new type.</summary>
+        public NamedChoice<MissingSource> Source
         {
-            get { return _buyMissing; }
+            get { return _source; }
             set
             {
-                if (SetProperty(ref _buyMissing, value)) UpdatePlan();
+                if (SetProperty(ref _source, value))
+                {
+                    OnPropertyChanged(nameof(Orders));
+                    UpdatePlan();
+                }
             }
         }
 
-        public bool Lease
+        public bool Orders => _source?.Value == MissingSource.OrderNew || _source?.Value == MissingSource.UsedThenNew;
+
+        /// <summary>New aircraft: the down payment now and the rest on delivery.</summary>
+        public bool DownPayment
         {
-            get { return _lease; }
+            get { return _downPayment; }
             set
             {
-                if (SetProperty(ref _lease, value)) UpdatePlan();
+                if (SetProperty(ref _downPayment, value)) UpdatePlan();
             }
         }
+
+        /// <summary>New aircraft from earlier renewals still waiting for delivery.</summary>
+        public ObservableCollection<string> Waiting { get; } = new ObservableCollection<string>();
+
+        public bool HasWaiting => Waiting.Count > 0;
 
         public string Summary { get => _summary; private set => SetProperty(ref _summary, value); }
         public string Status { get => _status; private set => SetProperty(ref _status, value); }
@@ -129,7 +151,7 @@ namespace TheAirline.Presentation
         {
             return new RenewalSettings
             {
-                OldType = _oldType?.Value, NewType = _newType?.Value, BuyMissing = _buyMissing, Lease = _lease,
+                OldType = _oldType?.Value, NewType = _newType?.Value, Source = _source?.Value ?? MissingSource.BuyUsed, DownPayment = _downPayment,
                 Slower = _slower?.Value ?? SlowerChoice.ShiftOrKeep, AfterOld = _after?.Value ?? OldAircraftChoice.Sell
             };
         }
@@ -160,11 +182,14 @@ namespace TheAirline.Presentation
             {
                 foreach (var t in FleetRenewalService.NewTypes(_oldType.Value))
                 {
+                    var parts = new System.Collections.Generic.List<string>();
+                    if (t.Idle > 0) parts.Add(t.Idle + " idle");
+                    if (t.ForSale > 0) parts.Add(t.ForSale + " used from " + Math.Round(t.UsedFrom).ToString("N0"));
+                    if (t.Orderable) parts.Add("new " + Math.Round(t.NewPrice).ToString("N0"));
                     NewTypes.Add(new NamedChoice<AirlinerType>
                     {
-                        Name = t.Item1.Name + ": " + t.Item2 + " idle, " + t.Item3 + " for sale" + (t.Item3 > 0 ? " from " + Math.Round(t.Item4).ToString("N0") : "")
-                               + " (" + t.Item1.CruisingSpeed.ToString("N0") + " km/h, " + t.Item1.Range.ToString("N0") + " km)",
-                        Value = t.Item1
+                        Name = t.Type.Name + ": " + string.Join(", ", parts) + " (" + t.Type.CruisingSpeed.ToString("N0") + " km/h, " + t.Type.Range.ToString("N0") + " km)",
+                        Value = t.Type
                     });
                 }
             }
@@ -176,6 +201,12 @@ namespace TheAirline.Presentation
 
         private void UpdatePlan()
         {
+            Waiting.Clear();
+            if (GameObject.GetInstance()?.HumanAirline != null)
+            {
+                foreach (string w in FleetRenewalService.Pending()) Waiting.Add(w);
+            }
+            OnPropertyChanged(nameof(HasWaiting));
             Rows.Clear();
             if (_oldType == null || _newType == null)
             {
