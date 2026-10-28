@@ -696,8 +696,9 @@ static class VmTest
             av.Refresh();
             ap.ReloadAdvice();
             await Wait(() => !ap.IsBusy, "advice");
-            var advice = ap.Advice.Where(x => x.Advice.FleetCanFly).FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination));
-            if (advice == null) break;
+            var advice = ap.Advice.Where(x => x.Advice.FleetCanFly).FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination))
+                         ?? ap.Advice.FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination));
+            if (advice == null) { Console.WriteLine("  no advice for route " + (n + 1) + " (" + ap.Advice.Count + " shown)"); break; }
             ap.SelectedAdvice = advice;
             var cr = ap.Create;
             foreach (var o in cr.Offers.ToList()) o.LeaseCommand.Execute(null);
@@ -744,6 +745,7 @@ static class VmTest
         if (!rp.Rows.All(r => r.IsLoss)) Environment.Exit(1);
         rp.Show = "All routes";
         // open a route on the routes page
+        av.Refresh();
         av.RoutesTab = 3;
         rp.Selected = rp.Rows.Last();
         rp.OpenCommand.Execute(null);
