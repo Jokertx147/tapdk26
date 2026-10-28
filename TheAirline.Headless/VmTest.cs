@@ -847,8 +847,8 @@ static class VmTest
             DateTime before = g.GameTime;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             cmd.Execute(null);
-            await Wait(() => worker.IsSkipping, name + " started");
-            await Wait(() => !worker.IsSkipping, name + " finished");
+            // a short fast-forward can start and end between two looks: wait for the date to move and the skip to end
+            await Wait(() => g.GameTime > before && !worker.IsSkipping && worker.IsPaused, name + " finished");
             av.Refresh();
             Console.WriteLine("  " + name + ": " + before.ToString("d MMM yyyy") + " -> " + g.GameTime.ToString("d MMM yyyy") + " in " + sw.ElapsedMilliseconds + " ms, paused " + worker.IsPaused + " | " + av.Status);
             return before;
@@ -875,9 +875,9 @@ static class VmTest
 
         // cash below zero stops it early: a few dollars and a month of rents and wages ahead
         g.HumanAirline.Money = 1000;
+        DateTime lowStart = g.GameTime;
         av.SkipMonthCommand.Execute(null);
-        await Wait(() => worker.IsSkipping, "skip started");
-        await Wait(() => !worker.IsSkipping, "skip finished");
+        await Wait(() => g.GameTime > lowStart && !worker.IsSkipping && worker.IsPaused, "skip finished");
         av.Refresh();
         Console.WriteLine("  low cash: stopped on " + g.GameTime.ToString("d MMM yyyy") + " with " + g.HumanAirline.Money.ToString("N0") + " | " + av.Status);
         if (g.HumanAirline.Money >= 0 || !av.Status.Contains("below zero")) { Console.WriteLine("  FAILED cash stop"); Environment.Exit(1); }
