@@ -308,13 +308,16 @@ static class VmTest
     static void YearProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
-        for (int m = 0; m < 12; m++)
+        int yearMonths = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "12");
+        for (int m = 0; m < yearMonths; m++)
         {
             int startMonth = g.GameTime.Month;
             var swY = System.Diagnostics.Stopwatch.StartNew();
             while (g.GameTime.Month == startMonth) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
             var last = g.GameTime.AddMonths(-1);
             var margins = new System.Collections.Generic.List<double>();
+            double totalProfit = 0;
+            int idle = 0;
             foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0 && !a.IsHuman))
             {
                 double i2 = 0, c2 = 0;
@@ -325,11 +328,13 @@ static class VmTest
                     if (v > 0) i2 += v; else c2 += v;
                 }
                 if (i2 > 0) margins.Add(100 * (i2 + c2) / i2);
+                totalProfit += i2 + c2;
+                idle += a.Fleet.Count(f => !f.HasRoute);
             }
             margins.Sort();
             var shared = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Routes).OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
             int sharedCount = shared.Count(r => TheAirline.Helpers.AIPricingService.Rivals(r).Count > 0);
-            Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival");
+            Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money, all together " + totalProfit.ToString("N0") + ", " + idle + " aircraft idle | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival | AI forecasts: " + TheAirline.Helpers.AIRouteChoice.Picked + " picks (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the most demand, " + TheAirline.Helpers.AIRouteChoice.AllLosing + " all forecast to lose), " + TheAirline.Helpers.AIRouteChoice.Dropped + " dropped");
             foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0).OrderByDescending(a => a.Fleet.Count).Take(6))
             {
                 var routes = a.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
@@ -758,6 +763,103 @@ static class VmTest
     ///     "vm forecast": the route planner suggests a number of round trips from a forecast; two routes are made (one at
     ///     the suggestion, one at the most the aircraft can fly), flown for a month, and the forecast is compared.
     /// </summary>
+    // the computer airlines plan with the route forecast: destinations, and losing routes given up
+    static void AiPlanTest()
+    {
+        Console.WriteLine("AI PLAN TEST");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        // the computer airlines open routes in the first weeks
+        for (int i = 0; i < 40; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var ai = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman && a.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Passenger).ToList();
+        var routes = ai.SelectMany(a => a.Routes).Where(r => r is TheAirline.Models.Routes.PassengerRoute && r.GetAirliners().Count == 1 && r.TimeTable.Entries.Count > 0).ToList();
+        Console.WriteLine("  " + ai.Count + " passenger airlines, " + routes.Count + " routes with one aircraft, " + TheAirline.Helpers.AIRouteChoice.Picked + " destinations forecast so far");
+        if (routes.Count == 0) { Console.WriteLine("  FAILED no computer routes"); Environment.Exit(1); }
+        if (TheAirline.Helpers.AIRouteChoice.Picked == 0) { Console.WriteLine("  FAILED the computer airlines opened routes without a forecast"); Environment.Exit(1); }
+
+        // 1. a destination picked by forecast, from the ones with the most demand: the one forecast to earn the most
+        bool picked = false;
+        foreach (var airline in ai)
+        {
+            foreach (var origin in airline.Airports.Take(3))
+            {
+                var ranked = TheAirline.Helpers.AIHelpers.GetDestinationAirports(airline, origin);
+                if (ranked.Count < 2) continue;
+                int before = TheAirline.Helpers.AIRouteChoice.Picked;
+                var d = TheAirline.Helpers.AIRouteChoice.PickDestination(airline, origin, ranked);
+                if (TheAirline.Helpers.AIRouteChoice.Picked == before) continue;
+                double fares = TheAirline.Helpers.AIRouteChoice.FareFactor(airline);
+                Func<TheAirline.Models.Airports.Airport, double> earns = x =>
+                {
+                    var f = TheAirline.Helpers.AIRouteChoice.Reference(airline, TheAirline.Helpers.MathHelpers.GetDistance(origin, x));
+                    return f == null ? double.MinValue : TheAirline.Helpers.AIRouteChoice.Best(airline, origin, x, f, null, false, fares).ProfitPerDay;
+                };
+                var top = ranked.Take(TheAirline.Helpers.AIRouteChoice.Candidates).ToList();
+                Console.WriteLine("  " + airline.Profile.Name + " from " + origin.Profile.IATACode + " (fares " + fares.ToString("0.00") + " of the market): " +
+                                  string.Join(", ", top.Select(x => x.Profile.IATACode + " " + earns(x).ToString("N0"))) + " a day -> " + d.Profile.IATACode);
+                if (!top.Contains(d)) { Console.WriteLine("  FAILED picked outside the candidates"); Environment.Exit(1); }
+                if (top.Any(x => earns(x) > earns(d) + 1)) { Console.WriteLine("  FAILED a destination forecast to earn more was passed over"); Environment.Exit(1); }
+                picked = true;
+                break;
+            }
+            if (picked) break;
+        }
+        if (!picked) { Console.WriteLine("  FAILED no destination forecast"); Environment.Exit(1); }
+
+        // 2. a route that loses money with empty seats: given up only after two losing months, when the forecast says
+        //    it won't pay its flights; a full one is kept
+        var test = routes.First();
+        var tf = test.GetAirliners()[0];
+        var oldStart = test.StartDate;
+        bool young = TheAirline.Helpers.AIRouteChoice.ShouldDrop(test.Airline, test, -50000);
+        test.StartDate = g.GameTime.AddDays(-90);
+        bool old = TheAirline.Helpers.AIRouteChoice.ShouldDrop(test.Airline, test, -50000);
+        var best = TheAirline.Helpers.AIRouteChoice.Best(test.Airline, test.Destination1, test.Destination2, tf, test, TheAirline.Helpers.AIRouteChoice.IsBusiness(test, tf));
+        double flying = best.ProfitPerDay + TheAirline.Helpers.OwnershipService.MonthlyCost(tf)/30.4;
+        bool expect = test.FillingDegree < 0.5 && test.GetBalance(g.GameTime.AddDays(-60), g.GameTime) < 0 && flying < 0;
+        Console.WriteLine(string.Format("  {0}-{1}: {2:0}% full, last 60 days {3:N0}, forecast {4:N0} a day before ownership -> {5}",
+            test.Destination1.Profile.IATACode, test.Destination2.Profile.IATACode, test.FillingDegree*100, test.GetBalance(g.GameTime.AddDays(-60), g.GameTime), flying, old ? "given up" : "kept"));
+        test.StartDate = oldStart;
+        if (young && (g.GameTime - oldStart).TotalDays < 60) { Console.WriteLine("  FAILED a new route given up"); Environment.Exit(1); }
+        if (old != expect) { Console.WriteLine("  FAILED expected " + (expect ? "given up" : "kept")); Environment.Exit(1); }
+        if (TheAirline.Helpers.AIRouteChoice.ShouldDrop(test.Airline, test, 5000)) { Console.WriteLine("  FAILED a route earning money given up"); Environment.Exit(1); }
+
+        // 3. the game plays on with the computer airlines deciding this way
+        for (int i = 0; i < 45; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  after 45 more days: " + TheAirline.Helpers.AIRouteChoice.Picked + " destinations forecast (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the one with the most demand), " + TheAirline.Helpers.AIRouteChoice.Dropped + " routes given up");
+        Console.WriteLine("AI PLAN TEST OK");
+    }
+
+    // "vm aicheck": the route forecast against what the computer airlines' routes really did last month
+    static void AiCheckProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int months = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "3");
+        for (int m = 0; m < months; m++) { int sm = g.GameTime.Month; while (g.GameTime.Month == sm) TheAirline.Helpers.GameObjectHelpers.SimulateTurn(); }
+        var last = g.GameTime.AddMonths(-1);
+        var first = new DateTime(last.Year, last.Month, 1);
+        int days = DateTime.DaysInMonth(last.Year, last.Month);
+        double fl = 0, al = 0, fp = 0, ap = 0, fr = 0, ar = 0; int n = 0;
+        var rows = new System.Collections.Generic.List<string>();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(x => !x.IsHuman))
+        foreach (var r in a.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.StartDate < first && r.GetAirliners().Count == 1 && r.TimeTable.Entries.Count > 0).ToList())
+        {
+            var f = r.GetAirliners()[0];
+            int trips = TheAirline.Helpers.AIRouteChoice.CurrentTrips(r);
+            if (trips < 1) continue;
+            var fc = TheAirline.Helpers.RouteForecastService.Forecast(a, r.Destination1, r.Destination2, f, trips, r);
+            double load = TheAirline.Helpers.ConnectionService.MonthLoad(r);
+            double profit = TheAirline.Helpers.RouteProfitService.Month(r, last.Year, last.Month);
+            double income = TheAirline.Helpers.RouteProfitService.Month(r, TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, last.Year, last.Month);
+            double flights = r.TimeTable.Entries.Count*days/7.0;
+            double fcProfit = fc.ProfitPerFlight*flights - TheAirline.Helpers.OwnershipService.MonthlyCost(f)*0; // ownership is in the forecast; RouteProfit has none
+            fl += fc.Load; al += load; fp += fc.ProfitPerFlight*flights + TheAirline.Helpers.OwnershipService.MonthlyCost(f); ap += profit; fr += fc.RevenuePerFlight*flights; ar += income; n++;
+            if (rows.Count < 12) rows.Add(string.Format("  {0,-20} {1}-{2} {3} trips: load forecast {4:0}% real {5:0}% | tickets forecast {6:N0} real {7:N0} | profit before ownership forecast {8:N0} real {9:N0}",
+                a.Profile.Name, r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode, trips, fc.Load*100, load*100, fc.RevenuePerFlight*flights, income, fc.ProfitPerFlight*flights + TheAirline.Helpers.OwnershipService.MonthlyCost(f), profit));
+        }
+        rows.ForEach(Console.WriteLine);
+        Console.WriteLine(string.Format("AICHECK {0} routes, {1:MMM yyyy}: load forecast {2:0}% real {3:0}% | tickets forecast {4:N0} real {5:N0} | profit before ownership forecast {6:N0} real {7:N0}", n, last, 100*fl/n, 100*al/n, fr, ar, fp, ap));
+    }
+
     static async Task ForecastTest(AirlineViewModel av)
     {
         Console.WriteLine("FORECAST TEST");
@@ -2130,6 +2232,8 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("renewal")) { await RenewalTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("renewalorder")) { await RenewalOrderTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("runway")) { RunwayTest(av); return; }

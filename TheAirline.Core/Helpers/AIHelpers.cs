@@ -1406,6 +1406,27 @@ namespace TheAirline.Helpers
 
                     if (routeType == Route.RouteType.Mixed || routeType == Route.RouteType.Passenger || routeType == Route.RouteType.Helicopter)
                     {
+                        // a route that loses money with half its seats empty is given up when the route forecast says
+                        // it won't pay for its own flights either (its aircraft is then free for a better one)
+                        bool drop = false;
+                        using (Profiler.Measure("ai: review route by forecast"))
+                        {
+                            try
+                            {
+                                drop = AIRouteChoice.ShouldDrop(airline, route, balance);
+                            }
+                            catch (Exception ex)
+                            {
+                                StartupLog.Write("Route review failed for " + airline.Profile.Name + ": " + ex.Message);
+                            }
+                        }
+                        if (drop)
+                        {
+                            System.Threading.Interlocked.Increment(ref AIRouteChoice.Dropped);
+                            DropRoute(airline, route);
+                            continue;
+                        }
+
                         if (balance < -1000)
                         {
                             if (!PricingService.Realistic && route.FillingDegree > 0.50 && (((PassengerRoute) route).IncomePerPassenger < 0.50))
@@ -1505,6 +1526,31 @@ namespace TheAirline.Helpers
             }
         }
 
+        // gives up a computer airline's route; its aircraft is free for another
+        private static void DropRoute(Airline airline, Route route)
+        {
+            airline.RemoveRoute(route);
+
+            if (route.HasAirliner)
+            {
+                route.GetAirliners().ForEach(a => a.RemoveRoute(route));
+            }
+
+            if (airline.Routes.Count == 0)
+            {
+                CreateNewRoute(airline);
+            }
+
+            NewsFeeds.AddNewsFeed(
+                new NewsFeed(
+                    GameObject.GetInstance().GameTime,
+                    string.Format(
+                        Translator.GetInstance().GetString("NewsFeed", "1002"),
+                        airline.Profile.Name,
+                        new AirportCodeFormatter().Convert(route.Destination1),
+                        new AirportCodeFormatter().Convert(route.Destination2))));
+        }
+
         private static void CreateBusinessRouteTimeTable(Route route, FleetAirliner airliner)
         {
             TimeSpan minFlightTime =
@@ -1597,7 +1643,11 @@ namespace TheAirline.Helpers
             if (airport != null)
             {
                 pfC = Profiler.Start();
-                Airport destination = GetDestinationAirport(airline, airport);
+                // a passenger airline forecasts the destinations with the most demand and takes the one that earns the
+                // most (as the route planner forecasts a route for the player)
+                Airport destination = airline.AirlineRouteFocus == Route.RouteType.Passenger && !airline.IsHuman
+                                          ? AIRouteChoice.PickDestination(airline, airport, GetDestinationAirports(airline, airport))
+                                          : GetDestinationAirport(airline, airport);
                 Profiler.Stop("route search: destination", pfC);
 
                 if (destination != null)

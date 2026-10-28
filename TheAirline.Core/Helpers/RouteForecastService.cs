@@ -89,7 +89,8 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>The forecast for the aircraft flying the pair `roundTrips` times a day (both ways averaged).</summary>
-        public static RouteForecast Forecast(Airline airline, Airport a, Airport b, FleetAirliner f, int roundTrips, Route exclude = null)
+        /// <param name="fareFactor">the fares as a share of the market fares (a route that flies already uses its own fares)</param>
+        public static RouteForecast Forecast(Airline airline, Airport a, Airport b, FleetAirliner f, int roundTrips, Route exclude = null, double fareFactor = 1)
         {
             var result = new RouteForecast {RoundTrips = roundTrips, Seats = f.Airliner.GetTotalSeatCapacity()};
             if (roundTrips < 1 || result.Seats <= 0) return result;
@@ -120,7 +121,10 @@ namespace TheAirline.Helpers
                     double capacityShare = capacity > 0 ? Math.Min(1, perFlight/capacity) : 1;
                     double p = Math.Min(c.SeatingCapacity, c.SeatingCapacity*reputation*capacityShare*game.Difficulty.PriceLevel);
                     pax += p/2;
-                    revenue += p*PricingService.MarketFare(from, to, c.Type)/2;
+                    double fare = PricingService.MarketFare(from, to, c.Type)*fareFactor;
+                    var own = exclude is PassengerRoute flown && flown.HasAirliner ? flown.GetRouteAirlinerClass(c.Type) : null;
+                    if (own != null && own.FarePrice > 0) fare = own.FarePrice;
+                    revenue += p*fare/2;
                 }
             }
             result.PassengersPerFlight = pax;
@@ -131,10 +135,10 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>The forecasts for 1 to `maxTrips` round trips a day, and the one that earns the most a day.</summary>
-        public static RouteForecast Best(Airline airline, Airport a, Airport b, FleetAirliner f, int maxTrips, out List<RouteForecast> all, Route exclude = null)
+        public static RouteForecast Best(Airline airline, Airport a, Airport b, FleetAirliner f, int maxTrips, out List<RouteForecast> all, Route exclude = null, double fareFactor = 1)
         {
             all = new List<RouteForecast>();
-            for (int n = 1; n <= Math.Max(1, maxTrips); n++) all.Add(Forecast(airline, a, b, f, n, exclude));
+            for (int n = 1; n <= Math.Max(1, maxTrips); n++) all.Add(Forecast(airline, a, b, f, n, exclude, fareFactor));
             // the most profit a day; when every choice loses money, the smallest loss
             return all.OrderByDescending(x => x.ProfitPerDay).ThenBy(x => x.RoundTrips).First();
         }
