@@ -875,6 +875,75 @@ static class VmTest
         for (int m = 0; m < months; m++) { int sm = g.GameTime.Month; while (g.GameTime.Month == sm) TheAirline.Helpers.GameObjectHelpers.SimulateTurn(); report(); }
     }
 
+    // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    static void CompetitorsTest(AirlineViewModel av)
+    {
+        Console.WriteLine("COMPETITORS TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        for (int i = 0; i < 30; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  remembered moves after 30 days: " + TheAirline.Helpers.CompetitorService.Remembered);
+        if (TheAirline.Helpers.CompetitorService.Remembered == 0) fail("no rival move remembered");
+
+        // a route of the player's on a pair a computer airline flies, dearer than the rival
+        var theirs = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList())
+                                .OfType<TheAirline.Models.Routes.PassengerRoute>().First(r => r.HasAirliner && TheAirline.Helpers.AIPricingService.EconomyFare(r) > 0);
+        double theirFare = TheAirline.Helpers.AIPricingService.EconomyFare(theirs);
+        var mine = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), theirs.Destination1, theirs.Destination2, g.GameTime, theirFare * 1.2);
+        foreach (var c in mine.Classes) c.FarePrice = theirFare * 1.2 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+        if (!me.Airports.Contains(theirs.Destination1)) me.AddAirport(theirs.Destination1);
+        if (!me.Airports.Contains(theirs.Destination2)) me.AddAirport(theirs.Destination2);
+        me.AddRoute(mine);
+        Console.WriteLine("  my route " + theirs.Destination1.Profile.IATACode + "-" + theirs.Destination2.Profile.IATACode + " at " + (theirFare * 1.2).ToString("0") + ", " + theirs.Airline.Profile.IATACode + " at " + theirFare.ToString("0"));
+
+        var rr = TheAirline.Helpers.CompetitorService.ForRoutes(me).FirstOrDefault(x => x.Mine == mine);
+        if (rr == null || !rr.Rivals.Any(x => x.Route == theirs)) fail("the rival isn't on my route");
+        if (Math.Abs(rr.Rivals.First(x => x.Route == theirs).Fare - theirFare) > 0.01) fail("the rival's fare");
+        var rival = TheAirline.Helpers.CompetitorService.Rivals(me).FirstOrDefault(x => x.Airline == theirs.Airline);
+        if (rival == null || rival.SharedRoutes.Count == 0 || rival.SharedAirports.Count == 0) fail("the rival airline isn't listed with the shared route and airports");
+        if (!(rival.FareAgainstMine > 0.8 && rival.FareAgainstMine < 0.86)) fail("fare against mine " + rival.FareAgainstMine);
+        var ap = TheAirline.Helpers.CompetitorService.ForAirports(me).FirstOrDefault(x => x.Airport == theirs.Destination1);
+        if (ap == null || !ap.Airlines.Any(x => x.Item1 == theirs.Airline)) fail("the rival isn't at my airport");
+        Console.WriteLine("  " + rival.Airline.Profile.Name + ": " + rival.SharedRoutes.Count + " shared routes, " + rival.SharedAirports.Count + " airports, fares " + rival.FareAgainstMine.ToString("0.00") + " of mine");
+
+        // a fare cut on my pair and a route given up are listed as moves
+        TheAirline.Helpers.CompetitorService.RecordFare(theirs.Airline, theirs, 0.9);
+        TheAirline.Helpers.CompetitorService.RecordDropped(theirs.Airline, theirs);
+        var moves = TheAirline.Helpers.CompetitorService.Moves(me, 30);
+        if (!moves.Any(m => m.Kind == TheAirline.Helpers.RivalMoveKind.FareCut && m.Airline == theirs.Airline && Math.Abs(m.Factor - 0.9) < 1e-9)) fail("no fare cut move");
+        if (!moves.Any(m => m.Kind == TheAirline.Helpers.RivalMoveKind.Dropped && m.RouteId == theirs.Id)) fail("no dropped move");
+        Console.WriteLine("  " + moves.Count + " moves at my airports in 30 days");
+
+        // the screen
+        var cv = av.Competitors;
+        foreach (var show in cv.ShowChoices)
+        {
+            cv.Show = show;
+            cv.Reload(); // (the Airlines page reloads it when opened)
+            if (cv.Rows.Count == 0) fail("no rows for " + show);
+            if (cv.Selected == null || cv.DetailLines.Count == 0) fail("no detail for " + show);
+            Console.WriteLine("  " + show + ": " + cv.Rows.Count + " rows | " + cv.Summary);
+            Console.WriteLine("    " + cv.Rows[0].Title + " | " + cv.Rows[0].Line1 + " | " + cv.Rows[0].Line2);
+            Console.WriteLine("    " + string.Join(" / ", cv.DetailLines.Take(3)));
+        }
+        cv.Show = TheAirline.Presentation.CompetitorsViewModel.ByRoute;
+        cv.Filter = "A rival is cheaper";
+        var row = cv.Rows.FirstOrDefault(r => r.MyRoute == mine);
+        if (row == null || row.Badge != "CHEAPER RIVAL") fail("my route isn't flagged as undercut");
+        cv.Selected = row;
+        if (!cv.CanOpenRoute) fail("can't open my route");
+        av.Refresh();
+        cv.OpenCommand.Execute(null);
+        if (av.Pages[av.Page] != "Routes" || av.SelectedRoute?.Route != mine) fail("opening my route didn't show it");
+        cv.Show = TheAirline.Presentation.CompetitorsViewModel.ByMove;
+        cv.Filter = "On my routes only";
+        if (!cv.Rows.Any(r => r.Badge == "YOUR ROUTE")) fail("moves on my route not shown");
+
+        me.RemoveRoute(mine);
+        Console.WriteLine("COMPETITORS TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2380,6 +2449,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

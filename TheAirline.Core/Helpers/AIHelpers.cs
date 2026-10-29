@@ -1494,6 +1494,7 @@ namespace TheAirline.Helpers
                             {
                                 System.Threading.Interlocked.Increment(ref AIRouteChoice.EmptyDropped);
                                 airline.RemoveRoute(route);
+                    CompetitorService.RecordDropped(airline, route);
 
                                 if (route.HasAirliner)
                                 {
@@ -1527,6 +1528,7 @@ namespace TheAirline.Helpers
                             if (route.FillingDegree <= 0.45)
                             {
                                 airline.RemoveRoute(route);
+                    CompetitorService.RecordDropped(airline, route);
 
                                 if (route.HasAirliner)
                                 {
@@ -1553,6 +1555,7 @@ namespace TheAirline.Helpers
                 if (route.Banned)
                 {
                     airline.RemoveRoute(route);
+                    CompetitorService.RecordDropped(airline, route);
 
                     if (route.HasAirliner)
                     {
@@ -1580,6 +1583,7 @@ namespace TheAirline.Helpers
         private static void DropRoute(Airline airline, Route route)
         {
             airline.RemoveRoute(route);
+            CompetitorService.RecordDropped(airline, route);
 
             if (route.HasAirliner)
             {
@@ -2001,6 +2005,7 @@ namespace TheAirline.Helpers
                             route.LastUpdated = GameObject.GetInstance().GameTime;
                         }
                         airline.AddRoute(route);
+                        CompetitorService.RecordOpened(route);
 
                         fAirliner?.AddRoute(route);
 

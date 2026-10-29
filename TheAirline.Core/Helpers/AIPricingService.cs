@@ -205,6 +205,7 @@ namespace TheAirline.Helpers
             route.PricePerUnit = Math.Round(market*next, 2);
             double factor = route.PricePerUnit/before;
             string pair = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
+            CompetitorService.RecordFare(airline, route, factor);
 
             var game = GameObject.GetInstance();
             var human = rivals.FirstOrDefault(r => r.Airline == game.HumanAirline);
@@ -272,6 +273,7 @@ namespace TheAirline.Helpers
 
             double factor = next/ratio;
             foreach (var c in route.Classes) c.FarePrice = Math.Round(c.FarePrice*factor, 2);
+            CompetitorService.RecordFare(airline, route, factor);
 
             string pair = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
             string change = string.Format("{0} {1}: economy {2:0.00} -> {3:0.00} ({4:+0;-0}%), {5:0}% full{6}",

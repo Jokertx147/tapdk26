@@ -132,6 +132,12 @@ namespace TheAirline.Presentation
                     RoutesTab = 0;
                     SelectedRoute = Routes.FirstOrDefault(r => r.Route == route);
                 });
+            Competitors = new CompetitorsViewModel(route =>
+                {
+                    Page = Array.IndexOf(PageNames, "Routes");
+                    RoutesTab = 0;
+                    SelectedRoute = Routes.FirstOrDefault(r => r.Route == route);
+                });
             CompareTypes = new CompareTypesViewModel();
             NewAircraft.CompareRequested = t =>
                 {
@@ -260,7 +266,7 @@ namespace TheAirline.Presentation
                 case "Airports": AirportStats.Reload(); break;
                 case "Routes": Connections.Reload(); RouteProfits.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
-                case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); break;
+                case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); Competitors.Reload(); break;
                 case "News": News.Reload(); break;
                 case "Options": Options.Reload(); break;
             }
@@ -287,6 +293,9 @@ namespace TheAirline.Presentation
 
         /// <summary>Routes > Route profits.</summary>
         public RouteProfitViewModel RouteProfits { get; }
+
+        /// <summary>Airlines > Competitors.</summary>
+        public CompetitorsViewModel Competitors { get; }
         public CompareTypesViewModel CompareTypes { get; }
 
         private int _airlinersTab, _routesTab;

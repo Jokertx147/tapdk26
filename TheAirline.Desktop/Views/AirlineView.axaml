@@ -367,6 +367,9 @@
             <TabItem Header="All airlines">
               <v:AirlinesView DataContext="{Binding AirlineList}" />
             </TabItem>
+            <TabItem Header="Competitors">
+              <v:CompetitorsView DataContext="{Binding Competitors}" />
+            </TabItem>
             <TabItem Header="Codeshares">
               <v:CodesharesView DataContext="{Binding Codeshares}" />
             </TabItem>

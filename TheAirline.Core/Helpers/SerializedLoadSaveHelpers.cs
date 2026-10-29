@@ -279,6 +279,7 @@ namespace TheAirline.Helpers
             AirlinerHelpers.CreateStartUpAirliners();
 
             RouteIndex.Invalidate();
+            CompetitorService.Clear();
             StartupLog.Write("LoadGame: starting the game paused");
             //Start the game paused
             GameObjectWorker.GetInstance().StartPaused();
