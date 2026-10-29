@@ -26,6 +26,9 @@ namespace TheAirline.Helpers
         /// <summary>Counters for the tests: destinations forecast, not the one with the most demand, all forecast to lose, routes given up.</summary>
         public static int Picked, PickedOther, AllLosing, Dropped;
 
+        /// <summary>Counters for the tests: route searches that found no start airport, no destination, no aircraft; that used an idle aircraft; that bought or leased one.</summary>
+        public static int NoStart, NoDestination, NoAircraft, UsedIdle, GotAircraft, IdleRoutes, EmptyDropped;
+
         /// <summary>How many round trips a day fit between 06:00 and 22:00 (or in the morning and evening for a business route).</summary>
         public static int DayTrips(Airport a, Airport b, FleetAirliner f, bool business = false)
         {
@@ -39,7 +42,21 @@ namespace TheAirline.Helpers
         ///     What the airline charges against the market fare on the routes it flies (its new routes are priced the same
         ///     way soon after they open), within its mentality's band; 1 for an airline without routes yet.
         /// </summary>
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Tuple<DateTime, double>> FareCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Tuple<DateTime, double>>();
+
         public static double FareFactor(Airline airline)
+        {
+            // worked out once a game day per airline
+            DateTime today = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, double> cached;
+            if (FareCache.TryGetValue(airline, out cached) && cached.Item1 == today) return cached.Item2;
+            double factor = WorkOutFareFactor(airline);
+            FareCache.AddOrUpdate(airline, Tuple.Create(today, factor));
+            return factor;
+        }
+
+        private static double WorkOutFareFactor(Airline airline)
         {
             double low, high;
             AIPricingService.Band(airline.Mentality, out low, out high);
@@ -58,20 +75,35 @@ namespace TheAirline.Helpers
         /// <summary>A passenger aircraft of the airline's fleet to forecast a destination with: the idle one it would fly, else the middle one by seats that reaches it.</summary>
         public static FleetAirliner Reference(Airline airline, double km)
         {
-            List<FleetAirliner> fleet;
-            lock (airline.Fleet)
+            return new FleetSnapshot(airline).Reference(km);
+        }
+
+        // the airline's passenger aircraft, read once for all the destinations of one search
+        private class FleetSnapshot
+        {
+            private readonly List<FleetAirliner> _bySeats, _idleByRange;
+
+            public FleetSnapshot(Airline airline)
             {
-                fleet = airline.Fleet.Where(f => f.Airliner.Type.TypeAirliner != AirlinerType.TypeOfAirliner.Cargo
-                                                 && f.Airliner.Range >= km && f.Airliner.GetTotalSeatCapacity() > 0).ToList();
+                List<FleetAirliner> fleet;
+                lock (airline.Fleet)
+                {
+                    fleet = airline.Fleet.Where(f => f.Airliner.Type.TypeAirliner != AirlinerType.TypeOfAirliner.Cargo && f.Airliner.GetTotalSeatCapacity() > 0).ToList();
+                }
+                DateTime now = GameObject.GetInstance().GameTime;
+                _bySeats = fleet.OrderBy(f => f.Airliner.GetTotalSeatCapacity()).ToList();
+                _idleByRange = fleet.Where(f => !f.HasRoute && f.Airliner.BuiltDate <= now && AirlineTypeRules.CanUseType(airline, f.Airliner.Type))
+                                    .OrderBy(f => f.Airliner.Range).ToList();
             }
-            if (fleet.Count == 0) return null;
-            // the idle aircraft the route would get (as AIHelpers picks one: the shortest range that reaches)
-            DateTime now = GameObject.GetInstance().GameTime;
-            FleetAirliner idle = fleet.Where(f => !f.HasRoute && f.Airliner.BuiltDate <= now && f.Airliner.Range > km && AirlineTypeRules.CanUseType(airline, f.Airliner.Type))
-                                      .OrderBy(f => f.Airliner.Range).FirstOrDefault();
-            if (idle != null) return idle;
-            fleet.Sort((x, y) => x.Airliner.GetTotalSeatCapacity().CompareTo(y.Airliner.GetTotalSeatCapacity()));
-            return fleet[fleet.Count/2];
+
+            public FleetAirliner Reference(double km)
+            {
+                // the idle aircraft the route would get (as AIHelpers picks one: the shortest range that reaches)
+                FleetAirliner idle = _idleByRange.FirstOrDefault(f => f.Airliner.Range > km);
+                if (idle != null) return idle;
+                var reach = _bySeats.Where(f => f.Airliner.Range >= km).ToList();
+                return reach.Count == 0 ? null : reach[reach.Count/2];
+            }
         }
 
         /// <summary>The forecast for the best number of round trips (up to what fits in a day).</summary>
@@ -82,16 +114,16 @@ namespace TheAirline.Helpers
             if (!business) return RouteForecastService.Best(airline, a, b, f, max, out all, exclude, fareFactor);
             // a business route flies the same number of round trips in the morning and in the evening
             RouteForecast best = null;
-            for (int k = 1; k <= max; k++)
+            foreach (var fc in RouteForecastService.ForecastEach(airline, a, b, f, Enumerable.Range(1, max).Select(k => 2*k), exclude, fareFactor))
             {
-                var fc = RouteForecastService.Forecast(airline, a, b, f, 2*k, exclude, fareFactor);
                 if (best == null || fc.ProfitPerDay > best.ProfitPerDay) best = fc;
             }
             return best;
         }
 
         /// <summary>
-        ///     Of the destinations with the most demand, the one forecast to earn the most a day.
+        ///     Of the destinations with the most demand, the one forecast to earn the most a day. (Not opening a route the
+        ///     forecast says won't pay was tried: new airlines then couldn't grow, and most lost money all year.)
         /// </summary>
         public static Airport PickDestination(Airline airline, Airport origin, List<Airport> ranked)
         {
@@ -99,12 +131,13 @@ namespace TheAirline.Helpers
             using (Profiler.Measure("route search: forecast destinations"))
             {
                 double fares = FareFactor(airline);
+                var fleet = new FleetSnapshot(airline);
                 Airport best = null;
                 double bestProfit = double.MinValue;
                 foreach (Airport d in ranked.Take(Candidates))
                 {
                     double km = MathHelpers.GetDistance(origin, d);
-                    FleetAirliner f = Reference(airline, km);
+                    FleetAirliner f = fleet.Reference(km);
                     if (f == null) continue;
                     RouteForecast fc = Best(airline, origin, d, f, null, false, fares);
                     if (fc.ProfitPerDay > bestProfit)

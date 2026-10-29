@@ -843,10 +843,43 @@ static class VmTest
         Console.WriteLine("MAP ANIMATION TEST OK");
     }
 
+    // "vm idle": the computer airlines' idle aircraft month by month, and why their route searches fail
+    static void IdleProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int months = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "4");
+        Action report = () =>
+        {
+            var ai = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman && a.Fleet.Count > 0).ToList();
+            var fleet = ai.SelectMany(a => a.Fleet.ToList()).Where(f => f.Airliner.BuiltDate <= g.GameTime).ToList();
+            var idle = fleet.Where(f => !f.HasRoute).ToList();
+            double money = 0;
+            foreach (var a in ai) { double i2 = 0, c2 = 0; var last = g.GameTime.AddMonths(-1);
+                foreach (TheAirline.Models.General.Finances.Invoice.InvoiceType t in Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType)))
+                { if (t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Total || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Purchases || t == TheAirline.Models.General.Finances.Invoice.InvoiceType.Loans) continue;
+                  double v = a.GetInvoicesAmountMonth(last.Year, last.Month, t); if (v > 0) i2 += v; else c2 += v; }
+                money += i2 + c2; }
+            Console.WriteLine(string.Format("-- {0:dd MMM yyyy}: {1} aircraft, {2} idle ({3} owned, {4} leased; {5}) | {6} on order | operating {7:N0} last month",
+                g.GameTime, fleet.Count, idle.Count, idle.Count(TheAirline.Helpers.OwnershipService.IsOwned), idle.Count(f => !TheAirline.Helpers.OwnershipService.IsOwned(f)),
+                string.Join(", ", idle.GroupBy(f => f.Status).Select(x => x.Key + " " + x.Count())),
+                ai.SelectMany(a => a.Fleet.ToList()).Count(f => f.Airliner.BuiltDate > g.GameTime), money));
+            Console.WriteLine("   searches: no start " + TheAirline.Helpers.AIRouteChoice.NoStart + ", no destination " + TheAirline.Helpers.AIRouteChoice.NoDestination + ", no aircraft " + TheAirline.Helpers.AIRouteChoice.NoAircraft + ", idle used " + TheAirline.Helpers.AIRouteChoice.UsedIdle + ", bought/leased " + TheAirline.Helpers.AIRouteChoice.GotAircraft + " | routes for idle aircraft " + TheAirline.Helpers.AIRouteChoice.IdleRoutes + ", sold after a long time idle " + TheAirline.Helpers.OwnershipService.LongIdleSold + " | routes given up: by forecast " + TheAirline.Helpers.AIRouteChoice.Dropped + ", under 20% full " + TheAirline.Helpers.AIRouteChoice.EmptyDropped);
+            foreach (var a in ai.OrderByDescending(a => a.Fleet.Count(f => !f.HasRoute)).Take(5))
+            {
+                var id = a.Fleet.ToList().Where(f => !f.HasRoute && f.Airliner.BuiltDate <= g.GameTime).ToList();
+                Console.WriteLine(string.Format("   {0,-22} {1} {2} aircraft, {3} routes, {4} idle: {5}", a.Profile.Name, a.Mentality, a.Fleet.Count, a.Routes.Count, id.Count,
+                    string.Join(", ", id.GroupBy(f => f.Airliner.Type.Name).OrderByDescending(x => x.Count()).Take(4).Select(x => x.Key + " x" + x.Count() + " (range " + x.First().Airliner.Range + ")"))));
+            }
+        };
+        report();
+        for (int m = 0; m < months; m++) { int sm = g.GameTime.Month; while (g.GameTime.Month == sm) TheAirline.Helpers.GameObjectHelpers.SimulateTurn(); report(); }
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
         Console.WriteLine("AI PLAN TEST");
+        Action<string> fail0 = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
         var g = TheAirline.Models.General.GameObject.GetInstance();
         // the computer airlines open routes in the first weeks
         for (int i = 0; i < 40; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
@@ -903,7 +936,41 @@ static class VmTest
         if (old != expect) { Console.WriteLine("  FAILED expected " + (expect ? "given up" : "kept")); Environment.Exit(1); }
         if (TheAirline.Helpers.AIRouteChoice.ShouldDrop(test.Airline, test, 5000)) { Console.WriteLine("  FAILED a route earning money given up"); Environment.Exit(1); }
 
-        // 3. the game plays on with the computer airlines deciding this way
+        // 3. idle aircraft: more route searches a day the more there are, and those idle four months are sold
+        if (TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(0) != 0 || TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(1) != 1 || TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(80) != 3 || TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(600) != 4)
+            fail0("searches a day: " + TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(1) + "/" + TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(80) + "/" + TheAirline.Helpers.AIHelpers.IdleSearchesPerDay(600));
+        Console.WriteLine("  " + TheAirline.Helpers.AIRouteChoice.IdleRoutes + " routes opened for idle aircraft so far");
+        if (TheAirline.Helpers.AIRouteChoice.IdleRoutes == 0) fail0("no route for an idle aircraft");
+        {
+            var seller = ai.Where(a => a.Airports.Count > 0).OrderBy(a => a.Fleet.Count).First();
+            var t320 = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+            var spare = new System.Collections.Generic.List<TheAirline.Models.Airliners.Airliner>();
+            int extra = TheAirline.Helpers.OwnershipService.Reserve(seller) + 6;
+            for (int i = 0; i < extra; i++)
+            {
+                var al = new TheAirline.Models.Airliners.Airliner("idle" + i, t320, "N-IDL" + i, g.GameTime.AddYears(-i - 1)) { Airline = seller };
+                TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+                TheAirline.Helpers.AirlineHelpers.AddAirliner(seller, al, seller.Airports.First(), false);
+                spare.Add(al);
+            }
+            var t1 = g.GameTime;
+            Func<int> left = () => seller.Fleet.Count(f => spare.Contains(f.Airliner));
+            TheAirline.Helpers.OwnershipService.SellSurplus(seller); // starts counting (and may make the weekly sale)
+            int afterFirst = left();
+            int long0 = TheAirline.Helpers.OwnershipService.LongIdleSold;
+            g.GameTime = t1.AddDays(TheAirline.Helpers.OwnershipService.LongIdleDays - 1);
+            TheAirline.Helpers.OwnershipService.SellSurplus(seller);
+            int beforeLong = TheAirline.Helpers.OwnershipService.LongIdleSold - long0;
+            g.GameTime = t1.AddDays(TheAirline.Helpers.OwnershipService.LongIdleDays + 1);
+            TheAirline.Helpers.OwnershipService.SellSurplus(seller);
+            int longSold = TheAirline.Helpers.OwnershipService.LongIdleSold - long0 - beforeLong;
+            g.GameTime = t1;
+            Console.WriteLine("  " + seller.Profile.Name + ": " + extra + " spare aircraft, " + afterFirst + " left after the first day; after four months idle " + longSold + " sold at once (" + beforeLong + " a day earlier), " + left() + " left");
+            if (beforeLong != 0) fail0("sold as idle too long before four months");
+            if (longSold != TheAirline.Helpers.OwnershipService.LongIdleSalesPerDay) fail0("long idle sale " + longSold);
+        }
+
+        // 4. the game plays on with the computer airlines deciding this way
         for (int i = 0; i < 45; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         Console.WriteLine("  after 45 more days: " + TheAirline.Helpers.AIRouteChoice.Picked + " destinations forecast (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the one with the most demand), " + TheAirline.Helpers.AIRouteChoice.Dropped + " routes given up");
         Console.WriteLine("AI PLAN TEST OK");
@@ -2313,6 +2380,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }

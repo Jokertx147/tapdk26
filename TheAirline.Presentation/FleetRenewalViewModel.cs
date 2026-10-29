@@ -235,6 +235,7 @@ namespace TheAirline.Presentation
             _busy = true;
             (RenewCommand as RelayCommand)?.RaiseCanExecuteChanged();
             Status = "Renewing...";
+            bool done = false;
             try
             {
                 bool wasRunning = !GameObjectWorker.GetInstance().IsPaused;
@@ -247,7 +248,7 @@ namespace TheAirline.Presentation
                 Report.Clear();
                 foreach (string line in report) Report.Add(line);
                 OnPropertyChanged(nameof(HasReport));
-                Status = "Done.";
+                done = true;
             }
             catch (Exception ex)
             {
@@ -260,6 +261,9 @@ namespace TheAirline.Presentation
                 Reload();
                 _changed?.Invoke();
             }
+
+            // only now: the aircraft waiting for delivery are listed again by Reload
+            if (done) Status = "Done.";
         }
     }
 }

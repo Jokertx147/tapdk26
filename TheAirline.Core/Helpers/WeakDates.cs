@@ -28,6 +28,11 @@ namespace TheAirline.Helpers
             set { _table.AddOrUpdate(key, new StrongBox<DateTime>(value)); }
         }
 
+        public void Remove(T key)
+        {
+            if (key != null) _table.Remove(key);
+        }
+
         public void Clear()
         {
             _table = new ConditionalWeakTable<T, StrongBox<DateTime>>();

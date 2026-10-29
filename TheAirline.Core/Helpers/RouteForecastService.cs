@@ -88,26 +88,35 @@ namespace TheAirline.Helpers
             return fuel + fees + cabin + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew + ownership + revenue*share;
         }
 
-        /// <summary>The forecast for the aircraft flying the pair `roundTrips` times a day (both ways averaged).</summary>
-        /// <param name="fareFactor">the fares as a share of the market fares (a route that flies already uses its own fares)</param>
-        public static RouteForecast Forecast(Airline airline, Airport a, Airport b, FleetAirliner f, int roundTrips, Route exclude = null, double fareFactor = 1)
+        // what doesn't depend on the number of round trips: the other flights and seats on the pair, and each class's
+        // demand, share and fare both ways (worked out once, then tried for each number of round trips)
+        private class Prepared
         {
-            var result = new RouteForecast {RoundTrips = roundTrips, Seats = f.Airliner.GetTotalSeatCapacity()};
-            if (roundTrips < 1 || result.Seats <= 0) return result;
-            double km = MathHelpers.GetDistance(a, b);
+            public Airline Airline;
+            public Airport A, B;
+            public FleetAirliner F;
+            public double Km;
+            public int Seats, Rivals;
+            public double OtherFlightsPerDay, Capacity;
+            public readonly List<double[]> Classes = new List<double[]>(); // demand, seats, share, fare
+        }
+
+        private static Prepared Prepare(Airline airline, Airport a, Airport b, FleetAirliner f, Route exclude, double fareFactor)
+        {
+            var p = new Prepared {Airline = airline, A = a, B = b, F = f, Seats = f.Airliner.GetTotalSeatCapacity(), Km = MathHelpers.GetDistance(a, b)};
+            if (p.Seats <= 0) return p;
             var game = GameObject.GetInstance();
 
             List<Route> others = Others(a, b).Where(r => r != exclude && !r.GetAirliners().Contains(f)).ToList();
-            result.Rivals = others.Count(r => r.Airline != airline);
+            p.Rivals = others.Count(r => r.Airline != airline);
             // flights a day on the pair (both ways, as the flight engine counts them) and the seats offered
-            double flightsPerDay = others.Sum(r => r.TimeTable.Entries.Count)/7.0 + 2*roundTrips;
-            double capacity = others.Sum(r => r.GetAirliners().Select(x => x.Airliner.GetTotalSeatCapacity()).DefaultIfEmpty(0).Max()) + result.Seats;
+            p.OtherFlightsPerDay = others.Sum(r => r.TimeTable.Entries.Count)/7.0;
+            p.Capacity = others.Sum(r => r.GetAirliners().Select(x => x.Airliner.GetTotalSeatCapacity()).DefaultIfEmpty(0).Max()) + p.Seats;
 
-            double pax = 0, revenue = 0;
             foreach (var dir in new[] {Tuple.Create(a, b), Tuple.Create(b, a)})
             {
                 Airport from = dir.Item1, to = dir.Item2;
-                double factors = PassengerHelpers.SeasonFactorFor(to)*game.Difficulty.PassengersLevel*UsualScore/5*FocusAndHub(airline, from, to, km);
+                double factors = PassengerHelpers.SeasonFactorFor(to)*game.Difficulty.PassengersLevel*UsualScore/5*FocusAndHub(airline, from, to, p.Km);
                 double reputation = PassengerHelpers.ReputationShare(from, airline);
                 foreach (AirlinerClass c in f.Airliner.Classes)
                 {
@@ -117,28 +126,56 @@ namespace TheAirline.Helpers
                     double connecting = ConnectionService.FlightDemand(airline, exclude, from, to, c.Type);
                     double nearby = PassengerHelpers.NearbyDemandFor(from, to, f, c.Type);
                     double demand = (direct + connecting + nearby)*factors;
-                    double perFlight = demand/Math.Max(1, flightsPerDay);
-                    double capacityShare = capacity > 0 ? Math.Min(1, perFlight/capacity) : 1;
-                    double p = Math.Min(c.SeatingCapacity, c.SeatingCapacity*reputation*capacityShare*game.Difficulty.PriceLevel);
-                    pax += p/2;
                     double fare = PricingService.MarketFare(from, to, c.Type)*fareFactor;
                     var own = exclude is PassengerRoute flown && flown.HasAirliner ? flown.GetRouteAirlinerClass(c.Type) : null;
                     if (own != null && own.FarePrice > 0) fare = own.FarePrice;
-                    revenue += p*fare/2;
+                    p.Classes.Add(new[] {demand, c.SeatingCapacity, reputation*game.Difficulty.PriceLevel, fare});
                 }
+            }
+            return p;
+        }
+
+        private static RouteForecast Evaluate(Prepared p, int roundTrips)
+        {
+            var result = new RouteForecast {RoundTrips = roundTrips, Seats = p.Seats, Rivals = p.Rivals};
+            if (roundTrips < 1 || p.Seats <= 0) return result;
+            double flightsPerDay = p.OtherFlightsPerDay + 2*roundTrips;
+            double pax = 0, revenue = 0;
+            foreach (double[] c in p.Classes)
+            {
+                double perFlight = c[0]/Math.Max(1, flightsPerDay);
+                double capacityShare = p.Capacity > 0 ? Math.Min(1, perFlight/p.Capacity) : 1;
+                double seats = c[1];
+                double n = Math.Min(seats, seats*c[2]*capacityShare);
+                pax += n/2;
+                revenue += n*c[3]/2;
             }
             result.PassengersPerFlight = pax;
             result.Load = Math.Min(1, pax/result.Seats);
             result.RevenuePerFlight = revenue;
-            result.CostPerFlight = Cost(f, airline, a, b, km, pax, revenue, roundTrips*2*30.4);
+            result.CostPerFlight = Cost(p.F, p.Airline, p.A, p.B, p.Km, pax, revenue, roundTrips*2*30.4);
             return result;
+        }
+
+        /// <summary>The forecast for the aircraft flying the pair `roundTrips` times a day (both ways averaged).</summary>
+        /// <param name="fareFactor">the fares as a share of the market fares (a route that flies already uses its own fares)</param>
+        public static RouteForecast Forecast(Airline airline, Airport a, Airport b, FleetAirliner f, int roundTrips, Route exclude = null, double fareFactor = 1)
+        {
+            if (roundTrips < 1) return new RouteForecast {RoundTrips = roundTrips, Seats = f.Airliner.GetTotalSeatCapacity()};
+            return Evaluate(Prepare(airline, a, b, f, exclude, fareFactor), roundTrips);
+        }
+
+        /// <summary>The forecasts for each of the given numbers of round trips a day (the demand worked out once).</summary>
+        public static List<RouteForecast> ForecastEach(Airline airline, Airport a, Airport b, FleetAirliner f, IEnumerable<int> roundTrips, Route exclude = null, double fareFactor = 1)
+        {
+            var p = Prepare(airline, a, b, f, exclude, fareFactor);
+            return roundTrips.Select(n => Evaluate(p, n)).ToList();
         }
 
         /// <summary>The forecasts for 1 to `maxTrips` round trips a day, and the one that earns the most a day.</summary>
         public static RouteForecast Best(Airline airline, Airport a, Airport b, FleetAirliner f, int maxTrips, out List<RouteForecast> all, Route exclude = null, double fareFactor = 1)
         {
-            all = new List<RouteForecast>();
-            for (int n = 1; n <= Math.Max(1, maxTrips); n++) all.Add(Forecast(airline, a, b, f, n, exclude, fareFactor));
+            all = ForecastEach(airline, a, b, f, Enumerable.Range(1, Math.Max(1, maxTrips)), exclude, fareFactor);
             // the most profit a day; when every choice loses money, the smallest loss
             return all.OrderByDescending(x => x.ProfitPerDay).ThenBy(x => x.RoundTrips).First();
         }

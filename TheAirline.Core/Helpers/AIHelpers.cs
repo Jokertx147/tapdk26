@@ -703,6 +703,26 @@ namespace TheAirline.Helpers
             return airports[0];
         }
 
+        // the distance to the nearest other airport, worked out once a day per airport (airports open and close by year)
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, double>> NearestCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, double>>();
+
+        private static double NearestAirportKm(Airport airport)
+        {
+            DateTime today = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, double> cached;
+            if (NearestCache.TryGetValue(airport, out cached) && cached.Item1 == today) return cached.Item2;
+            double km = (from a in Airports.GetAirports(a => a != airport)
+                         select MathHelpers.GetDistance(
+                             a.Profile.Coordinates.ConvertToGeoCoordinate(),
+                             airport.Profile.Coordinates.ConvertToGeoCoordinate())).Min();
+            NearestCache.AddOrUpdate(airport, Tuple.Create(today, km));
+            return km;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Dictionary<Airport, Tuple<DateTime, List<Airport>>>> AllowedCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Dictionary<Airport, Tuple<DateTime, List<Airport>>>>();
+
         public static List<Airport> GetDestinationAirports(Airline airline, Airport airport)
         {
             long pfR = Profiler.Start();
@@ -710,17 +730,23 @@ namespace TheAirline.Helpers
             var enumerable = airliners as long[] ?? airliners.ToArray();
             double maxDistance = !enumerable.Any() ? 5000 : enumerable.Max();
 
-            double minDistance = (from a in Airports.GetAirports(a => a != airport)
-                                  select
-                                      MathHelpers.GetDistance(
-                                          a.Profile.Coordinates.ConvertToGeoCoordinate(),
-                                          airport.Profile.Coordinates.ConvertToGeoCoordinate())).Min();
+            double minDistance = NearestAirportKm(airport);
 
-            List<Airport> airports =
-                Airports.GetAirports(
+            // the airports the airline may fly to from here (licences and flight restrictions) change at most daily:
+            // worked out once a day per airport, then the towns it already serves are left out
+            DateTime today = GameObject.GetInstance().GameTime.Date;
+            Dictionary<Airport, Tuple<DateTime, List<Airport>>> perAirport = AllowedCache.GetValue(airline, x => new Dictionary<Airport, Tuple<DateTime, List<Airport>>>());
+            List<Airport> allowed;
+            lock (perAirport)
+            {
+                Tuple<DateTime, List<Airport>> cached;
+                allowed = perAirport.TryGetValue(airport, out cached) && cached.Item1 == today ? cached.Item2 : null;
+            }
+            if (allowed == null)
+            {
+                allowed = Airports.GetAirports(
                     a =>
-                    airline.Airports.Find(ar => ar.Profile.Town == a.Profile.Town) == null
-                    && AirlineHelpers.HasAirlineLicens(airline, airport, a)
+                    AirlineHelpers.HasAirlineLicens(airline, airport, a)
                     && !FlightRestrictions.HasRestriction(
                         a.Profile.Country,
                         airport.Profile.Country,
@@ -736,6 +762,11 @@ namespace TheAirline.Helpers
                         a.Profile.Country,
                         airport.Profile.Country,
                         GameObject.GetInstance().GameTime));
+                lock (perAirport) perAirport[airport] = Tuple.Create(today, allowed);
+            }
+            // (towns match by name and state, as Town's == does)
+            var servedTowns = new HashSet<(string, object)>(airline.Airports.ToList().Select(ar => (ar.Profile.Town?.Name, (object) ar.Profile.Town?.State)));
+            List<Airport> airports = allowed.Where(a => !servedTowns.Contains((a.Profile.Town?.Name, (object) a.Profile.Town?.State))).ToList();
             List<Route> routes = airline.Routes.FindAll(r => r.Destination1 == airport || r.Destination2 == airport);
             Profiler.Stop("route search: allowed airports", pfR);
             pfR = Profiler.Start();
@@ -1177,6 +1208,12 @@ namespace TheAirline.Helpers
         //checks for any airliners without routes
         private static readonly WeakDates<Airline> IdleRouteRetry = new WeakDates<Airline>();
 
+        /// <summary>How many routes a day a computer airline looks for its idle aircraft: one, and one more for every 40 idle (at most 4).</summary>
+        public static int IdleSearchesPerDay(int idle)
+        {
+            return idle <= 0 ? 0 : Math.Min(4, 1 + idle/40);
+        }
+
         private static void CheckForAirlinersWithoutRoutes(Airline airline)
         {
             lock (airline.Fleet)
@@ -1206,11 +1243,22 @@ namespace TheAirline.Helpers
                 bool waiting = IdleRouteRetry.TryGetValue(airline, out retry) && GameObject.GetInstance().GameTime < retry;
                 if (fleet.Count > 0 && !waiting)
                 {
-                    int routesBefore = airline.Routes.Count;
-                    using (Profiler.Measure("ai: idle aircraft, new route search"))
-                        CreateNewRoute(airline);
-                    if (airline.Routes.Count == routesBefore)
-                        IdleRouteRetry[airline] = GameObject.GetInstance().GameTime.AddDays(3);
+                    // an airline with many idle aircraft (a big fleet from the start data, or routes given up) opens
+                    // several routes a day, so its aircraft don't wait months for a route
+                    int searches = IdleSearchesPerDay(fleet.Count);
+                    for (int i = 0; i < searches; i++)
+                    {
+                        int routesBefore = airline.Routes.Count;
+                        using (Profiler.Measure("ai: idle aircraft, new route search"))
+                            CreateNewRoute(airline);
+                        if (airline.Routes.Count == routesBefore)
+                        {
+                            IdleRouteRetry[airline] = GameObject.GetInstance().GameTime.AddDays(3);
+                            break;
+                        }
+                        System.Threading.Interlocked.Increment(ref AIRouteChoice.IdleRoutes);
+                        if (!airline.Fleet.Exists(a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute)) break;
+                    }
                 }
             }
 
@@ -1441,8 +1489,10 @@ namespace TheAirline.Helpers
                             {
                                 ChangeRouteServiceLevel((PassengerRoute) route);
                             }
-                            if (route.FillingDegree < 0.2)
+                            // (a new route gets a month to find its passengers)
+                            if (route.FillingDegree < 0.2 && (GameObject.GetInstance().GameTime - route.StartDate).TotalDays >= 30)
                             {
+                                System.Threading.Interlocked.Increment(ref AIRouteChoice.EmptyDropped);
                                 airline.RemoveRoute(route);
 
                                 if (route.HasAirliner)
@@ -1639,6 +1689,7 @@ namespace TheAirline.Helpers
             long pfC = Profiler.Start();
             Airport airport = GetRouteStartDestination(airline);
             Profiler.Stop("route search: start airport", pfC);
+            if (airport == null) System.Threading.Interlocked.Increment(ref AIRouteChoice.NoStart);
 
             if (airport != null)
             {
@@ -1649,6 +1700,7 @@ namespace TheAirline.Helpers
                                           ? AIRouteChoice.PickDestination(airline, airport, GetDestinationAirports(airline, airport))
                                           : GetDestinationAirport(airline, airport);
                 Profiler.Stop("route search: destination", pfC);
+                if (destination == null) System.Threading.Interlocked.Increment(ref AIRouteChoice.NoDestination);
 
                 if (destination != null)
                 {
@@ -1658,18 +1710,26 @@ namespace TheAirline.Helpers
                                             && (Rnd.Next(5) > 1 || airline.Money < 10000000));
 
                     pfC = Profiler.Start();
-                    KeyValuePair<Airliner, bool>? airliner = GetAirlinerForRoute(
-                        airline,
-                        airport,
-                        destination,
-                        doLeasing,
-                        airline.AirlineRouteFocus);
-                    Profiler.Stop("route search: aircraft to buy", pfC);
-
-                    pfC = Profiler.Start();
                     FleetAirliner fAirliner = GetFleetAirliner(airline, airport, destination);
                     Profiler.Stop("route search: own aircraft", pfC);
 
+                    // the market is only searched when no aircraft of the fleet can fly the route
+                    KeyValuePair<Airliner, bool>? airliner = null;
+                    if (fAirliner == null)
+                    {
+                        pfC = Profiler.Start();
+                        airliner = GetAirlinerForRoute(
+                            airline,
+                            airport,
+                            destination,
+                            doLeasing,
+                            airline.AirlineRouteFocus);
+                        Profiler.Stop("route search: aircraft to buy", pfC);
+                    }
+
+                    if (!airliner.HasValue && fAirliner == null) System.Threading.Interlocked.Increment(ref AIRouteChoice.NoAircraft);
+                    if (fAirliner != null) System.Threading.Interlocked.Increment(ref AIRouteChoice.UsedIdle);
+                    else if (airliner.HasValue) System.Threading.Interlocked.Increment(ref AIRouteChoice.GotAircraft);
                     if (airliner.HasValue || fAirliner != null)
                     {
                         if (!AirportHelpers.HasFreeGates(destination, airline))
