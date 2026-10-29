@@ -40,6 +40,7 @@ namespace TheAirline.Desktop.Views
         private static readonly Pen SelectPen = new Pen(Brushes.Red, 2);
         private static readonly Typeface Face = new Typeface("sans-serif");
 
+        private static readonly IBrush FlowBrush = new SolidColorBrush(Color.FromArgb(210, 255, 255, 255));
         private static readonly Pen PathPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 200, 30, 30)), 2, new DashStyle(new double[] { 5, 4 }, 0));
 
         // about 30 frames a second while aircraft are moving
@@ -58,7 +59,7 @@ namespace TheAirline.Desktop.Views
             DataContextChanged += (s, e) => Attach();
             _frames.Tick += (s, e) =>
             {
-                if (_vm != null && _vm.Animate && _vm.ShowAircraft && _vm.Clock.Running && IsVisible) InvalidateVisual();
+                if (_vm != null && _vm.Animate && (_vm.ShowAircraft || _vm.ShowRoutes) && _vm.Clock.Running && IsVisible) InvalidateVisual();
             };
             AttachedToVisualTree += (s, e) => _frames.Start();
             DetachedFromVisualTree += (s, e) => _frames.Stop();
@@ -294,6 +295,12 @@ namespace TheAirline.Desktop.Views
                 }
             }
 
+            bool animate = _vm.Animate;
+            DateTime now = animate ? _vm.Clock.Now(WorldMapViewModel.WallSeconds) : _vm.Clock.Latest;
+
+            // dashes flowing along each route that has an aircraft in the air, the way it flies
+            if (animate && _vm.ShowRoutes) DrawFlow(ctx, now);
+
             if (_vm.ShowAirports)
             {
                 foreach (var pl in _vm.Places.ToList())
@@ -312,8 +319,6 @@ namespace TheAirline.Desktop.Views
 
             if (_vm.ShowAircraft)
             {
-                bool animate = _vm.Animate;
-                DateTime now = animate ? _vm.Clock.Now(WorldMapViewModel.WallSeconds) : _vm.Clock.Latest;
                 var aircraft = _vm.Aircraft.ToList();
 
                 // the selected aircraft's whole flight
@@ -372,6 +377,59 @@ namespace TheAirline.Desktop.Views
                         ctx.DrawEllipse(null, SelectPen, p, 12, 12);
                     }
                 }
+            }
+        }
+
+        // the flights' paths in screen points, made again only when the view changes
+        private readonly Dictionary<(double, double, double, double), List<StreamGeometry>> _flowGeo = new Dictionary<(double, double, double, double), List<StreamGeometry>>();
+        private (double, double, double, double, double) _flowView;
+
+        private const double FlowSpeed = 14; // screen points a second
+
+        private void DrawFlow(DrawingContext ctx, DateTime now)
+        {
+            var view = (_scale, _cx, _cy, Bounds.Width, Bounds.Height);
+            if (_flowView != view || _flowGeo.Count > 2000)
+            {
+                _flowGeo.Clear();
+                _flowView = view;
+            }
+
+            // the dash pattern moves along the line: a negative offset carries it from the start towards the end
+            // (pen units are the pen's thickness)
+            const double thickness = 2.2;
+            double offset = -((WorldMapViewModel.WallSeconds * FlowSpeed / thickness) % 4.8); // one dash and gap: 1.6 + 3.2
+            var pen = new Pen(FlowBrush, thickness, new DashStyle(new double[] { 1.6, 3.2 }, offset), PenLineCap.Round);
+            var drawn = new HashSet<(double, double, double, double)>();
+            foreach (var a in _vm.Aircraft.ToList())
+            {
+                if (!a.HasFlight) continue;
+                double fr = a.Fraction(now);
+                if (fr <= 0 || fr >= 1) continue;
+                var key = (a.Lat1, a.Lon1, a.Lat2, a.Lon2);
+                if (!drawn.Add(key)) continue; // one flow a direction, however many aircraft fly it
+                List<StreamGeometry> pieces;
+                if (!_flowGeo.TryGetValue(key, out pieces))
+                {
+                    pieces = new List<StreamGeometry>();
+                    foreach (var piece in a.Path.Pieces)
+                    {
+                        if (piece.Count < 2) continue;
+                        var geo = new StreamGeometry();
+                        using (var g = geo.Open())
+                        {
+                            g.BeginFigure(ToScreen(piece[0][0], piece[0][1]), false);
+                            for (int i = 1; i < piece.Count; i++) g.LineTo(ToScreen(piece[i][0], piece[i][1]));
+                            g.EndFigure(false);
+                        }
+
+                        pieces.Add(geo);
+                    }
+
+                    _flowGeo[key] = pieces;
+                }
+
+                foreach (var geo in pieces) ctx.DrawGeometry(null, pen, geo);
             }
         }
 
