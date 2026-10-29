@@ -40,11 +40,28 @@ namespace TheAirline.Desktop.Views
         private static readonly Pen SelectPen = new Pen(Brushes.Red, 2);
         private static readonly Typeface Face = new Typeface("sans-serif");
 
+        private static readonly Pen PathPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 200, 30, 30)), 2, new DashStyle(new double[] { 5, 4 }, 0));
+
+        // about 30 frames a second while aircraft are moving
+        private readonly DispatcherTimer _frames = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+
+        // the route lines in screen points, made again only when the view or the routes change
+        private List<StreamGeometry> _routeGeo;
+        private readonly Dictionary<StreamGeometry, bool> _routeCargo = new Dictionary<StreamGeometry, bool>();
+        private object _routeLines;
+        private (double, double, double, double, double) _routeView;
+
         public WorldMapControl()
         {
             ClipToBounds = true;
             Focusable = true;
             DataContextChanged += (s, e) => Attach();
+            _frames.Tick += (s, e) =>
+            {
+                if (_vm != null && _vm.Animate && _vm.ShowAircraft && _vm.Clock.Running && IsVisible) InvalidateVisual();
+            };
+            AttachedToVisualTree += (s, e) => _frames.Start();
+            DetachedFromVisualTree += (s, e) => _frames.Stop();
         }
 
         private void Attach()
@@ -141,8 +158,8 @@ namespace TheAirline.Desktop.Views
         public void CenterOnSelected()
         {
             if (_vm?.Selected == null) return;
-            _cx = _vm.Selected.U;
-            _cy = _vm.Selected.V;
+            _cx = _vm.Selected.ScreenU;
+            _cy = _vm.Selected.ScreenV;
             if (_scale < MinScale * 3) _scale = MinScale * 3;
             Clamp();
             InvalidateVisual();
@@ -243,21 +260,37 @@ namespace TheAirline.Desktop.Views
 
             if (_vm.ShowRoutes)
             {
-                foreach (var line in _vm.Lines.ToList())
+                var lines = _vm.Lines;
+                var view = (_scale, _cx, _cy, Bounds.Width, Bounds.Height);
+                if (_routeGeo == null || !ReferenceEquals(_routeLines, lines) || _routeView != view)
                 {
-                    foreach (var piece in line.Pieces)
+                    _routeGeo = new List<StreamGeometry>();
+                    _routeCargo.Clear();
+                    _routeLines = lines;
+                    _routeView = view;
+                    foreach (var line in lines.ToList())
                     {
-                        if (piece.Count < 2) continue;
-                        var geo = new StreamGeometry();
-                        using (var g = geo.Open())
+                        foreach (var piece in line.Pieces)
                         {
-                            g.BeginFigure(ToScreen(piece[0][0], piece[0][1]), false);
-                            for (int i = 1; i < piece.Count; i++) g.LineTo(ToScreen(piece[i][0], piece[i][1]));
-                            g.EndFigure(false);
-                        }
+                            if (piece.Count < 2) continue;
+                            var geo = new StreamGeometry();
+                            using (var g = geo.Open())
+                            {
+                                g.BeginFigure(ToScreen(piece[0][0], piece[0][1]), false);
+                                for (int i = 1; i < piece.Count; i++) g.LineTo(ToScreen(piece[i][0], piece[i][1]));
+                                g.EndFigure(false);
+                            }
 
-                        ctx.DrawGeometry(null, line.IsCargo ? CargoPen : RoutePen, geo);
+                            _routeGeo.Add(geo);
+                            _routeCargo[geo] = line.IsCargo;
+                        }
                     }
+                }
+
+                foreach (var geo in _routeGeo)
+                {
+                    bool cargo;
+                    ctx.DrawGeometry(null, _routeCargo.TryGetValue(geo, out cargo) && cargo ? CargoPen : RoutePen, geo);
                 }
             }
 
@@ -279,13 +312,43 @@ namespace TheAirline.Desktop.Views
 
             if (_vm.ShowAircraft)
             {
-                foreach (var a in _vm.Aircraft.ToList())
+                bool animate = _vm.Animate;
+                DateTime now = animate ? _vm.Clock.Now(WorldMapViewModel.WallSeconds) : _vm.Clock.Latest;
+                var aircraft = _vm.Aircraft.ToList();
+
+                // the selected aircraft's whole flight
+                var sel = _vm.Selected;
+                if (sel?.Path != null && sel.Fraction(now) > 0 && sel.Fraction(now) < 1)
                 {
-                    Point p = ToScreen(a.U, a.V);
-                    if (p.X < -20 || p.Y < -20 || p.X > Bounds.Width + 20 || p.Y > Bounds.Height + 20) continue;
-                    if (a.InFlight)
+                    foreach (var piece in sel.Path.Pieces)
                     {
-                        double rad = a.Heading * Math.PI / 180, s = Math.Sin(rad), c = Math.Cos(rad);
+                        if (piece.Count < 2) continue;
+                        var geo = new StreamGeometry();
+                        using (var g = geo.Open())
+                        {
+                            g.BeginFigure(ToScreen(piece[0][0], piece[0][1]), false);
+                            for (int i = 1; i < piece.Count; i++) g.LineTo(ToScreen(piece[i][0], piece[i][1]));
+                            g.EndFigure(false);
+                        }
+
+                        ctx.DrawGeometry(null, PathPen, geo);
+                    }
+                }
+
+                foreach (var a in aircraft)
+                {
+                    double u = a.U, v = a.V, heading = a.Heading;
+                    bool flying = a.InFlight;
+                    if (animate) flying = a.At(now, out u, out v, out heading);
+
+                    Point p = ToScreen(u, v);
+                    if (p.X < -40 || p.Y < -40 || p.X > Bounds.Width + 40 || p.Y > Bounds.Height + 40) continue;
+                    a.ScreenU = u;
+                    a.ScreenV = v;
+                    if (flying)
+                    {
+                        if (animate) DrawTrail(ctx, a, now);
+                        double rad = heading * Math.PI / 180, s = Math.Sin(rad), c = Math.Cos(rad);
                         Point R(double x, double y) => new Point(p.X + x * c - y * s, p.Y + x * s + y * c);
                         var plane = new StreamGeometry();
                         using (var g = plane.Open())
@@ -309,6 +372,27 @@ namespace TheAirline.Desktop.Views
                         ctx.DrawEllipse(null, SelectPen, p, 12, 12);
                     }
                 }
+            }
+        }
+
+        // a short fading line behind a flying aircraft: a few segments, lighter towards the tail
+        private void DrawTrail(DrawingContext ctx, MapAircraft a, DateTime now)
+        {
+            // about 40 screen points long, whatever the zoom and the flight's length
+            double flightPx = 0;
+            var ends = new[] { WorldMapViewModel.Project(a.Lat1, a.Lon1), WorldMapViewModel.Project(a.Lat2, a.Lon2) };
+            double du = Math.Abs(ends[1][0] - ends[0][0]);
+            if (du > 0.5) du = 1 - du;
+            flightPx = Math.Sqrt(du * du + Math.Pow(ends[1][1] - ends[0][1], 2)) * _scale;
+            if (flightPx < 1) return;
+            double back = Math.Min(0.5, 40 / flightPx);
+            var points = a.Trail(now, back, 6);
+            for (int i = 1; i < points.Count; i++)
+            {
+                if (Math.Abs(points[i][0] - points[i - 1][0]) > 0.5) continue; // across the edge of the picture
+                byte alpha = (byte) (30 + 170 * i / points.Count);
+                var pen = new Pen(new SolidColorBrush(Color.FromArgb(alpha, 232, 168, 0)), 1 + 2.0 * i / points.Count);
+                ctx.DrawLine(pen, ToScreen(points[i - 1][0], points[i - 1][1]), ToScreen(points[i][0], points[i][1]));
             }
         }
 
@@ -364,7 +448,7 @@ namespace TheAirline.Desktop.Views
             {
                 Point p = e.GetPosition(this);
                 var hit = _vm.Aircraft.ToList()
-                             .Select(a => new { a, d = Distance(ToScreen(a.U, a.V), p) })
+                             .Select(a => new { a, d = Distance(ToScreen(a.ScreenU, a.ScreenV), p) })
                              .Where(x => x.d < 14)
                              .OrderBy(x => x.d)
                              .FirstOrDefault();
@@ -380,7 +464,7 @@ namespace TheAirline.Desktop.Views
             {
                 if (_vm.ShowAircraft)
                 {
-                    var plane = _vm.Aircraft.ToList().Select(a => new { a, d = Distance(ToScreen(a.U, a.V), p) }).Where(x => x.d < 12).OrderBy(x => x.d).FirstOrDefault();
+                    var plane = _vm.Aircraft.ToList().Select(a => new { a, d = Distance(ToScreen(a.ScreenU, a.ScreenV), p) }).Where(x => x.d < 12).OrderBy(x => x.d).FirstOrDefault();
                     if (plane != null)
                     {
                         key = "a:" + plane.a.Aircraft.Name + plane.a.Info;

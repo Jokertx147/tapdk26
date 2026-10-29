@@ -38,6 +38,144 @@ namespace TheAirline.Presentation
         public bool InFlight { get; set; }
         public string Name { get; set; }
         public string Info { get; set; }
+
+        /// <summary>Where the map last drew the aircraft (it moves between reads of the game); U and V until drawn.</summary>
+        public double ScreenU
+        {
+            get { return double.IsNaN(_drawnU) ? U : _drawnU; }
+            set { _drawnU = value; }
+        }
+
+        public double ScreenV
+        {
+            get { return double.IsNaN(_drawnV) ? V : _drawnV; }
+            set { _drawnV = value; }
+        }
+
+        private double _drawnU = double.NaN, _drawnV = double.NaN;
+
+        // the current (or next) flight, so the map can move the aircraft between two reads of the game
+        public bool HasFlight { get; set; }
+        public double Lat1 { get; set; }
+        public double Lon1 { get; set; }
+        public double Lat2 { get; set; }
+        public double Lon2 { get; set; }
+        public DateTime Takeoff { get; set; }
+        public DateTime Landing { get; set; }
+
+        private MapLine _path;
+
+        /// <summary>The share of the flight flown at a game time (below 0 before takeoff, above 1 after landing).</summary>
+        public double Fraction(DateTime t)
+        {
+            if (!HasFlight || Landing <= Takeoff) return InFlight ? 0.5 : 0;
+            return (t - Takeoff).TotalSeconds/(Landing - Takeoff).TotalSeconds;
+        }
+
+        /// <summary>Where the aircraft is at a game time: on its flight's great circle while flying, else at the airport it is at.</summary>
+        public bool At(DateTime t, out double u, out double v, out double heading)
+        {
+            heading = Heading;
+            if (!HasFlight)
+            {
+                u = U;
+                v = V;
+                return InFlight;
+            }
+
+            double fr = Fraction(t);
+            if (fr <= 0 || fr >= 1)
+            {
+                double[] p = fr <= 0 ? WorldMapViewModel.Project(Lat1, Lon1) : WorldMapViewModel.Project(Lat2, Lon2);
+                u = p[0];
+                v = p[1];
+                return false;
+            }
+
+            double[] here = WorldMapViewModel.OnFlight(this, fr), ahead = WorldMapViewModel.OnFlight(this, Math.Min(1, fr + 0.01));
+            u = here[0];
+            v = here[1];
+            double du = ahead[0] - here[0];
+            if (du > 0.5) du -= 1; else if (du < -0.5) du += 1;
+            if (Math.Abs(du) + Math.Abs(ahead[1] - here[1]) > 1e-12) heading = Math.Atan2(du, -(ahead[1] - here[1]))*180/Math.PI;
+            return true;
+        }
+
+        /// <summary>The path flown in the last `back` share of the flight up to a game time (for a trail behind the aircraft).</summary>
+        public List<double[]> Trail(DateTime t, double back, int steps = 8)
+        {
+            var points = new List<double[]>();
+            double fr = Fraction(t);
+            if (!HasFlight || fr <= 0 || fr >= 1) return points;
+            double from = Math.Max(0, fr - back);
+            for (int i = 0; i <= steps; i++) points.Add(WorldMapViewModel.OnFlight(this, from + (fr - from)*i/steps));
+            return points;
+        }
+
+        /// <summary>The whole flight, from departure to destination.</summary>
+        public MapLine Path => HasFlight ? _path ?? (_path = WorldMapViewModel.MakeLine(Lat1, Lon1, Lat2, Lon2, false)) : null;
+    }
+
+    /// <summary>
+    ///     The game time to show on the map between two reads of the game: it runs on at the speed the game is running,
+    ///     so aircraft glide instead of jumping every half second, and it stops when the game is paused.
+    /// </summary>
+    public class MapClock
+    {
+        private readonly List<Tuple<double, DateTime>> _samples = new List<Tuple<double, DateTime>>();
+        private DateTime _shown;
+        private double _shownAt = double.NaN;
+        private bool _paused = true;
+
+        /// <summary>Game seconds per real second, from the last few seconds.</summary>
+        public double Rate { get; private set; }
+
+        public DateTime Latest { get; private set; }
+
+        public bool Running => !_paused && Rate > 0;
+
+        /// <summary>A read of the game: its time now, `wall` real seconds since some fixed moment.</summary>
+        public void Sample(double wall, DateTime game, bool paused)
+        {
+            if (_samples.Count > 0 && game < _samples[_samples.Count - 1].Item2) _samples.Clear(); // a game was loaded
+            _samples.Add(Tuple.Create(wall, game));
+            while (_samples.Count > 2 && wall - _samples[0].Item1 > 3) _samples.RemoveAt(0);
+            _paused = paused;
+            Latest = game;
+            var first = _samples[0];
+            double dw = wall - first.Item1;
+            Rate = paused || dw <= 0 ? 0 : Math.Max(0, (game - first.Item2).TotalSeconds/dw);
+            if (_shown == default(DateTime) || game < _shown.AddHours(-12) || game > _shown.AddDays(2))
+            {
+                _shown = game; // the start, a loaded game or a fast-forward: no gliding across
+                _shownAt = wall;
+            }
+        }
+
+        /// <summary>The game time to draw at real time `wall`: it never runs backwards, and never far ahead of the game.</summary>
+        public DateTime Now(double wall)
+        {
+            if (_samples.Count == 0) return Latest;
+            if (double.IsNaN(_shownAt)) _shownAt = wall;
+            double dt = Math.Max(0, Math.Min(0.5, wall - _shownAt));
+            _shownAt = wall;
+            if (!Running)
+            {
+                // paused: settle on the game's time
+                if (_shown < Latest) _shown = Latest;
+                return _shown;
+            }
+
+            var last = _samples[_samples.Count - 1];
+            double ahead = Math.Min(1.0, Math.Max(0, wall - last.Item1));
+            DateTime target = last.Item2.AddSeconds(Rate*ahead);
+            // run at the game's speed, catching up (or slowing down) smoothly towards where the game should be
+            double gap = (target - _shown).TotalSeconds;
+            double step = Rate*dt + gap*Math.Min(1, 3*dt);
+            if (Math.Abs(gap) > Rate*4 + 3600) step = gap; // too far off: jump
+            if (step > 0) _shown = _shown.AddSeconds(step);
+            return _shown;
+        }
     }
 
     /// <summary>A world map with the airports, routes and aircraft of the airline.</summary>
@@ -50,6 +188,23 @@ namespace TheAirline.Presentation
         public List<MapPlace> Places { get; private set; } = new List<MapPlace>();
         public List<MapLine> Lines { get; private set; } = new List<MapLine>();
         public List<MapAircraft> Aircraft { get; private set; } = new List<MapAircraft>();
+
+        /// <summary>The game time the map draws, running on smoothly between reads of the game.</summary>
+        public MapClock Clock { get; } = new MapClock();
+
+        private static readonly System.Diagnostics.Stopwatch Wall = System.Diagnostics.Stopwatch.StartNew();
+
+        /// <summary>Real seconds for the clock.</summary>
+        public static double WallSeconds => Wall.Elapsed.TotalSeconds;
+
+        private bool _animate = true;
+
+        /// <summary>Aircraft glide along their routes (instead of moving every half second) with a short trail behind them.</summary>
+        public bool Animate
+        {
+            get { return _animate; }
+            set { if (SetProperty(ref _animate, value)) Changed?.Invoke(); }
+        }
 
         /// <summary>Raised after Reload so the view can redraw.</summary>
         public event Action Changed;
@@ -191,7 +346,7 @@ namespace TheAirline.Presentation
             return (longitude + 180) / 360;
         }
 
-        private static double[] Project(double lat, double lon)
+        public static double[] Project(double lat, double lon)
         {
             return new[] { MercatorU(lon), MercatorV(lat) };
         }
@@ -224,11 +379,24 @@ namespace TheAirline.Presentation
             lon = Math.Atan2(y, x) * 180 / Math.PI;
         }
 
+        /// <summary>The point a share `fr` of the way along the aircraft's flight.</summary>
+        public static double[] OnFlight(MapAircraft a, double fr)
+        {
+            double lat, lon;
+            Between(a.Lat1, a.Lon1, a.Lat2, a.Lon2, fr, out lat, out lon);
+            return Project(lat, lon);
+        }
+
         private static MapLine MakeLine(Airport a, Airport b, bool cargo)
         {
             double la1, lo1, la2, lo2;
             Coords(a, out la1, out lo1);
             Coords(b, out la2, out lo2);
+            return MakeLine(la1, lo1, la2, lo2, cargo);
+        }
+
+        public static MapLine MakeLine(double la1, double lo1, double la2, double lo2, bool cargo)
+        {
             var line = new MapLine { IsCargo = cargo };
             var piece = new List<double[]>();
             double lastU = double.NaN;
@@ -257,7 +425,7 @@ namespace TheAirline.Presentation
             return f.Status.ToString().Replace("To", "To ").Replace("On", "On ").Trim();
         }
 
-        private static MapAircraft Place(FleetAirliner f, DateTime now)
+        public static MapAircraft Place(FleetAirliner f, DateTime now)
         {
             double lat, lon, heading = 0;
             bool flying = false;
@@ -288,13 +456,15 @@ namespace TheAirline.Presentation
                         info = "flying " + from.Profile.IATACode + " - " + to.Profile.IATACode + ", " + (int) (fr * 100) + "% of the way, lands "
                                + DateFormatter.DateTime(landing);
                         double[] pos = Project(lat, lon);
-                        return Make(f, pos, heading, true, info);
+                        return WithFlight(Make(f, pos, heading, true, info), la1, lo1, la2, lo2, takeoff, landing);
                     }
 
                     if (now < takeoff && from != null)
                     {
                         at = from;
                         info = "at " + at.Profile.IATACode + ", departs " + DateFormatter.DateTime(takeoff) + " to " + to.Profile.IATACode;
+                        // about to take off: the map can start it moving before the next read of the game
+                        if (landing > takeoff) return WithFlight(Make(f, Project(la1, lo1), 0, false, info), la1, lo1, la2, lo2, takeoff, landing);
                     }
                     else if (now >= landing)
                     {
@@ -318,6 +488,18 @@ namespace TheAirline.Presentation
 
             Coords(at, out lat, out lon);
             return Make(f, Project(lat, lon), heading, flying, info);
+        }
+
+        private static MapAircraft WithFlight(MapAircraft a, double la1, double lo1, double la2, double lo2, DateTime takeoff, DateTime landing)
+        {
+            a.HasFlight = true;
+            a.Lat1 = la1;
+            a.Lon1 = lo1;
+            a.Lat2 = la2;
+            a.Lon2 = lo2;
+            a.Takeoff = takeoff;
+            a.Landing = landing;
+            return a;
         }
 
         private static MapAircraft Make(FleetAirliner f, double[] p, double heading, bool flying, string info)
@@ -345,6 +527,9 @@ namespace TheAirline.Presentation
 
             DateTime now = GameObject.GetInstance().GameTime;
             string keep = _selected?.Aircraft.Name;
+            bool paused = true;
+            try { paused = TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused; } catch (Exception) { }
+            Clock.Sample(WallSeconds, now, paused);
 
             List<FleetAirliner> fleet;
             List<Route> routes;

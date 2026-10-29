@@ -8,6 +8,7 @@
       <CheckBox Content="Routes" IsChecked="{Binding ShowRoutes}" />
       <CheckBox Content="Airports" IsChecked="{Binding ShowAirports}" />
       <CheckBox Content="Aircraft" IsChecked="{Binding ShowAircraft}" />
+      <CheckBox Content="Animate" IsChecked="{Binding Animate}" ToolTip.Tip="Aircraft glide along their routes with a trail behind them. Turn off on a slow computer." />
       <TextBlock Text="{Binding Caption}" VerticalAlignment="Center" Opacity="0.7" />
       <Button Content="+" Click="ZoomIn" ToolTip.Tip="Zoom in" MinWidth="32" />
       <Button Content="-" Click="ZoomOut" ToolTip.Tip="Zoom out" MinWidth="32" />
@@ -19,7 +20,7 @@
     </Border>
     <StackPanel Grid.Row="2" Margin="0,6,0,0" Spacing="2">
       <TextBlock Text="{Binding SelectedText}" TextWrapping="Wrap" />
-      <TextBlock Text="Drag to move (arrow keys work too), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air, grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="Drag to move (arrow keys work too), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air (they glide with a trail while the game runs; click one to see its whole flight), grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
 </UserControl>

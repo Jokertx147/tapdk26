@@ -763,6 +763,86 @@ static class VmTest
     ///     "vm forecast": the route planner suggests a number of round trips from a forecast; two routes are made (one at
     ///     the suggestion, one at the most the aircraft can fly), flown for a month, and the forecast is compared.
     /// </summary>
+    // the world map's aircraft glide between reads of the game: the clock and the positions along a flight
+    static void MapAnimTest(AirlineViewModel av)
+    {
+        Console.WriteLine("MAP ANIMATION TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+
+        // 1. the clock: game time runs on at the game's speed between reads, never backwards, and stops when paused
+        var clock = new TheAirline.Presentation.MapClock();
+        var t0 = new DateTime(2007, 1, 1, 8, 0, 0);
+        clock.Sample(0, t0, false);
+        clock.Sample(0.5, t0.AddMinutes(30), false);
+        clock.Sample(1.0, t0.AddMinutes(60), false);
+        Console.WriteLine("  rate " + clock.Rate.ToString("0") + " game seconds a second");
+        if (Math.Abs(clock.Rate - 3600) > 1) fail("rate " + clock.Rate);
+        DateTime prev = clock.Now(1.0);
+        for (double w = 1.033; w < 1.6; w += 0.033)
+        {
+            var n = clock.Now(w);
+            if (n < prev) fail("the clock ran backwards at " + w);
+            prev = n;
+        }
+        if (prev <= t0.AddMinutes(60)) fail("the clock didn't run on between reads: " + prev);
+        if (prev > t0.AddMinutes(60 + 60 + 1)) fail("the clock ran too far ahead of the game: " + prev);
+        Console.WriteLine("  between reads it reached " + prev.ToString("HH:mm:ss") + " (last read 09:00)");
+        clock.Sample(1.6, t0.AddMinutes(80), true);
+        var paused = clock.Now(1.7);
+        if (clock.Running || clock.Now(3.0) != paused) fail("the clock moved while paused");
+        if (paused < t0.AddMinutes(80)) fail("paused before the game's time");
+        clock.Sample(4.0, t0.AddDays(-10), false);
+        if (clock.Now(4.03) > t0.AddDays(-9)) fail("a loaded (earlier) game kept the old time");
+
+        // 2. an aircraft in the air: where it is at the read, along its flight, and on the ground after landing
+        // (a headless game day ends at midnight: the aircraft is placed half way through its next flight)
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        TheAirline.Presentation.MapAircraft m = null;
+        DateTime at = default(DateTime);
+        for (int i = 0; i < 60 && m == null; i++)
+        {
+            TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            foreach (var f in TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Fleet.ToList()))
+            {
+                var fl = f.CurrentFlight;
+                if (fl?.Entry == null || f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) continue;
+                var landing = fl.GetExpectedLandingTime();
+                if ((landing - fl.FlightTime).TotalMinutes < 60) continue;
+                at = fl.FlightTime + TimeSpan.FromTicks((landing - fl.FlightTime).Ticks / 2);
+                var x = TheAirline.Presentation.WorldMapViewModel.Place(f, at);
+                if (x != null && x.InFlight && x.HasFlight) { m = x; break; }
+            }
+        }
+        if (m == null) fail("no aircraft with a flight");
+        Console.WriteLine("  " + m.Name + ": " + m.Info);
+        double u, v, h;
+        if (!m.At(at, out u, out v, out h)) fail("not flying at the read");
+        if (Math.Abs(u - m.U) > 1e-9 || Math.Abs(v - m.V) > 1e-9) fail("not where the read put it");
+        var span = m.Landing - m.Takeoff;
+        double u1, v1, u2, v2;
+        m.At(m.Takeoff + TimeSpan.FromTicks(span.Ticks / 4), out u1, out v1, out h);
+        m.At(m.Takeoff + TimeSpan.FromTicks(span.Ticks * 3 / 4), out u2, out v2, out h);
+        var start = TheAirline.Presentation.WorldMapViewModel.Project(m.Lat1, m.Lon1);
+        var end = TheAirline.Presentation.WorldMapViewModel.Project(m.Lat2, m.Lon2);
+        Func<double, double, double, double, double> dist = (a1, b1, a2, b2) => { double du = Math.Abs(a1 - a2); if (du > 0.5) du = 1 - du; return Math.Sqrt(du * du + (b1 - b2) * (b1 - b2)); };
+        if (!(dist(u1, v1, start[0], start[1]) < dist(u2, v2, start[0], start[1]))) fail("a quarter of the way is not nearer the start than three quarters");
+        if (!(dist(u2, v2, end[0], end[1]) < dist(u1, v1, end[0], end[1]))) fail("three quarters of the way is not nearer the end");
+        if (double.IsNaN(h)) fail("no heading");
+        if (m.At(m.Landing.AddMinutes(1), out u, out v, out h)) fail("still flying after landing");
+        if (dist(u, v, end[0], end[1]) > 1e-9) fail("not at the destination after landing");
+        if (m.At(m.Takeoff.AddMinutes(-1), out u, out v, out h)) fail("flying before takeoff");
+        var trail = m.Trail(at, 0.1, 6);
+        if (trail.Count != 7 || dist(trail[6][0], trail[6][1], m.U, m.V) > 1e-9) fail("the trail doesn't end at the aircraft");
+        if (m.Path == null || m.Path.Pieces.Sum(p => p.Count) < 10) fail("no path for the selected aircraft");
+        Console.WriteLine(string.Format("  at the read {0:0.0000},{1:0.0000}; a quarter of the way {2:0.0000},{3:0.0000}; three quarters {4:0.0000},{5:0.0000}", m.U, m.V, u1, v1, u2, v2));
+
+        // 3. the map reads the game's clock on every refresh
+        av.Map.Reload();
+        if (av.Map.Clock.Latest != g.GameTime) fail("the map's clock didn't read the game");
+        if (!av.Map.Animate) fail("animation off by default");
+        Console.WriteLine("MAP ANIMATION TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2233,6 +2313,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("skip")) { await SkipTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("renewalorder")) { await RenewalOrderTest(av); return; }
