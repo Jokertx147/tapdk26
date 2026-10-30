@@ -597,29 +597,23 @@ namespace TheAirline.Models.Airports
             return DestinationPassengers.Find(a => a.Destination == destination.Profile.IATACode);
         }
 
+        // each class's place in the class list, from 1 (the extra demand is divided by it, as before)
+        private static readonly Dictionary<AirlinerClass.ClassType, int> ClassNumbers =
+            Enum.GetValues(typeof (AirlinerClass.ClassType)).Cast<AirlinerClass.ClassType>().Select((t, i) => new {t, i}).ToDictionary(x => x.t, x => x.i + 1);
+
         public ushort GetDestinationPassengersRate(Airport destination, AirlinerClass.ClassType type)
         {
-            DestinationDemand pax = DestinationPassengers.Find(a => a.Destination == destination.Profile.IATACode);
-
-            Array values = Enum.GetValues(typeof (AirlinerClass.ClassType));
-
-            int classFactor = 0;
-
-            int i = 1;
-
-            foreach (AirlinerClass.ClassType value in values)
-            {
-                if (value == type)
-                {
-                    classFactor = i;
-                }
-                i++;
-            }
+            // most airports have no extra demand on top of the data's: no search then
+            var extra = DestinationPassengers;
+            DestinationDemand pax = extra == null || extra.Count == 0 ? null : extra.Find(a => a.Destination == destination.Profile.IATACode);
 
             if (pax == null)
             {
                 return Statics.GetDestinationPassengersRate(destination, type);
             }
+
+            int classFactor;
+            ClassNumbers.TryGetValue(type, out classFactor);
             return
                 (ushort)
                 (Statics.GetDestinationPassengersRate(destination, type) + (ushort) (pax.Rate/classFactor));

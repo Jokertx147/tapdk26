@@ -23,6 +23,9 @@ namespace TheAirline.Helpers
             public readonly Dictionary<Airport, Dictionary<Airport, List<Route>>> Direct = new Dictionary<Airport, Dictionary<Airport, List<Route>>>();
             public readonly Dictionary<Airport, Dictionary<Airport, List<Route>>> Legs = new Dictionary<Airport, Dictionary<Airport, List<Route>>>();
             public readonly Dictionary<Airport, List<Route>> At = new Dictionary<Airport, List<Route>>();
+
+            // results worked out from this snapshot, dropped with it
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<object, object> Derived = new System.Collections.Concurrent.ConcurrentDictionary<object, object>();
         }
 
         private static readonly object BuildLock = new object();
@@ -77,6 +80,18 @@ namespace TheAirline.Helpers
             List<Route> list;
             if (!map.TryGetValue(a, out list)) map[a] = list = new List<Route>();
             list.Add(r);
+        }
+
+        /// <summary>
+        ///     Something worked out from the routes, kept until the routes change (or the day does). The key must be
+        ///     unique to the caller (include a tag); the result is shared between threads, so don't change it.
+        /// </summary>
+        public static T Derived<T>(object key, System.Func<T> make) where T : class
+        {
+            var d = Current().Derived;
+            object v;
+            if (d.TryGetValue(key, out v)) return (T) v;
+            return (T) d.GetOrAdd(key, make());
         }
 
         /// <summary>Every airline's routes that start or end at the airport, in airline order. Don't change the list.</summary>

@@ -54,21 +54,50 @@ namespace TheAirline.Models.General.Finances
             AddInvoice(invoice.Type, invoice.Date.Year, invoice.Date.Month, invoice.Date.Day, invoice.Amount);
         }
 
+        // the day's amount of each type, found without going through every amount the airline ever had (thousands
+        // after a few years, for every payment of every flight); made again when the list changed from outside
+        [NonSerialized]
+        private Dictionary<long, MonthlyInvoice> _index;
+
+        [NonSerialized]
+        private int _indexCount = -1;
+
+        [NonSerialized]
+        private List<MonthlyInvoice> _indexList;
+
+        private static long Key(Invoice.InvoiceType type, int year, int month, int day)
+        {
+            return (((long) year*13 + month)*32 + day)*256 + (int) type;
+        }
+
         public void AddInvoice(Invoice.InvoiceType type, int year, int month, int day, double amount)
         {
             lock (MonthlyInvoices)
             {
-                if (Contains(type, year, month, day))
+                if (_index == null || _indexCount != MonthlyInvoices.Count || !ReferenceEquals(_indexList, MonthlyInvoices))
                 {
-                    MonthlyInvoice mInvoice =
-                        MonthlyInvoices.Find(m => m.Month == month && m.Year == year && m.Type == type && m.Day == day);
+                    _index = new Dictionary<long, MonthlyInvoice>();
+                    foreach (MonthlyInvoice m in MonthlyInvoices)
+                    {
+                        long k = Key(m.Type, m.Year, m.Month, m.Day);
+                        if (!_index.ContainsKey(k)) _index[k] = m; // the first, as Find took it
+                    }
+                    _indexList = MonthlyInvoices;
+                }
+
+                MonthlyInvoice mInvoice;
+                long key = Key(type, year, month, day);
+                if (_index.TryGetValue(key, out mInvoice))
+                {
                     mInvoice.Amount += amount;
                 }
                 else
                 {
-                    var mInvoice = new MonthlyInvoice(type, year, month, day, amount);
+                    mInvoice = new MonthlyInvoice(type, year, month, day, amount);
                     MonthlyInvoices.Add(mInvoice);
+                    _index[key] = mInvoice;
                 }
+                _indexCount = MonthlyInvoices.Count;
             }
         }
 

@@ -1218,6 +1218,9 @@ namespace TheAirline.Helpers
         {
             lock (airline.Fleet)
             {
+                // aircraft put up for lease that another airline has taken: theirs now (the owner is paid the rent)
+                airline.Fleet.RemoveAll(f => f.Airliner.Airline != null && f.Airliner.Airline != airline && f.Purchased != FleetAirliner.PurchasedType.Leased);
+
                 var fleet =
                     new List<FleetAirliner>(
                         airline.Fleet.FindAll(
@@ -1235,7 +1238,7 @@ namespace TheAirline.Helpers
                 fleet =
                     new List<FleetAirliner>(
                         airline.Fleet.FindAll(
-                            a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute));
+                            a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute && a.UsableBy(airline)));
 
                 // looking for a route takes long (every airport in range is weighed); when nothing was found, wait a few
                 // days before looking again instead of searching every day for the idle reserve aircraft
@@ -1257,7 +1260,7 @@ namespace TheAirline.Helpers
                             break;
                         }
                         System.Threading.Interlocked.Increment(ref AIRouteChoice.IdleRoutes);
-                        if (!airline.Fleet.Exists(a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute)) break;
+                        if (!airline.Fleet.Exists(a => a.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && !a.HasRoute && a.UsableBy(airline))) break;
                     }
                 }
             }
@@ -2168,7 +2171,7 @@ namespace TheAirline.Helpers
             List<FleetAirliner> fleet =
                 airline.Fleet.FindAll(
                     f =>
-                    !f.HasRoute && f.Airliner.BuiltDate <= GameObject.GetInstance().GameTime
+                    !f.HasRoute && f.Airliner.BuiltDate <= GameObject.GetInstance().GameTime && f.UsableBy(airline)
                     && AirlineTypeRules.CanUseType(airline, f.Airliner.Type)
                     && f.Airliner.Range
                     > MathHelpers.GetDistance(

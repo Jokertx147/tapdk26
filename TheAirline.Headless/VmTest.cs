@@ -1005,6 +1005,39 @@ static class VmTest
         Console.WriteLine("RIVAL MAP TEST OK");
     }
 
+    // the flight engine's quick sum of connecting passengers gives the same as the markets the Connections page lists
+    static void FastDemandTest()
+    {
+        Console.WriteLine("FAST DEMAND TEST");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int i = 0; i < 45; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int n = 0, nonzero = 0;
+        double worst = 0;
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        foreach (var r in a.Routes.ToList().Where(r => !r.IsCargoRoute).Take(60))
+        foreach (var t in new[] { TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass, TheAirline.Models.Airliners.AirlinerClass.ClassType.BusinessClass })
+        foreach (var dir in new[] { Tuple.Create(r.Destination1, r.Destination2), Tuple.Create(r.Destination2, r.Destination1) })
+        {
+            double slow = TheAirline.Helpers.ConnectionService.FlightDemandByMarkets(a, r, dir.Item1, dir.Item2, t);
+            double fast = TheAirline.Helpers.ConnectionService.FlightDemandFresh(a, r, dir.Item1, dir.Item2, t);
+            n++;
+            if (slow > 0) nonzero++;
+            worst = Math.Max(worst, Math.Abs(slow - fast));
+            if (Math.Abs(slow - fast) > 1e-9) { Console.WriteLine("  FAILED " + a.Profile.IATACode + " " + dir.Item1.Profile.IATACode + "-" + dir.Item2.Profile.IATACode + " " + t + ": markets " + slow + ", quick " + fast); Environment.Exit(1); }
+        }
+        Console.WriteLine("  " + n + " flights compared (" + nonzero + " with connecting passengers), largest difference " + worst);
+        if (nonzero == 0) { Console.WriteLine("  FAILED nothing to compare"); Environment.Exit(1); }
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        int k = 0;
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        foreach (var r in a.Routes.ToList().Where(r => !r.IsCargoRoute).Take(60)) { TheAirline.Helpers.ConnectionService.FlightDemandByMarkets(a, r, r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass); k++; }
+        double slowMs = sw.Elapsed.TotalMilliseconds; sw.Restart();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        foreach (var r in a.Routes.ToList().Where(r => !r.IsCargoRoute).Take(60)) TheAirline.Helpers.ConnectionService.FlightDemandFresh(a, r, r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+        Console.WriteLine(string.Format("  {0} flights: markets {1:0} ms, quick {2:0} ms", k, slowMs, sw.Elapsed.TotalMilliseconds));
+        Console.WriteLine("FAST DEMAND TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2510,6 +2543,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }

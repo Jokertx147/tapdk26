@@ -191,6 +191,60 @@ namespace TheAirline.Helpers
             }
         }
 
+        // a route that can feed connections at an airport: the far end, whether a partner flies it, its length
+        private sealed class Feeder
+        {
+            public Route Route;
+            public Airport Far;
+            public bool Partner;
+            public double Distance;
+        }
+
+        // the airline's (then its partners') passenger routes from an airport, as MarketsAt goes through them; kept until
+        // the routes change
+        private static List<Feeder> FeedersAt(Airline airline, Airport via)
+        {
+            return RouteIndex.Derived(Tuple.Create("feeders", airline, via), () =>
+                {
+                    var atVia = RouteIndex.At(via);
+                    var list = new List<Feeder>();
+                    foreach (var x in atVia.Where(r => r.Airline == airline).Select(r => new {r, partner = false})
+                                           .Concat(Partners(airline).SelectMany(p => atVia.Where(r => r.Airline == p)).Select(r => new {r, partner = true})))
+                    {
+                        Route r = x.r;
+                        if (r == null || r.IsCargoRoute) continue;
+                        if (r.Destination1 != via && r.Destination2 != via) continue;
+                        list.Add(new Feeder {Route = r, Far = r.Destination1 == via ? r.Destination2 : r.Destination1, Partner = x.partner, Distance = r.GetDistance()});
+                    }
+                    return list;
+                });
+        }
+
+        // the passengers a day the connection markets at via add to a flight between near and via (MarketsAt's Added, summed)
+        private static double AddedAt(Airline airline, Route route, Airport near, Airport via, AirlinerClass.ClassType type, bool outbound)
+        {
+            List<Feeder> feeders = FeedersAt(airline, via);
+            if (feeders.Count == 0) return 0;
+            double leg = MathHelpers.GetDistance(near, via);
+            string hubName;
+            double own = OwnWeightAt(airline, via, out hubName);
+            var seen = new HashSet<Airport>();
+            double v = 0;
+            foreach (Feeder f in feeders)
+            {
+                Route r = f.Route;
+                if (r == route) continue;
+                if (r.Destination1 == near || r.Destination2 == near) continue;
+                if (!seen.Add(f.Far)) continue;
+                double demand = outbound ? Rate(near, f.Far, type) : Rate(f.Far, near, type);
+                if (demand <= 0 || !r.HasAirliner) continue;
+                if (f.Distance + leg >= MathHelpers.GetDistance(near, f.Far)*3) continue;
+                if (NonstopRoutes(near, f.Far) >= 2) continue;
+                v += demand*(f.Partner ? PartnerWeight : own);
+            }
+            return v;
+        }
+
         public static string Code(Airport a)
         {
             return a?.Profile.IATACode ?? "?";
@@ -227,9 +281,8 @@ namespace TheAirline.Helpers
                 }
             }
             long pfMiss = Profiler.Start();
-            double v = 0;
-            foreach (var m in MarketsAt(airline, route, current, destination, type, true)) v += m.Added;
-            foreach (var m in MarketsAt(airline, route, destination, current, type, false)) v += m.Added;
+            // the same sum as the markets' (MarketsAt), without building them
+            double v = AddedAt(airline, route, current, destination, type, true) + AddedAt(airline, route, destination, current, type, false);
             if (cached != null)
             {
                 lock (cached)
@@ -244,6 +297,21 @@ namespace TheAirline.Helpers
             }
             Profiler.Stop("pax: connecting demand (worked out)", pfMiss);
             return v;
+        }
+
+        /// <summary>FlightDemand worked out the long way, from the markets (for the tests: the two must agree).</summary>
+        public static double FlightDemandByMarkets(Airline airline, Route route, Airport current, Airport destination, AirlinerClass.ClassType type)
+        {
+            double v = 0;
+            foreach (var m in MarketsAt(airline, route, current, destination, type, true)) v += m.Added;
+            foreach (var m in MarketsAt(airline, route, destination, current, type, false)) v += m.Added;
+            return v;
+        }
+
+        /// <summary>FlightDemand without the day's cache (for the tests).</summary>
+        public static double FlightDemandFresh(Airline airline, Route route, Airport current, Airport destination, AirlinerClass.ClassType type)
+        {
+            return AddedAt(airline, route, current, destination, type, true) + AddedAt(airline, route, destination, current, type, false);
         }
 
         private sealed class DemandDay

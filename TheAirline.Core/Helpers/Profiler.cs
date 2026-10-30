@@ -41,6 +41,15 @@ namespace TheAirline.Helpers
             if (start != 0) Add(name, Stopwatch.GetTimestamp() - start);
         }
 
+        /// <summary>Adds the time since `start` to `name` and returns a new start (for timing one part after another).</summary>
+        public static long Lap(string name, long start)
+        {
+            if (start == 0) return 0;
+            long now = Stopwatch.GetTimestamp();
+            Add(name, now - start);
+            return now;
+        }
+
         public static Scope Measure(string name)
         {
             return Enabled ? new Scope(name) : default(Scope);

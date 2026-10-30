@@ -49,7 +49,8 @@ namespace TheAirline.Helpers
                 {
                     //Boolean stopoverRoute = airliner.CurrentFlight.Entry.MainEntry != null;
 
-                    SimulateLanding(airliner);
+                    using (Profiler.Measure("flight: landing"))
+                        SimulateLanding(airliner);
                 }
 
                 FleetAirliner airliner1 = airliner;
@@ -64,10 +65,13 @@ namespace TheAirline.Helpers
                                     == GeneralHelpers.GetSeason(GameObject.GetInstance().GameTime)))
                             .OrderBy(e => e.Time);
 
-                bool ferryOk = !airline.IsHuman || !airline.AutoFerry || FerryService.BeforeFlights(airliner, dayEntries.ToList());
+                long pfE = Profiler.Start();
+                var dayList = dayEntries.ToList();
+                Profiler.Stop("flight: the day's timetable", pfE);
+                bool ferryOk = !airline.IsHuman || !airline.AutoFerry || FerryService.BeforeFlights(airliner, dayList);
                 if (ferryOk && (GameObject.GetInstance().GameTime > airliner.GroundedToDate || GameObject.GetInstance().GameTime <= airliner.CoveredUntil))
                 {
-                    foreach (RouteTimeTableEntry entry in dayEntries)
+                    foreach (RouteTimeTableEntry entry in dayList)
                     {
                         if (entry.TimeTable.Route.HasStopovers)
                         {
@@ -78,7 +82,8 @@ namespace TheAirline.Helpers
                             SimulateFlight(entry);
                         }
                     }
-                    CheckForService(airliner);
+                    using (Profiler.Measure("flight: service check"))
+                        CheckForService(airliner);
                 }
             } //);
 
@@ -139,8 +144,10 @@ namespace TheAirline.Helpers
                 airliner.CurrentFlight = new Flight(entry);
             }
 
+            long pfDelay = Profiler.Start();
             KeyValuePair<FleetAirlinerHelpers.DelayType, int> delayedMinutes =
                 FleetAirlinerHelpers.GetDelayedMinutes(airliner);
+            Profiler.Stop("flight: delay", pfDelay);
 
             //cancelled/delay
             if (delayedMinutes.Value
@@ -213,6 +220,7 @@ namespace TheAirline.Helpers
                         var classes = new List<AirlinerClass>(airliner.Airliner.Classes);
                         foreach (AirlinerClass aClass in classes)
                         {
+                            if (aClass == null) continue; // the cabin was being changed on another thread
                             RouteAirlinerClass rac = ((PassengerRoute) airliner.CurrentFlight.Entry.TimeTable.Route).GetRouteAirlinerClass(aClass.Type);
                             airliner.CurrentFlight.Classes.Add(
                                 new FlightAirlinerClass(
@@ -233,7 +241,8 @@ namespace TheAirline.Helpers
                 if (airliner.CurrentFlight.ExpectedLanding.ToShortDateString()
                     == GameObject.GetInstance().GameTime.ToShortDateString())
                 {
-                    SimulateLanding(airliner);
+                    using (Profiler.Measure("flight: landing"))
+                        SimulateLanding(airliner);
                 }
             }
         }
@@ -243,6 +252,7 @@ namespace TheAirline.Helpers
         //simulates the landing of a flight
         private static void SimulateLanding(FleetAirliner airliner)
         {
+            long pfL = Profiler.Start();
             DateTime landingTime =
                 airliner.CurrentFlight.FlightTime.Add(
                     MathHelpers.GetFlightTime(
@@ -318,6 +328,7 @@ namespace TheAirline.Helpers
                 ticketsIncome = airliner.CurrentFlight.Cargo*airliner.CurrentFlight.GetCargoPrice();
             }
 
+            pfL = Profiler.Lap("landing: income and costs", pfL);
             Airport dest = airliner.CurrentFlight.Entry.Destination.Airport;
             Airport dept = airliner.CurrentFlight.Entry.DepartureAirport;
 
@@ -345,7 +356,9 @@ namespace TheAirline.Helpers
                 ticketsIncome = 0;
             }
 
+            pfL = Profiler.Lap("landing: operating values", pfL);
             FleetAirlinerHelpers.SetFlightStats(airliner);
+            pfL = Profiler.Lap("landing: flight statistics", pfL);
 
             long airportIncome = Convert.ToInt64(AirportHelpers.GetLandingFee(dest, airliner.Airliner));
             dest.Income += airportIncome;
@@ -408,6 +421,7 @@ namespace TheAirline.Helpers
             airliner.CurrentFlight.Entry.TimeTable.Route.AddRouteInvoice(
                 new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Fees, feesIncome));
 
+            pfL = Profiler.Lap("landing: invoices", pfL);
             double wages = 0;
 
             if (airliner.CurrentFlight.IsPassengerFlight())
@@ -437,17 +451,21 @@ namespace TheAirline.Helpers
                 airliner.CurrentFlight.Entry.TimeTable.Route.AddRouteInvoice(
                     new Invoice(GameObject.GetInstance().GameTime, Invoice.InvoiceType.Wages, -wages));
 
+                pfL = Profiler.Lap("landing: wages", pfL);
                 CreatePassengersHappiness(airliner);
+                pfL = Profiler.Lap("landing: happiness", pfL);
             }
 
             airliner.Statistics.AddStatisticsValue(
                 GameObject.GetInstance().GameTime.Year,
                 StatisticsTypes.GetStatisticsType("Airliner_Income"),
                 ticketsIncome - expenses - mealExpenses + feesIncome - wages);
+            pfL = Profiler.Lap("landing: airliner statistics", pfL);
             FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
             FlightLog.Add(airliner, fdistance, flighttime.TotalHours, ticketsIncome, feesIncome, mealExpenses, fuelExpenses,
                           AirportHelpers.GetLandingFee(dest, airliner.Airliner), tax, wages);
 
+            pfL = Profiler.Lap("landing: flight costs and log", pfL);
             airliner.Airliner.Flown += fdistance;
 
             if (airliner.CurrentFlight.IsPassengerFlight())
@@ -482,6 +500,7 @@ namespace TheAirline.Helpers
                                   $"Your airliner [LI airliner={airliner.Airliner.TailNumber}] has landed in [LI airport={dest.Profile.IATACode}], {dest.Profile.Country.Name} with {airliner.CurrentFlight.GetTotalPassengers()} passengers.\nThe airliner flow from [LI airport={dept.Profile.IATACode}], {dept.Profile.Country.Name}"));
             }
 
+            Profiler.Lap("landing: the rest", pfL);
             if (airliner.CurrentFlight is StopoverFlight && !((StopoverFlight) airliner.CurrentFlight).IsLastTrip)
             {
                 SimulateFlight(airliner.CurrentFlight.Entry);

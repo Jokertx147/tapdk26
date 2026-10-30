@@ -92,7 +92,7 @@ namespace TheAirline.Helpers
                 }
                 DateTime now = GameObject.GetInstance().GameTime;
                 _bySeats = fleet.OrderBy(f => f.Airliner.GetTotalSeatCapacity()).ToList();
-                _idleByRange = fleet.Where(f => !f.HasRoute && f.Airliner.BuiltDate <= now && AirlineTypeRules.CanUseType(airline, f.Airliner.Type))
+                _idleByRange = fleet.Where(f => !f.HasRoute && f.Airliner.BuiltDate <= now && f.UsableBy(airline) && AirlineTypeRules.CanUseType(airline, f.Airliner.Type))
                                     .OrderBy(f => f.Airliner.Range).ToList();
             }
 

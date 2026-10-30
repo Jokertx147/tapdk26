@@ -103,6 +103,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm rivalmap 2>&1 | tee rivalmaptest.log
           grep -q "RIVAL MAP TEST OK" rivalmaptest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " rivalmaptest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Connecting passengers test (the flight engine's quick sum equals the markets)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm fastdemand 2>&1 | tee fastdemandtest.log
+          grep -q "FAST DEMAND TEST OK" fastdemandtest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " fastdemandtest.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log

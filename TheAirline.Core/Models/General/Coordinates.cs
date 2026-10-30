@@ -48,13 +48,26 @@ namespace TheAirline.Models.General
             return Latitude + " " + Longitude;
         }
 
+        // the position in degrees, worked out once (distances and flight times ask for it all the time); made again
+        // if the latitude or longitude is replaced. Callers only read it.
+        [NonSerialized]
+        private GeoCoordinate _geo;
+
+        [NonSerialized]
+        private Coordinate _geoLat, _geoLon;
+
         //returns as geocoordinate
         public GeoCoordinate ConvertToGeoCoordinate()
         {
-            return
-                new GeoCoordinate(
-                    MathHelpers.DMStoDeg(Latitude.Degrees, Latitude.Minutes, Latitude.Seconds),
-                    MathHelpers.DMStoDeg(Longitude.Degrees, Longitude.Minutes, Longitude.Seconds));
+            var geo = _geo;
+            if (geo != null && ReferenceEquals(_geoLat, Latitude) && ReferenceEquals(_geoLon, Longitude)) return geo;
+            geo = new GeoCoordinate(
+                MathHelpers.DMStoDeg(Latitude.Degrees, Latitude.Minutes, Latitude.Seconds),
+                MathHelpers.DMStoDeg(Longitude.Degrees, Longitude.Minutes, Longitude.Seconds));
+            _geoLat = Latitude;
+            _geoLon = Longitude;
+            _geo = geo;
+            return geo;
         }
 
         #endregion

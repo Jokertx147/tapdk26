@@ -84,7 +84,6 @@ namespace TheAirline.Models.Routes
 
         public double FillingDegree => GetFillingDegree();
 
-        public bool HasAirliner => GetAirliners().Count > 0;
 
         public bool HasStopovers => Stopovers.Count > 0;
 
@@ -176,24 +175,65 @@ namespace TheAirline.Models.Routes
             return Destination1 == destination || Destination2 == destination;
         }
 
+        /// <summary>The aircraft flying the route: those of its timetable entries, then those of their main entries (each once, in that order).</summary>
         public List<FleetAirliner> GetAirliners()
         {
-            var entries = new List<RouteTimeTableEntry>(TimeTable.Entries);
-            /*
-            List<FleetAirliner> mainEntries = (from e in entries where e!=null && e.MainEntry != null && e.MainEntry.Airliner != null select e.MainEntry.Airliner).Distinct().ToList();
-            List<FleetAirliner> allAirliners = (from e in entries where e!=null && e.Airliner != null select e.Airliner).Distinct().ToList();
-            allAirliners.AddRange(mainEntries);
-            */
+            RouteTimeTableEntry[] entries = Entries();
+            var result = new List<FleetAirliner>();
+            var seen = new HashSet<FleetAirliner>();
+            foreach (var e in entries)
+            {
+                var a = e?.Airliner;
+                if (a != null && seen.Add(a)) result.Add(a);
+            }
+            foreach (var e in entries)
+            {
+                var a = e?.MainEntry?.Airliner;
+                if (a != null && seen.Add(a)) result.Add(a);
+            }
+            return result;
+        }
 
-            IEnumerable<FleetAirliner> tx = entries.Where(e => e?.Airliner != null).Select(e => e.Airliner);
-            IEnumerable<FleetAirliner> tMain =
-                entries.Where(e => e?.MainEntry?.Airliner != null)
-                       .Select(e => e.MainEntry.Airliner)
-                       .Distinct();
+        // a copy of the timetable's entries (the game thread may be changing the list)
+        private RouteTimeTableEntry[] Entries()
+        {
+            var list = TimeTable?.Entries;
+            if (list == null) return new RouteTimeTableEntry[0];
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    return list.ToArray();
+                }
+                catch (ArgumentException) when (attempt < 3)
+                {
+                    // the list changed while copying: try again
+                }
+            }
+        }
 
-            IEnumerable<FleetAirliner> tAll = tx.Union(tMain);
-
-            return tAll.ToList();
+        /// <summary>Whether any aircraft flies the route (as GetAirliners().Count > 0, without building the list).</summary>
+        public bool HasAirliner
+        {
+            get
+            {
+                var list = TimeTable?.Entries;
+                if (list == null) return false;
+                try
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var e = list[i];
+                        if (e?.Airliner != null || e?.MainEntry?.Airliner != null) return true;
+                    }
+                    return false;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // the list got shorter while reading
+                    return GetAirliners().Count > 0;
+                }
+            }
         }
 
         public double GetBalance(DateTime startTime, DateTime endTime)

@@ -49,6 +49,20 @@ namespace TheAirline.Models.Airliners
 
             if (Purchased == PurchasedType.Bought || Purchased == PurchasedType.BoughtDownPayment)
                 Airliner.Owner = Airliner.Airline;
+
+            // a leased aircraft is off the leasing market (it used to stay there, and could be leased again by another
+            // airline, or flown by its owner at the same time)
+            if (Purchased == PurchasedType.Leased && Airliner.Status == Airliner.StatusTypes.Leasing)
+                Airliner.Status = Airliner.StatusTypes.Normal;
+        }
+
+        /// <summary>
+        ///     Whether the airline can fly this aircraft: it is the airline's (not put up for lease, and not leased out to
+        ///     another airline that flies it now).
+        /// </summary>
+        public bool UsableBy(Airline airline)
+        {
+            return Airliner.Status != Airliner.StatusTypes.Leasing && Airliner.Airline == airline;
         }
 
         private FleetAirliner(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)

@@ -84,7 +84,7 @@ namespace TheAirline.Helpers
             List<FleetAirliner> idle;
             lock (airline.Fleet)
             {
-                idle = airline.Fleet.Where(f => f.Airliner.BuiltDate <= now && !f.HasRoute && IsOwned(f)
+                idle = airline.Fleet.Where(f => f.Airliner.BuiltDate <= now && !f.HasRoute && IsOwned(f) && f.UsableBy(airline)
                                                 && (f.Status == FleetAirliner.AirlinerStatus.Stopped || IdleAfterRoute(f, now))).ToList();
             }
             int reserve = Reserve(airline);
