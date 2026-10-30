@@ -944,6 +944,67 @@ static class VmTest
         Console.WriteLine("COMPETITORS TEST OK");
     }
 
+    // the world map shows rivals in their own colours: one airline, those on my routes, everyone at an airport
+    static void RivalMapTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RIVAL MAP TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        for (int i = 0; i < 20; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        // a route of mine on a pair a rival flies
+        var theirs = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList())
+                                .OfType<TheAirline.Models.Routes.PassengerRoute>().First(r => r.HasAirliner && r.Airline.Routes.Count >= 3);
+        var mine = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), theirs.Destination1, theirs.Destination2, g.GameTime, 100);
+        if (!me.Airports.Contains(theirs.Destination1)) me.AddAirport(theirs.Destination1);
+        if (!me.Airports.Contains(theirs.Destination2)) me.AddAirport(theirs.Destination2);
+        me.AddRoute(mine);
+        // half way through a flight of theirs, so their aircraft are in the air
+        var map = av.Map;
+        map.Reload();
+        int myLines = map.Lines.Count, myAircraft = map.Aircraft.Count;
+        if (map.Lines.Any(l => l.Color != null) || map.Aircraft.Any(a => !a.IsMine)) fail("rivals shown before choosing them");
+        Console.WriteLine("  choices: " + map.RivalChoices.Count + " (" + string.Join(" | ", map.RivalChoices.Take(4).Select(c => c.Name)) + " ...)");
+        if (!map.RivalChoices.Any(c => c.Value.Airline == theirs.Airline)) fail("the rival isn't a choice");
+        if (!map.RivalChoices.Any(c => c.Value.Airport == theirs.Destination1)) fail("my airport isn't a choice");
+
+        // one airline: all its routes in one colour
+        map.ShowRivals(new TheAirline.Presentation.RivalView {Airline = theirs.Airline});
+        var rl = map.Lines.Where(l => l.Color != null).ToList();
+        int theirRoutes = theirs.Airline.Routes.Count(r => r.HasAirliner);
+        Console.WriteLine("  " + theirs.Airline.Profile.Name + ": " + rl.Count + " lines (" + theirRoutes + " flying routes), " + map.Aircraft.Count(a => !a.IsMine) + " aircraft | legend: " + string.Join("; ", map.Legend.Select(x => x.Text)));
+        if (rl.Count == 0 || rl.Select(l => l.Color).Distinct().Count() != 1) fail("one airline, one colour");
+        if (map.Lines.Count(l => l.Color == null) != myLines) fail("my routes changed");
+        if (map.Legend.Count != 2 || !map.HasLegend) fail("legend");
+        if (map.Aircraft.Where(a => !a.IsMine).Any(a => a.FlightRoute == null || a.FlightRoute.Airline != theirs.Airline || a.Color != rl[0].Color)) fail("rival aircraft");
+        if (!map.Places.Any(p => p.IsRivalOnly) && theirs.Airline.Routes.SelectMany(r => new[] {r.Destination1, r.Destination2}).Distinct().Count() > 2) fail("their airports");
+
+        // the airlines on my routes: only my pairs
+        map.ShowRivals(new TheAirline.Presentation.RivalView {OnMyRoutes = true});
+        var onMine = map.Lines.Where(l => l.Color != null).ToList();
+        Console.WriteLine("  on my routes: " + onMine.Count + " lines | legend: " + string.Join("; ", map.Legend.Select(x => x.Text)));
+        if (onMine.Count == 0) fail("no rival on my routes");
+        if (onMine.Count > me.Routes.Count * TheAirline.Presentation.WorldMapViewModel.RivalColors.Length) fail("rival lines beyond my routes");
+
+        // everyone at an airport: a colour each, up to the palette
+        map.ShowRivals(new TheAirline.Presentation.RivalView {Airport = theirs.Destination1});
+        var at = map.Lines.Where(l => l.Color != null).ToList();
+        Console.WriteLine("  everyone at " + theirs.Destination1.Profile.IATACode + ": " + at.Count + " lines, " + at.Select(l => l.Color).Distinct().Count() + " colours, " + map.Aircraft.Count(a => !a.IsMine) + " aircraft | " + map.Caption);
+        if (at.Count == 0) fail("nobody at the airport");
+        if (map.Aircraft.Count(a => !a.IsMine) == 0) fail("no rival aircraft at the airport");
+        if (at.Select(l => l.Color).Distinct().Count() > TheAirline.Presentation.WorldMapViewModel.RivalColors.Length) fail("too many colours");
+
+        // the choice survives the refreshes and a new day; "No rivals" clears them
+        av.Refresh();
+        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        map.Reload();
+        if (map.SelectedRival?.Value.Airport != theirs.Destination1) fail("the choice was lost on a new day");
+        map.ShowRivals(TheAirline.Presentation.RivalView.None);
+        if (map.Lines.Any(l => l.Color != null) || map.Aircraft.Any(a => !a.IsMine) || map.Places.Any(p => p.IsRivalOnly) || map.HasLegend) fail("rivals still shown");
+        me.RemoveRoute(mine);
+        Console.WriteLine("RIVAL MAP TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2449,6 +2510,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }

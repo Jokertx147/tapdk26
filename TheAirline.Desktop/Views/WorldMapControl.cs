@@ -48,7 +48,38 @@ namespace TheAirline.Desktop.Views
 
         // the route lines in screen points, made again only when the view or the routes change
         private List<StreamGeometry> _routeGeo;
-        private readonly Dictionary<StreamGeometry, bool> _routeCargo = new Dictionary<StreamGeometry, bool>();
+        private readonly Dictionary<StreamGeometry, Pen> _routePen = new Dictionary<StreamGeometry, Pen>();
+        private static readonly Dictionary<string, Pen> RivalPens = new Dictionary<string, Pen>();
+        private static readonly Dictionary<string, IBrush> RivalBrushes = new Dictionary<string, IBrush>();
+        private static readonly IBrush RivalPlaceBrush = new SolidColorBrush(Color.FromArgb(230, 255, 255, 255));
+        private static readonly Pen RivalPlaceOutline = new Pen(new SolidColorBrush(Color.Parse("#555555")), 1);
+
+        private static IBrush RivalBrush(string hex)
+        {
+            lock (RivalBrushes)
+            {
+                IBrush b;
+                if (!RivalBrushes.TryGetValue(hex, out b)) RivalBrushes[hex] = b = new SolidColorBrush(Color.Parse(hex));
+                return b;
+            }
+        }
+
+        private static Pen PenFor(MapLine line)
+        {
+            if (line.Color == null) return line.IsCargo ? CargoPen : RoutePen;
+            string key = line.Color + line.IsCargo;
+            lock (RivalPens)
+            {
+                Pen p;
+                if (!RivalPens.TryGetValue(key, out p))
+                {
+                    var c = Color.Parse(line.Color);
+                    var brush = new SolidColorBrush(Color.FromArgb(160, c.R, c.G, c.B));
+                    RivalPens[key] = p = line.IsCargo ? new Pen(brush, 1.2, new DashStyle(new double[] {4, 3}, 0)) : new Pen(brush, 1.2);
+                }
+                return p;
+            }
+        }
         private object _routeLines;
         private (double, double, double, double, double) _routeView;
 
@@ -266,7 +297,7 @@ namespace TheAirline.Desktop.Views
                 if (_routeGeo == null || !ReferenceEquals(_routeLines, lines) || _routeView != view)
                 {
                     _routeGeo = new List<StreamGeometry>();
-                    _routeCargo.Clear();
+                    _routePen.Clear();
                     _routeLines = lines;
                     _routeView = view;
                     foreach (var line in lines.ToList())
@@ -283,15 +314,21 @@ namespace TheAirline.Desktop.Views
                             }
 
                             _routeGeo.Add(geo);
-                            _routeCargo[geo] = line.IsCargo;
+                            _routePen[geo] = PenFor(line);
                         }
                     }
                 }
 
-                foreach (var geo in _routeGeo)
+                // the rivals' routes first, the player's on top
+                foreach (bool rivals in new[] {true, false})
                 {
-                    bool cargo;
-                    ctx.DrawGeometry(null, _routeCargo.TryGetValue(geo, out cargo) && cargo ? CargoPen : RoutePen, geo);
+                    foreach (var geo in _routeGeo)
+                    {
+                        Pen pen;
+                        if (!_routePen.TryGetValue(geo, out pen)) continue;
+                        bool isRival = pen != RoutePen && pen != CargoPen;
+                        if (isRival == rivals) ctx.DrawGeometry(null, pen, geo);
+                    }
                 }
             }
 
@@ -303,10 +340,21 @@ namespace TheAirline.Desktop.Views
 
             if (_vm.ShowAirports)
             {
-                foreach (var pl in _vm.Places.ToList())
+                foreach (var pl in _vm.Places.ToList().OrderByDescending(x => x.IsRivalOnly))
                 {
                     Point p = ToScreen(pl.U, pl.V);
                     if (p.X < -20 || p.Y < -20 || p.X > Bounds.Width + 20 || p.Y > Bounds.Height + 20) continue;
+                    if (pl.IsRivalOnly)
+                    {
+                        ctx.DrawEllipse(RivalPlaceBrush, RivalPlaceOutline, p, 2.4, 2.4);
+                        if (_scale > MinScale * 3)
+                        {
+                            var rt = new FormattedText(pl.Label ?? "", CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Face, 10, Brushes.DimGray);
+                            ctx.DrawText(rt, new Point(p.X + 4, p.Y - 6));
+                        }
+                        continue;
+                    }
+
                     double r = pl.IsHub ? 5 : 3.2;
                     ctx.DrawEllipse(pl.IsHub ? HubBrush : AirportBrush, Outline, p, r, r);
                     if (pl.IsHub || _scale > MinScale * 1.8)
@@ -340,7 +388,8 @@ namespace TheAirline.Desktop.Views
                     }
                 }
 
-                foreach (var a in aircraft)
+                // the rivals' aircraft first, the player's on top
+                foreach (var a in aircraft.Where(x => !x.IsMine).Concat(aircraft.Where(x => x.IsMine)))
                 {
                     double u = a.U, v = a.V, heading = a.Heading;
                     bool flying = a.InFlight;
@@ -352,8 +401,9 @@ namespace TheAirline.Desktop.Views
                     a.ScreenV = v;
                     if (flying)
                     {
-                        if (animate) DrawTrail(ctx, a, now);
-                        double rad = heading * Math.PI / 180, s = Math.Sin(rad), c = Math.Cos(rad);
+                        if (animate && a.IsMine) DrawTrail(ctx, a, now);
+                        double size = a.IsMine ? 1 : 0.8;
+                        double rad = heading * Math.PI / 180, s = Math.Sin(rad) * size, c = Math.Cos(rad) * size;
                         Point R(double x, double y) => new Point(p.X + x * c - y * s, p.Y + x * s + y * c);
                         var plane = new StreamGeometry();
                         using (var g = plane.Open())
@@ -365,11 +415,15 @@ namespace TheAirline.Desktop.Views
                             g.EndFigure(true);
                         }
 
-                        ctx.DrawGeometry(FlyBrush, Outline, plane);
+                        ctx.DrawGeometry(a.IsMine ? FlyBrush : RivalBrush(a.Color), Outline, plane);
+                    }
+                    else if (a.IsMine)
+                    {
+                        ctx.DrawEllipse(GroundBrush, Outline, p, 4, 4);
                     }
                     else
                     {
-                        ctx.DrawEllipse(GroundBrush, Outline, p, 4, 4);
+                        ctx.DrawEllipse(RivalBrush(a.Color), Outline, p, 2.5, 2.5);
                     }
 
                     if (_vm.Selected == a)
@@ -403,7 +457,7 @@ namespace TheAirline.Desktop.Views
             var drawn = new HashSet<(double, double, double, double)>();
             foreach (var a in _vm.Aircraft.ToList())
             {
-                if (!a.HasFlight) continue;
+                if (!a.HasFlight || !a.IsMine) continue;
                 double fr = a.Fraction(now);
                 if (fr <= 0 || fr >= 1) continue;
                 var key = (a.Lat1, a.Lon1, a.Lat2, a.Lon2);

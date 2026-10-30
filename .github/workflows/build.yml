@@ -98,6 +98,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm competitors 2>&1 | tee competitorstest.log
           grep -q "COMPETITORS TEST OK" competitorstest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " competitorstest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Rivals on the map test (one airline, those on my routes, everyone at an airport)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm rivalmap 2>&1 | tee rivalmaptest.log
+          grep -q "RIVAL MAP TEST OK" rivalmaptest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " rivalmaptest.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log

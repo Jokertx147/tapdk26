@@ -19,6 +19,9 @@ namespace TheAirline.Presentation
         public string Label { get; set; }
         public bool IsHub { get; set; }
         public Airport Airport { get; set; }
+
+        /// <summary>An airport only a shown rival flies to (drawn smaller).</summary>
+        public bool IsRivalOnly { get; set; }
     }
 
     /// <summary>A line on the map, split in pieces where it crosses the edge of the picture.</summary>
@@ -26,11 +29,46 @@ namespace TheAirline.Presentation
     {
         public List<List<double[]>> Pieces { get; set; } = new List<List<double[]>>();
         public bool IsCargo { get; set; }
+
+        /// <summary>A rival's colour ("#rrggbb"); null for the player's own routes.</summary>
+        public string Color { get; set; }
+    }
+
+    /// <summary>What the map shows of the other airlines.</summary>
+    public class RivalView
+    {
+        public static readonly RivalView None = new RivalView();
+
+        /// <summary>One airline (all its routes and aircraft).</summary>
+        public Airline Airline { get; set; }
+
+        /// <summary>Every airline flying from this airport (their routes there and the aircraft on them).</summary>
+        public Airport Airport { get; set; }
+
+        /// <summary>The airlines that fly the player's routes (those routes, and the aircraft on them).</summary>
+        public bool OnMyRoutes { get; set; }
+
+        public string Key => Airline != null ? "a:" + Airline.Profile.IATACode + Airline.Profile.Name : Airport != null ? "p:" + Airport.Profile.IATACode : OnMyRoutes ? "mine" : "none";
+    }
+
+    /// <summary>A line of the map's legend.</summary>
+    public class MapLegendItem
+    {
+        public string Color { get; set; }
+        public string Text { get; set; }
     }
 
     public class MapAircraft
     {
         public FleetAirliner Aircraft { get; set; }
+
+        /// <summary>A rival's colour; null for the player's own aircraft.</summary>
+        public string Color { get; set; }
+
+        public bool IsMine => Color == null;
+
+        /// <summary>The route of the current (or next) flight.</summary>
+        public Route FlightRoute { get; set; }
         public double U { get; set; }
         public double V { get; set; }
         /// <summary>Direction of travel in degrees on the picture, 0 = up (north), clockwise.</summary>
@@ -188,6 +226,32 @@ namespace TheAirline.Presentation
         public List<MapPlace> Places { get; private set; } = new List<MapPlace>();
         public List<MapLine> Lines { get; private set; } = new List<MapLine>();
         public List<MapAircraft> Aircraft { get; private set; } = new List<MapAircraft>();
+
+        /// <summary>Colours for rival airlines, in order (none of them the player's blue, the cargo orange or the aircraft yellow).</summary>
+        public static readonly string[] RivalColors = {"#d62728", "#2ca02c", "#9467bd", "#e377c2", "#17becf", "#8c564b", "#bcbd22", "#3d3d3d"};
+
+        /// <summary>The choices of rivals to show; rebuilt once a game day, keeping the choice.</summary>
+        public System.Collections.ObjectModel.ObservableCollection<NamedChoice<RivalView>> RivalChoices { get; } =
+            new System.Collections.ObjectModel.ObservableCollection<NamedChoice<RivalView>>();
+
+        /// <summary>Who's who on the map: the player and each rival shown, with their colour.</summary>
+        public System.Collections.ObjectModel.ObservableCollection<MapLegendItem> Legend { get; } = new System.Collections.ObjectModel.ObservableCollection<MapLegendItem>();
+
+        public bool HasLegend => Legend.Count > 1;
+
+        private NamedChoice<RivalView> _rival;
+        private DateTime _choicesDay;
+        private bool _loadingChoices;
+
+        public NamedChoice<RivalView> SelectedRival
+        {
+            get { return _rival; }
+            set
+            {
+                if (value == null || _loadingChoices) return;
+                if (SetProperty(ref _rival, value)) Reload();
+            }
+        }
 
         /// <summary>The game time the map draws, running on smoothly between reads of the game.</summary>
         public MapClock Clock { get; } = new MapClock();
@@ -427,16 +491,25 @@ namespace TheAirline.Presentation
 
         public static MapAircraft Place(FleetAirliner f, DateTime now)
         {
+            var m = PlaceOnly(f, now, out Route route);
+            if (m != null) m.FlightRoute = route;
+            return m;
+        }
+
+        private static MapAircraft PlaceOnly(FleetAirliner f, DateTime now, out Route route)
+        {
             double lat, lon, heading = 0;
             bool flying = false;
             string info = Status(f);
             Flight flight = f.CurrentFlight;
             Airport at = f.CurrentPosition ?? f.Homebase;
+            route = null;
 
             try
             {
                 if (flight != null && flight.Entry != null && f.Status != FleetAirliner.AirlinerStatus.Stopped)
                 {
+                    route = flight.Entry.TimeTable?.Route;
                     Airport from = flight.Entry.DepartureAirport, to = flight.Entry.Destination.Airport;
                     DateTime takeoff = flight.FlightTime, landing = flight.GetExpectedLandingTime();
                     double la1, lo1, la2, lo2;
@@ -516,6 +589,152 @@ namespace TheAirline.Presentation
             };
         }
 
+        // the rivals to choose from: none, those on the player's routes, each rival airline (closest first), and the
+        // player's airports
+        private void LoadRivalChoices(Airline me, DateTime now)
+        {
+            _choicesDay = now.Date;
+            var choices = new List<NamedChoice<RivalView>>
+            {
+                new NamedChoice<RivalView> {Name = "No rivals", Value = RivalView.None},
+                new NamedChoice<RivalView> {Name = "Rivals on my routes", Value = new RivalView {OnMyRoutes = true}}
+            };
+            try
+            {
+                foreach (RivalAirline r in CompetitorService.Rivals(me).Take(40))
+                {
+                    string where = r.SharedRoutes.Count > 0 ? r.SharedRoutes.Count + (r.SharedRoutes.Count == 1 ? " shared route" : " shared routes") : r.SharedAirports.Count + (r.SharedAirports.Count == 1 ? " shared airport" : " shared airports");
+                    choices.Add(new NamedChoice<RivalView> {Name = r.Airline.Profile.IATACode + " " + r.Airline.Profile.Name + " (" + where + ")", Value = new RivalView {Airline = r.Airline}});
+                }
+                foreach (Airport a in CompetitorService.MyAirports(me).OrderBy(a => a.Profile.IATACode))
+                {
+                    choices.Add(new NamedChoice<RivalView> {Name = "Everyone at " + a.Profile.IATACode + " " + a.Profile.Town?.Name, Value = new RivalView {Airport = a}});
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            string keep = _rival?.Value.Key ?? RivalView.None.Key;
+            if (choices.Select(c => c.Name + c.Value.Key).SequenceEqual(RivalChoices.Select(c => c.Name + c.Value.Key))) return;
+            _loadingChoices = true;
+            RivalChoices.Clear();
+            foreach (var c in choices) RivalChoices.Add(c);
+            _loadingChoices = false;
+            _rival = RivalChoices.FirstOrDefault(c => c.Value.Key == keep) ?? RivalChoices[0];
+            OnPropertyChanged(nameof(SelectedRival));
+        }
+
+        /// <summary>Chooses what the map shows of the rivals (for the tests and the competitor screen).</summary>
+        public void ShowRivals(RivalView view)
+        {
+            var me = GameObject.GetInstance()?.HumanAirline;
+            if (me == null) return;
+            if (RivalChoices.Count == 0) LoadRivalChoices(me, GameObject.GetInstance().GameTime);
+            SelectedRival = RivalChoices.FirstOrDefault(c => c.Value.Key == view.Key) ?? RivalChoices[0];
+        }
+
+        private static bool SameCompany(Airline a, Airline b)
+        {
+            if (a == null || b == null) return false;
+            if (a == b) return true;
+            var pa = (a as Models.Airlines.Subsidiary.SubsidiaryAirline)?.Airline;
+            var pb = (b as Models.Airlines.Subsidiary.SubsidiaryAirline)?.Airline;
+            return pa == b || pb == a || (pa != null && pa == pb);
+        }
+
+        private static string PairKey(Route r)
+        {
+            string x = r.Destination1.Profile.IATACode, y = r.Destination2.Profile.IATACode;
+            return (string.CompareOrdinal(x, y) < 0 ? x + y : y + x) + r.IsCargoRoute;
+        }
+
+        // the rivals' routes, airports and aircraft for the choice, one colour per airline
+        private static void AddRivals(Airline me, RivalView view, DateTime now, List<MapPlace> places, List<MapLine> lines, List<MapAircraft> aircraft, List<MapLegendItem> legend)
+        {
+            if (view.Airline == null && view.Airport == null && !view.OnMyRoutes) return;
+
+            // the rival routes to show
+            List<Route> routes;
+            if (view.Airline != null)
+            {
+                routes = view.Airline.Routes.ToList();
+            }
+            else if (view.Airport != null)
+            {
+                routes = RouteIndex.At(view.Airport).Where(r => r.Airline != null && !SameCompany(r.Airline, me) && r.Airline.Routes.Contains(r)).ToList();
+            }
+            else
+            {
+                var mine = new HashSet<string>(me.Routes.ToList().Where(r => r.Destination1 != null && r.Destination2 != null).Select(PairKey));
+                routes = me.Routes.ToList().SelectMany(CompetitorService.RivalRoutes).Where(r => mine.Contains(PairKey(r))).Distinct().ToList();
+            }
+            routes = routes.Where(r => r.Destination1?.Profile?.Coordinates != null && r.Destination2?.Profile?.Coordinates != null && r.HasAirliner).ToList();
+
+            // colours: the airlines with the most routes shown first; beyond the palette, the last colour
+            var airlines = routes.GroupBy(r => r.Airline).OrderByDescending(g => g.Count()).Select(g => g.Key).ToList();
+            var colors = new Dictionary<Airline, string>();
+            for (int i = 0; i < airlines.Count; i++) colors[airlines[i]] = RivalColors[Math.Min(i, RivalColors.Length - 1)];
+
+            var known = new HashSet<Airport>(places.Select(p => p.Airport));
+            var seen = new HashSet<string>();
+            var routeSet = new HashSet<Route>(routes);
+            foreach (Route r in routes)
+            {
+                string color = colors[r.Airline];
+                if (seen.Add(color + PairKey(r)))
+                {
+                    var line = MakeLine(r.Destination1, r.Destination2, r.IsCargoRoute);
+                    line.Color = color;
+                    lines.Add(line);
+                }
+                foreach (Airport a in new[] {r.Destination1, r.Destination2})
+                {
+                    if (!known.Add(a)) continue;
+                    double lat, lon;
+                    Coords(a, out lat, out lon);
+                    places.Add(new MapPlace {U = MercatorU(lon), V = MercatorV(lat), Label = a.Profile.IATACode, Airport = a, IsRivalOnly = true});
+                }
+            }
+
+            // their aircraft flying (or about to fly) those routes
+            var counted = new Dictionary<Airline, int>();
+            foreach (FleetAirliner f in routes.SelectMany(r => r.GetAirliners()).Distinct())
+            {
+                if (f.Airliner.BuiltDate > now) continue;
+                MapAircraft m = Place(f, now);
+                if (m == null) continue;
+                // between flights (no current flight): the route it is assigned to
+                if (m.FlightRoute == null) m.FlightRoute = f.Routes.ToList().FirstOrDefault(routeSet.Contains);
+                if (m.FlightRoute == null || !routeSet.Contains(m.FlightRoute)) continue;
+                Airline owner = m.FlightRoute.Airline;
+                m.Color = colors[owner];
+                m.Name = f.Name + " (" + f.Airliner.Type.Name + "), " + owner.Profile.Name;
+                aircraft.Add(m);
+                int n;
+                counted.TryGetValue(owner, out n);
+                counted[owner] = n + 1;
+            }
+
+            for (int i = 0; i < airlines.Count; i++)
+            {
+                Airline a = airlines[i];
+                int n;
+                counted.TryGetValue(a, out n);
+                int rc = routes.Count(r => r.Airline == a);
+                string text = a.Profile.IATACode + " " + a.Profile.Name + ": " + rc + (rc == 1 ? " route, " : " routes, ") + n + " aircraft";
+                if (i == RivalColors.Length - 1 && airlines.Count > RivalColors.Length)
+                {
+                    int rest = airlines.Count - i;
+                    int restRoutes = airlines.Skip(i).Sum(x => routes.Count(r => r.Airline == x));
+                    text = rest + " more airlines: " + restRoutes + " routes";
+                    legend.Add(new MapLegendItem {Color = RivalColors[i], Text = text});
+                    break;
+                }
+                legend.Add(new MapLegendItem {Color = colors[a], Text = text});
+            }
+        }
+
         /// <summary>Rebuild the markers from the game. Safe to call on every refresh.</summary>
         public void Reload()
         {
@@ -571,13 +790,32 @@ namespace TheAirline.Presentation
 
             var aircraft = fleet.Where(f => f.Airliner.BuiltDate <= now).Select(f => Place(f, now)).Where(a => a != null).ToList();
 
+            if (_choicesDay != now.Date || RivalChoices.Count == 0) LoadRivalChoices(airline, now);
+            var legend = new List<MapLegendItem> {new MapLegendItem {Color = "#145ac8", Text = airline.Profile.IATACode + " " + airline.Profile.Name + " (you)"}};
+            try
+            {
+                AddRivals(airline, _rival?.Value ?? RivalView.None, now, places, lines, aircraft, legend);
+            }
+            catch (InvalidOperationException)
+            {
+                // the game thread changed a list; the rivals come back on the next refresh
+            }
+
+            if (Legend.Count != legend.Count || Legend.Zip(legend, (x, y) => x.Text != y.Text || x.Color != y.Color).Any(d => d))
+            {
+                Legend.Clear();
+                foreach (var l in legend) Legend.Add(l);
+                OnPropertyChanged(nameof(HasLegend));
+            }
+
             Places = places;
             Lines = lines;
             Aircraft = aircraft;
             _selected = aircraft.FirstOrDefault(a => a.Aircraft.Name == keep);
             OnPropertyChanged(nameof(SelectedText));
-            int flying = aircraft.Count(a => a.InFlight);
-            Caption = string.Format("{0} aircraft ({1} in the air), {2} routes, {3} airports", aircraft.Count, flying, lines.Count, places.Count);
+            int mine = aircraft.Count(a => a.IsMine);
+            Caption = string.Format("{0} aircraft ({1} in the air), {2} routes, {3} airports", mine, aircraft.Count(a => a.IsMine && a.InFlight), lines.Count(l => l.Color == null), places.Count(p => !p.IsRivalOnly))
+                      + (lines.Any(l => l.Color != null) ? string.Format("  |  rivals shown: {0} aircraft ({1} in the air), {2} routes", aircraft.Count - mine, aircraft.Count(a => !a.IsMine && a.InFlight), lines.Count(l => l.Color != null)) : "");
             Changed?.Invoke();
         }
     }
