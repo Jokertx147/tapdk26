@@ -38,9 +38,65 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </StackPanel>
-    <Border Grid.Row="2" BorderBrush="#555555" BorderThickness="1" MinHeight="300">
-      <v:WorldMapControl x:Name="MapControl" DataContext="{Binding}" />
-    </Border>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+      <Border BorderBrush="#555555" BorderThickness="1" MinHeight="300">
+        <v:WorldMapControl x:Name="MapControl" DataContext="{Binding}" />
+      </Border>
+
+      <!-- the selected aircraft's flights today -->
+      <Border Grid.Column="1" Width="360" Margin="8,0,0,0" IsVisible="{Binding HasSelection}" BorderBrush="#555555" BorderThickness="1" Padding="8">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,6">
+            <TextBlock Text="Flight board" FontSize="15" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding BoardTitle}" TextWrapping="Wrap" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding BoardSummary}" TextWrapping="Wrap" Opacity="0.75" FontSize="12" />
+          </StackPanel>
+          <TextBlock DockPanel.Dock="Top" Text="No flights today." Opacity="0.6" IsVisible="{Binding !HasBoardFlights}" />
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding FlightBoard}">
+              <ItemsControl.Styles>
+                <Style Selector="Border.row">
+                  <Setter Property="Padding" Value="6,4" />
+                  <Setter Property="Margin" Value="0,0,0,3" />
+                  <Setter Property="CornerRadius" Value="4" />
+                  <Setter Property="Background" Value="#14808080" />
+                </Style>
+                <Style Selector="Border.row.airborne">
+                  <Setter Property="Background" Value="#33E8A800" />
+                </Style>
+                <Style Selector="Border.row.cancelled">
+                  <Setter Property="Background" Value="#33A23B3B" />
+                </Style>
+                <Style Selector="Border.row.done">
+                  <Setter Property="Opacity" Value="0.75" />
+                </Style>
+                <Style Selector="TextBlock.loss">
+                  <Setter Property="Foreground" Value="#C24A4A" />
+                </Style>
+              </ItemsControl.Styles>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Classes="row" Classes.airborne="{Binding IsAirborne}" Classes.cancelled="{Binding IsCancelled}" Classes.done="{Binding IsDone}">
+                    <StackPanel Spacing="1">
+                      <Grid ColumnDefinitions="48,64,*,52">
+                        <TextBlock Text="{Binding Departs}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding Flight}" />
+                        <TextBlock Grid.Column="2" Text="{Binding Route}" />
+                        <TextBlock Grid.Column="3" Text="{Binding Arrives}" HorizontalAlignment="Right" Opacity="0.8" />
+                      </Grid>
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Status}" FontSize="12" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Result}" FontSize="12" IsVisible="{Binding HasResult}" Classes.loss="{Binding IsLoss}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
     <StackPanel Grid.Row="3" Margin="0,6,0,0" Spacing="2">
       <TextBlock Text="{Binding SelectedText}" TextWrapping="Wrap" />
       <TextBlock Text="Drag to move (arrow keys work too; either stops following), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air (they glide with a trail while the game runs, and white dashes flow along their routes the way they fly; click one to see its whole flight), grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes. Rivals you choose to show are drawn in their own colours (their airports as small white dots)." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />

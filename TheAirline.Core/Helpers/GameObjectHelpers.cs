@@ -539,7 +539,8 @@ namespace TheAirline.Helpers
                 StatisticsTypes.GetStatisticsType("Airliner_Income"),
                 ticketsIncome - expenses - mealExpenses + feesIncome - wages);
 
-            FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+            double flightCosts = FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+            FlightRecords.Landed(airliner, landingTime, ticketsIncome + feesIncome, ticketsIncome + feesIncome - mealExpenses - expenses - wages - flightCosts);
 
             airliner.Airliner.Flown += fdistance;
 
@@ -3133,6 +3134,7 @@ namespace TheAirline.Helpers
                     StatisticsTypes.GetStatisticsType("Cancellation%"),
                     cancellationPercent*100);
 
+                FlightRecords.Cancelled(airliner, airliner.CurrentFlight, delayedMinutes.Key == FleetAirlinerHelpers.DelayType.BadWeather ? "bad weather" : "aircraft problems");
                 SetNextFlight(airliner);
             }
             else

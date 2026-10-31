@@ -1265,6 +1265,61 @@ static class VmTest
         Console.WriteLine("FOLLOW TEST OK");
     }
 
+    // the flight board: the followed aircraft's flights today, their status through the day, and what they earned
+    static void BoardTest(AirlineViewModel av)
+    {
+        Console.WriteLine("FLIGHT BOARD TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int i = 0; i < 20; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        // an aircraft of a computer airline flying one route alone, several times today
+        var f = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Fleet.ToList())
+            .Where(x => x.Routes.Count == 1 && x.Routes[0] is TheAirline.Models.Routes.PassengerRoute && x.Routes[0].GetAirliners().Count == 1
+                        && x.Routes[0].TimeTable.Entries.Count(e => e.Airliner == x && e.Day == g.GameTime.DayOfWeek) >= 4)
+            .OrderBy(x => x.Name).FirstOrDefault();
+        if (f == null) fail("no aircraft flying several times a day");
+        var route = f.Routes[0];
+        var map = av.Map;
+        map.ShowRivals(new TheAirline.Presentation.RivalView { Airline = f.Airliner.Airline });
+        map.Reload();
+        var shown = map.Aircraft.FirstOrDefault(a => a.Aircraft == f);
+        if (shown == null) fail("the aircraft isn't on the map");
+        map.Selected = shown;
+        var day = g.GameTime.Date;
+        int planned = route.TimeTable.Entries.Count(e => e.Airliner == f && e.Day == day.DayOfWeek);
+
+        map.LoadBoard(day.AddMinutes(1));
+        Console.WriteLine("  " + map.BoardTitle);
+        foreach (var r in map.FlightBoard) Console.WriteLine("    " + r.Departs + " " + r.Flight + " " + r.Route + " -> " + r.Arrives + " | " + r.Status + (r.HasResult ? " | " + r.Result : ""));
+        if (map.FlightBoard.Count != planned) fail(map.FlightBoard.Count + " rows for " + planned + " flights");
+        if (map.FlightBoard.Any(r => r.IsDone || r.IsAirborne)) fail("flights done before they left");
+
+        // half way through the first flight that wasn't cancelled: in the air with its passengers
+        var recs = TheAirline.Helpers.FlightRecords.Of(f).Where(x => x.Takeoff.Date == day || x.Landing.Date == day).ToList();
+        var first = recs.FirstOrDefault(x => !x.Cancelled && x.Takeoff.Date == day);
+        if (first == null) fail("no flight recorded today");
+        map.LoadBoard(first.Takeoff + TimeSpan.FromTicks((first.Landing - first.Takeoff).Ticks / 2));
+        var air = map.FlightBoard.FirstOrDefault(r => r.IsAirborne);
+        if (air == null || air.Flight != first.FlightCode || !air.Result.Contains("passengers")) fail("the first flight isn't shown in the air");
+        Console.WriteLine("  mid-flight: " + air.Departs + " " + air.Flight + " " + air.Status + " " + air.Result);
+
+        // the end of the day: landed with passengers and profit; the summary adds them up
+        map.LoadBoard(day.AddHours(23).AddMinutes(59));
+        Console.WriteLine("  end of day: " + map.BoardSummary);
+        foreach (var r in map.FlightBoard) Console.WriteLine("    " + r.Departs + " " + r.Flight + " | " + r.Status + (r.HasResult ? " | " + r.Result : ""));
+        int landedToday = recs.Count(x => !x.Cancelled && x.Landing.Date == day && x.Landing <= day.AddHours(23).AddMinutes(59));
+        if (map.FlightBoard.Count(r => r.IsDone && r.HasResult) < Math.Min(landedToday, planned) - 1) fail("landed flights without results");
+        if (!map.BoardSummary.Contains("today so far")) fail("no summary of today");
+
+        // the recorded income is what the route was paid (tickets and in-flight sales of today's landings)
+        double recorded = recs.Where(x => !x.Cancelled && x.Landing.Date == day).Sum(x => x.Income);
+        double paid = route.GetInvoices().MonthlyInvoices.Where(m => m.Year == day.Year && m.Month == day.Month && m.Day == day.Day
+                                                                     && (m.Type == TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets || m.Type == TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees)).Sum(m => m.Amount);
+        Console.WriteLine(string.Format("  income today: recorded {0:N0}, paid to the route {1:N0}", recorded, paid));
+        if (paid > 0 && Math.Abs(recorded - paid) > Math.Max(1, paid * 0.02)) fail("the recorded income isn't what the route was paid");
+        Console.WriteLine("FLIGHT BOARD TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2771,6 +2826,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("board")) { BoardTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }

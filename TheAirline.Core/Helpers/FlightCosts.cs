@@ -94,11 +94,12 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>Charges the extra costs of a landed flight to the airline, the route and the aircraft.</summary>
-        public static void Charge(FleetAirliner airliner, Route route, double km, double hours, double tickets)
+        /// <returns>what was charged (0 with the original costs)</returns>
+        public static double Charge(FleetAirliner airliner, Route route, double km, double hours, double tickets)
         {
-            if (!Enabled) return;
+            if (!Enabled) return 0;
             var p = Calculate(airliner.Airliner, km, hours, tickets);
-            if (p.Total <= 0 || double.IsNaN(p.Total)) return;
+            if (p.Total <= 0 || double.IsNaN(p.Total)) return 0;
             var airline = airliner.Airliner.Airline;
             var now = GameObject.GetInstance().GameTime;
 
@@ -122,6 +123,7 @@ namespace TheAirline.Helpers
                 d.AddOperatingValue(new OperatingValue("Overhead", now.Year, now.Month, -p.Overhead));
             }
             airliner.Statistics?.AddStatisticsValue(now.Year, Models.General.Statistics.StatisticsTypes.GetStatisticsType("Airliner_Income"), -p.Total);
+            return p.Total;
         }
     }
 }

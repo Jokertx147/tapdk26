@@ -207,6 +207,7 @@ namespace TheAirline.Helpers
                     StatisticsTypes.GetStatisticsType("Cancellation%"),
                     cancellationPercent*100);
 
+                FlightRecords.Cancelled(airliner, airliner.CurrentFlight, delayedMinutes.Key == FleetAirlinerHelpers.DelayType.BadWeather ? "bad weather" : "aircraft problems");
                 airliner.CurrentFlight = null;
             }
             else
@@ -461,7 +462,8 @@ namespace TheAirline.Helpers
                 StatisticsTypes.GetStatisticsType("Airliner_Income"),
                 ticketsIncome - expenses - mealExpenses + feesIncome - wages);
             pfL = Profiler.Lap("landing: airliner statistics", pfL);
-            FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+            double flightCosts = FlightCosts.Charge(airliner, airliner.CurrentFlight.Entry.TimeTable.Route, fdistance, flighttime.TotalHours, ticketsIncome);
+            FlightRecords.Landed(airliner, landingTime, ticketsIncome + feesIncome, ticketsIncome + feesIncome - mealExpenses - expenses - wages - flightCosts);
             FlightLog.Add(airliner, fdistance, flighttime.TotalHours, ticketsIncome, feesIncome, mealExpenses, fuelExpenses,
                           AirportHelpers.GetLandingFee(dest, airliner.Airliner), tax, wages);
 

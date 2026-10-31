@@ -34,6 +34,24 @@ namespace TheAirline.Presentation
         public string Color { get; set; }
     }
 
+    /// <summary>A line of the flight board: one of the selected aircraft's flights today.</summary>
+    public class FlightBoardRow
+    {
+        public string Departs { get; set; }
+        public string Flight { get; set; }
+        public string Route { get; set; }
+        public string Arrives { get; set; }
+        public string Status { get; set; }
+        public string Result { get; set; }
+        public bool IsAirborne { get; set; }
+        public bool IsDone { get; set; }
+        public bool IsCancelled { get; set; }
+        public bool IsLoss { get; set; }
+        public bool HasResult => !string.IsNullOrEmpty(Result);
+
+        public string Key => Departs + Flight + Status + Result;
+    }
+
     /// <summary>What the map shows of the other airlines.</summary>
     public class RivalView
     {
@@ -299,6 +317,7 @@ namespace TheAirline.Presentation
                 if (SetProperty(ref _selected, value))
                 {
                     if (value == null) Follow = false;
+                    LoadBoard(Clock.Latest == default(DateTime) ? GameObject.GetInstance().GameTime : Clock.Latest);
                     SyncPick();
                     OnPropertyChanged(nameof(SelectedText));
                     OnPropertyChanged(nameof(HasSelection));
@@ -308,6 +327,133 @@ namespace TheAirline.Presentation
         }
 
         public bool HasSelection => _selected != null;
+
+        /// <summary>The selected aircraft's flights today, in order, with their status by the game clock.</summary>
+        public System.Collections.ObjectModel.ObservableCollection<FlightBoardRow> FlightBoard { get; } = new System.Collections.ObjectModel.ObservableCollection<FlightBoardRow>();
+
+        private string _boardTitle, _boardSummary;
+
+        public string BoardTitle { get => _boardTitle; private set => SetProperty(ref _boardTitle, value); }
+        public string BoardSummary { get => _boardSummary; private set => SetProperty(ref _boardSummary, value); }
+        public bool HasBoardFlights => FlightBoard.Count > 0;
+
+        private static string Money(double v)
+        {
+            return (v < 0 ? "-$" : "+$") + Math.Abs(Math.Round(v)).ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string HourOf(DateTime t, DateTime day)
+        {
+            string s = t.ToString("HH:mm");
+            if (t.Date > day) s += " +1";
+            else if (t.Date < day) s += " -1";
+            return s;
+        }
+
+        /// <summary>Builds the flight board of the selected aircraft at game time `now`.</summary>
+        public void LoadBoard(DateTime now)
+        {
+            var rows = new List<FlightBoardRow>();
+            FleetAirliner f = _selected?.Aircraft;
+            if (f == null)
+            {
+                BoardTitle = null;
+                BoardSummary = null;
+            }
+            else
+            {
+                DateTime day = now.Date;
+                List<FlownFlight> flown = FlightRecords.Of(f);
+                List<RouteTimeTableEntry> entries;
+                try
+                {
+                    var season = GeneralHelpers.GetSeason(now);
+                    entries = f.Routes.ToList()
+                               .Where(r => r.Season == Models.General.Environment.Weather.Season.AllYear || r.Season == season)
+                               .SelectMany(r => r.TimeTable.Entries.ToList())
+                               .Where(e => e != null && e.Airliner == f && e.Day == now.DayOfWeek)
+                               .OrderBy(e => e.Time).ToList();
+                }
+                catch (InvalidOperationException)
+                {
+                    entries = new List<RouteTimeTableEntry>();
+                }
+
+                foreach (RouteTimeTableEntry e in entries)
+                {
+                    Airport from = e.DepartureAirport, to = e.Destination?.Airport;
+                    if (from == null || to == null) continue;
+                    DateTime dep = day + e.Time;
+                    DateTime arr = dep + MathHelpers.GetFlightTime(from, to, f.Airliner.Type);
+                    // what really happened to it today (delays, passengers, profit)
+                    FlownFlight rec = flown.LastOrDefault(x => x.Entry == e && Math.Abs((x.Takeoff - dep).TotalHours) < 12);
+                    if (rec != null && !rec.Cancelled)
+                    {
+                        dep = rec.Takeoff;
+                        arr = rec.Landing;
+                    }
+
+                    var row = new FlightBoardRow
+                    {
+                        Departs = HourOf(day + e.Time, day), Flight = e.Destination.FlightCode, Route = from.Profile.IATACode + " - " + to.Profile.IATACode, Arrives = HourOf(arr, day)
+                    };
+                    string carried = rec == null ? null : rec.IsCargo ? Math.Round(rec.Cargo) + " cargo" : rec.Passengers + "/" + rec.Seats + " passengers";
+                    if (rec != null && rec.Cancelled)
+                    {
+                        row.Status = "Cancelled" + (rec.CancelReason != null ? " (" + rec.CancelReason + ")" : "");
+                        row.IsCancelled = true;
+                    }
+                    else if (now < dep)
+                    {
+                        row.Status = rec != null && rec.DelayMinutes > 0 ? "Delayed " + rec.DelayMinutes + " min" : "Scheduled";
+                    }
+                    else if (now < arr)
+                    {
+                        row.Status = "In the air";
+                        row.IsAirborne = true;
+                        row.Result = carried;
+                    }
+                    else
+                    {
+                        row.Status = rec != null && rec.DelayMinutes > 0 ? "Landed, " + rec.DelayMinutes + " min late" : "Landed";
+                        row.IsDone = true;
+                        if (rec != null)
+                        {
+                            row.Result = carried + ", " + Money(rec.Profit);
+                            row.IsLoss = rec.Profit < 0;
+                        }
+                    }
+                    rows.Add(row);
+                }
+
+                BoardTitle = f.Name + " (" + f.Airliner.Type.Name + ")" + (f.Airliner.Airline != null && !f.Airliner.Airline.IsHuman ? ", " + f.Airliner.Airline.Profile.Name : "") + ": flights " + now.ToString("dddd d MMMM");
+
+                // today so far, and the last 7 days, from the flights that have landed
+                var landed = flown.Where(x => !x.Cancelled && x.Landing <= now).ToList();
+                var today = landed.Where(x => x.Landing.Date == day).ToList();
+                var week = landed.Where(x => x.Landing > now.AddDays(-7)).ToList();
+                var parts = new List<string>();
+                if (rows.Count == 0) parts.Add("No flights today");
+                if (today.Count > 0) parts.Add(string.Format("today so far {0} flight{1}, {2}", today.Count, today.Count == 1 ? "" : "s", Money(today.Sum(x => x.Profit))));
+                if (week.Count > 0)
+                {
+                    var pax = week.Where(x => !x.IsCargo && x.Seats > 0).ToList();
+                    string load = pax.Count > 0 ? ", " + (100.0*pax.Sum(x => x.Passengers)/pax.Sum(x => x.Seats)).ToString("0") + "% full" : "";
+                    parts.Add(string.Format("last 7 days {0} flights{1}, {2}", week.Count, load, Money(week.Sum(x => x.Profit))));
+                }
+                int cancelled = flown.Count(x => x.Cancelled && x.Takeoff > now.AddDays(-7));
+                if (cancelled > 0) parts.Add(cancelled + " cancelled");
+                if (flown.Count == 0 && rows.Count > 0) parts.Add("results show as flights land (from when the game was started or loaded)");
+                BoardSummary = string.Join("  |  ", parts) + (parts.Count > 0 ? "." : "") + " Profit is the flight's income less its own costs, before the aircraft's ownership.";
+            }
+
+            if (rows.Count != FlightBoard.Count || rows.Where((r, i) => r.Key != FlightBoard[i].Key).Any())
+            {
+                FlightBoard.Clear();
+                foreach (var r in rows) FlightBoard.Add(r);
+                OnPropertyChanged(nameof(HasBoardFlights));
+            }
+        }
 
         public string SelectedText => _selected == null
             ? "Click an aircraft on the map, or pick one of yours in the list, for details. Follow keeps it in the middle of the map."
@@ -907,6 +1053,7 @@ namespace TheAirline.Presentation
             }
             LoadAircraftChoices(fleet, now);
             SyncPick();
+            LoadBoard(now);
             OnPropertyChanged(nameof(HasSelection));
             OnPropertyChanged(nameof(SelectedText));
             int mine = aircraft.Count(a => a.IsMine);

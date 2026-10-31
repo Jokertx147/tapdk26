@@ -40,6 +40,7 @@ namespace TheAirline.Infrastructure
                 Helpers.AIPricingService.Invalidate();
                 Helpers.AIPricingService.ForgetReviews();
                 Helpers.CompetitorService.Clear();
+                Helpers.FlightRecords.Clear();
                 if (Setup.SetupError != null)
                 {
                     throw new System.InvalidOperationException("Loading the game data failed: " + Setup.SetupError.Message,
