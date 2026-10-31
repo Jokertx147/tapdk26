@@ -29,6 +29,9 @@ namespace TheAirline.Helpers
         /// <summary>Counters for the tests: route searches that found no start airport, no destination, no aircraft; that used an idle aircraft; that bought or leased one.</summary>
         public static int NoStart, NoDestination, NoAircraft, UsedIdle, GotAircraft, IdleRoutes, EmptyDropped;
 
+        /// <summary>For the probes: called when a computer airline's passenger route gets its timetable (route, aircraft, round trips).</summary>
+        public static Action<Route, FleetAirliner, int> RecordCreation;
+
         /// <summary>How many round trips a day fit between 06:00 and 22:00 (or in the morning and evening for a business route).</summary>
         public static int DayTrips(Airport a, Airport b, FleetAirliner f, bool business = false)
         {

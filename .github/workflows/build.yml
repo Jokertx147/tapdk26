@@ -108,6 +108,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm fastdemand 2>&1 | tee fastdemandtest.log
           grep -q "FAST DEMAND TEST OK" fastdemandtest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " fastdemandtest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Round trip advice test (the forecast's extra round trip against a month flown with and without it)
+        run: |
+          TAP_SAMPLE=40 timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm tripadvice 2>&1 | tee tripadvicetest.log
+          grep -q "TRIP ADVICE TEST OK" tripadvicetest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " tripadvicetest.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log

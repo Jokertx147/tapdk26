@@ -1038,6 +1038,181 @@ static class VmTest
         Console.WriteLine("FAST DEMAND TEST OK");
     }
 
+    // "vm tripprobe": what one more round trip a day really earns, against the forecast. From one saved game, a month
+    // is played twice: as it is, and with one more round trip on a sample of computer routes.
+    static void TripProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int warm = int.Parse(Environment.GetEnvironmentVariable("TAP_WARM") ?? "75");
+        int sample = int.Parse(Environment.GetEnvironmentVariable("TAP_SAMPLE") ?? "80");
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        while (g.GameTime.Day != 1) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var start = g.GameTime;
+        Func<System.Collections.Generic.List<TheAirline.Models.Routes.PassengerRoute>> pick = () =>
+            TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList())
+                .OfType<TheAirline.Models.Routes.PassengerRoute>()
+                .Where(r => !(r is TheAirline.Models.Routes.HelicopterRoute) && r.GetAirliners().Count == 1 && r.StartDate < start.AddDays(-30) && !r.HasStopovers)
+                .Where(r => { var f = r.GetAirliners()[0]; int n = TheAirline.Helpers.AIRouteChoice.CurrentTrips(r);
+                              return n >= 2 && r.TimeTable.Entries.Count == 14 * n && !TheAirline.Helpers.AIRouteChoice.IsBusiness(r, f); })
+                .OrderBy(r => r.Id).ToList();
+        var chosen = pick();
+        // a spread sample: every k-th
+        int step = Math.Max(1, chosen.Count / sample);
+        var ids = chosen.Where((r, i) => i % step == 0).Take(sample).Select(r => r.Id).ToList();
+        Console.WriteLine("TRIPPROBE " + start.ToString("dd MMM yyyy") + ": " + chosen.Count + " routes fly two round trips a day or more; sample " + ids.Count);
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("tripprobe");
+
+        Func<bool, System.Collections.Generic.Dictionary<string, double[]>> play = extra =>
+        {
+            TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("tripprobe");
+            var gg = TheAirline.Models.General.GameObject.GetInstance();
+            var byId = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Routes.ToList()).OfType<TheAirline.Models.Routes.PassengerRoute>().GroupBy(r => r.Id).ToDictionary(x => x.Key, x => x.First());
+            var info = new System.Collections.Generic.Dictionary<string, double[]>();
+            foreach (var id in ids)
+            {
+                TheAirline.Models.Routes.PassengerRoute r;
+                if (!byId.TryGetValue(id, out r)) continue;
+                var f = r.GetAirliners()[0];
+                int n = TheAirline.Helpers.AIRouteChoice.CurrentTrips(r);
+                var fc = TheAirline.Helpers.RouteForecastService.ForecastEach(r.Airline, r.Destination1, r.Destination2, f, new[] { n - 1, n }, r);
+                if (extra)
+                {
+                    string c1 = r.TimeTable.Entries.First(e => e.Destination.Airport == r.Destination2).Destination.FlightCode;
+                    string c2 = r.TimeTable.Entries.First(e => e.Destination.Airport == r.Destination1).Destination.FlightCode;
+                    r.TimeTable = TheAirline.Helpers.AIHelpers.CreateAirlinerRouteTimeTable(r, f, n - 1, c1, c2);
+                }
+                // forecast profit a day at n and n+1, forecast load at n and n+1, n
+                info[id] = new double[] { fc[0].ProfitPerDay, fc[1].ProfitPerDay, fc[0].Load, fc[1].Load, n - 1, 0, 0, 0, fc[0].RevenuePerFlight * (n - 1) * 2, fc[1].RevenuePerFlight * n * 2 };
+            }
+            int month = gg.GameTime.Month;
+            while (gg.GameTime.Month == month) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            var last = gg.GameTime.AddMonths(-1);
+            int days = DateTime.DaysInMonth(last.Year, last.Month);
+            var byId2 = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Routes.ToList()).OfType<TheAirline.Models.Routes.PassengerRoute>().GroupBy(r => r.Id).ToDictionary(x => x.Key, x => x.First());
+            foreach (var id in info.Keys.ToList())
+            {
+                TheAirline.Models.Routes.PassengerRoute r;
+                if (!byId2.TryGetValue(id, out r)) { info.Remove(id); continue; }
+                info[id][5] = TheAirline.Helpers.RouteProfitService.Month(r, last.Year, last.Month) / days;
+                info[id][6] = TheAirline.Helpers.ConnectionService.MonthLoad(r);
+                info[id][7] = TheAirline.Helpers.RouteProfitService.Month(r, TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, last.Year, last.Month) / days;
+            }
+            return info;
+        };
+        var a0 = play(false);
+        var b0 = play(true);
+        var both = a0.Keys.Intersect(b0.Keys).ToList();
+        double fcGain = 0, realGain = 0, fcTk = 0, realTk = 0; int agree = 0, fcSaysNo = 0, realSaysYes = 0;
+        foreach (var id in both)
+        {
+            var A = a0[id]; var B = b0[id];
+            double fg = A[1] - A[0], rg = A[5] - B[5];
+            fcGain += fg; realGain += rg;
+            fcTk += A[9] - A[8]; realTk += A[7] - B[7];
+            if (Math.Sign(fg) == Math.Sign(rg)) agree++;
+            if (fg < 0) fcSaysNo++;
+            if (rg > 0) realSaysYes++;
+            Console.WriteLine(string.Format("  {0} trips {1}->{2}: load forecast {3:0}%->{4:0}% real {5:0}%->{6:0}% | tickets a day forecast +{7:N0} real {8:+#,0;-#,0} | profit a day forecast {9:+#,0;-#,0} real {10:+#,0;-#,0}",
+                id.Substring(0, 6), A[4], A[4] + 1, A[2] * 100, A[3] * 100, B[6] * 100, A[6] * 100, A[9] - A[8], A[7] - B[7], fg, rg));
+        }
+        int k = Math.Max(1, both.Count);
+        Console.WriteLine(string.Format("TRIPPROBE {0} routes: the last round trip a day earns, on average, forecast {1:+#,0;-#,0} real {2:+#,0;-#,0} a day | tickets forecast {3:+#,0;-#,0} real {4:+#,0;-#,0} | forecast says worth it on {5}, really worth it on {6}, same answer on {7}",
+            both.Count, fcGain / k, realGain / k, fcTk / k, realTk / k, both.Count - fcSaysNo, realSaysYes, agree));
+        if (Environment.GetCommandLineArgs().Contains("tripadvice"))
+        {
+            Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+            if (both.Count < 10) fail("too few routes to compare: " + both.Count);
+            if (agree < both.Count * 0.85) fail("the forecast and the flights disagree on " + (both.Count - agree) + " of " + both.Count + " routes");
+            if (realGain / k > 0 && (fcGain / k < realGain / k * 0.6 || fcGain / k > realGain / k * 1.4)) fail("the forecast gain is far from the real one");
+
+            // the advice on one of the player's routes: a busy pair flown once a day gets "more round trips"
+            var gg = TheAirline.Models.General.GameObject.GetInstance();
+            var me = gg.HumanAirline;
+            var busy = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList()).OfType<TheAirline.Models.Routes.PassengerRoute>()
+                .Where(r => r.HasAirliner && !r.HasStopovers && r.GetAirliners().Count == 1 && TheAirline.Helpers.AIRouteChoice.CurrentTrips(r) >= 3 && TheAirline.Helpers.ConnectionService.MonthLoad(r) > 0.9).OrderBy(r => r.Id).FirstOrDefault();
+            if (busy == null) fail("no busy route to copy");
+            var src = busy.GetAirliners()[0];
+            var al = new TheAirline.Models.Airliners.Airliner("adv", src.Airliner.Type, "N-ADV1", gg.GameTime.AddYears(-2)) { Airline = me };
+            TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+            var fa = TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, busy.Destination1, false);
+            TheAirline.Helpers.AirlinerHelpers.CreateAirlinerClasses(al);
+            var mine = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), busy.Destination1, busy.Destination2, gg.GameTime.AddDays(-60), TheAirline.Helpers.AIPricingService.EconomyFare(busy));
+            foreach (var c in mine.Classes) c.FarePrice = TheAirline.Helpers.PricingService.MarketFare(busy.Destination1, busy.Destination2, c.Type);
+            if (!me.Airports.Contains(busy.Destination1)) me.AddAirport(busy.Destination1);
+            if (!me.Airports.Contains(busy.Destination2)) me.AddAirport(busy.Destination2);
+            me.AddRoute(mine);
+            fa.AddRoute(mine);
+            mine.TimeTable = TheAirline.Helpers.AIHelpers.CreateAirlinerRouteTimeTable(mine, fa, 1, "ADV1", "ADV2");
+            var adv = TheAirline.Helpers.RouteForecastService.AdviseTrips(me, mine);
+            if (adv == null) fail("no advice for my route");
+            Console.WriteLine("  " + busy.Destination1.Profile.IATACode + "-" + busy.Destination2.Profile.IATACode + " once a day (" + busy.Airline.Profile.IATACode + " flies it " + TheAirline.Helpers.AIRouteChoice.CurrentTrips(busy) + " times, " + (TheAirline.Helpers.ConnectionService.MonthLoad(busy) * 100).ToString("0") + "% full): best " + adv.Best.RoundTrips + " of up to " + adv.Max + " | " + (adv.Text ?? "no change"));
+            if (adv.Change && adv.Best.RoundTrips <= 1) fail("advice to fly less than once a day");
+            var fig = TheAirline.Helpers.RouteProfitService.Figures(mine);
+            if (adv.Change && (fig.Trips == null || !fig.Advice.StartsWith(adv.Text))) fail("Route profits doesn't show the advice");
+            // at the suggested number, no further change is advised
+            if (adv.Change)
+            {
+                mine.TimeTable = TheAirline.Helpers.AIHelpers.CreateAirlinerRouteTimeTable(mine, fa, adv.Best.RoundTrips, "ADV1", "ADV2");
+                var again = TheAirline.Helpers.RouteForecastService.AdviseTrips(me, mine);
+                Console.WriteLine("  at " + adv.Best.RoundTrips + ": " + (again.Text ?? "no change advised"));
+                if (again.Change) fail("advice keeps changing");
+            }
+            Console.WriteLine("TRIP ADVICE TEST OK");
+        }
+    }
+
+    // "vm newprobe": a new route's forecast when it opens against its first full month
+    static void NewRouteProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int warm = int.Parse(Environment.GetEnvironmentVariable("TAP_WARM") ?? "60");
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var made = new System.Collections.Concurrent.ConcurrentDictionary<TheAirline.Models.Routes.Route, Tuple<TheAirline.Helpers.RouteForecast, TheAirline.Helpers.RouteForecast, int, double[]>>();
+        TheAirline.Helpers.AIRouteChoice.RecordCreation = (r, f, n) =>
+        {
+            var a = f.Airliner.Airline;
+            double fares = TheAirline.Helpers.AIRouteChoice.FareFactor(a);
+            var fc = TheAirline.Helpers.RouteForecastService.ForecastEach(a, r.Destination1, r.Destination2, f, new[] { n, Math.Max(1, n - 1) }, null, fares);
+            // the parts: reputation share at both ends, the usual score, rivals
+            made[r] = Tuple.Create(fc[0], fc[1], n, new double[] { TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination1, a), TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination2, a), TheAirline.Helpers.RouteForecastService.UsualScoreOf(a), fares });
+        };
+        int days = int.Parse(Environment.GetEnvironmentVariable("TAP_DAYS") ?? "20");
+        for (int i = 0; i < days; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Helpers.AIRouteChoice.RecordCreation = null;
+        // to the end of the next full month
+        int m0 = g.GameTime.Month;
+        while (g.GameTime.Month == m0) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int m1 = g.GameTime.Month;
+        while (g.GameTime.Month == m1) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+        int dim = DateTime.DaysInMonth(last.Year, last.Month);
+        double fl = 0, rl = 0, fp = 0, rp = 0, ft = 0, rt = 0; int n2 = 0;
+        double sScore = 0, sRep = 0, sRealScore = 0, sRealRep = 0, sFare = 0, sRealFare = 0;
+        foreach (var kv in made)
+        {
+            var r = kv.Key as TheAirline.Models.Routes.PassengerRoute;
+            if (r == null || r.Airline == null || !r.Airline.Routes.Contains(r) || r.GetAirliners().Count != 1 || TheAirline.Helpers.AIRouteChoice.CurrentTrips(r) != kv.Value.Item3) continue;
+            var f = r.GetAirliners()[0];
+            double realLoad = TheAirline.Helpers.ConnectionService.MonthLoad(r);
+            double realProfit = TheAirline.Helpers.RouteProfitService.Month(r, last.Year, last.Month) / dim;
+            double realTickets = TheAirline.Helpers.RouteProfitService.Month(r, TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets, last.Year, last.Month) / dim;
+            var fc = kv.Value.Item1;
+            double own = TheAirline.Helpers.OwnershipService.MonthlyCost(f) / 30.4;
+            fl += fc.Load; rl += realLoad; fp += fc.ProfitPerDay + own; rp += realProfit; ft += fc.RevenuePerFlight * fc.RoundTrips * 2; rt += realTickets; n2++;
+            sScore += kv.Value.Item4[2]; sRealScore += TheAirline.Helpers.PassengerHelpers.RouteScoreFor(r);
+            sRep += (kv.Value.Item4[0] + kv.Value.Item4[1]) / 2;
+            sRealRep += (TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination1, r.Airline) + TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination2, r.Airline)) / 2;
+            double market = TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+            sFare += kv.Value.Item4[3]; sRealFare += market > 0 ? TheAirline.Helpers.AIPricingService.EconomyFare(r) / market : 1;
+            var now = TheAirline.Helpers.RouteForecastService.Forecast(r.Airline, r.Destination1, r.Destination2, f, kv.Value.Item3, r);
+            if (n2 <= 15) Console.WriteLine(string.Format("  {0}-{1} {2} trips: load at creation {3:0}%, real {4:0}%, forecast now {5:0}% | profit a day at creation {6:+#,0;-#,0}, real {7:+#,0;-#,0}, forecast now {8:+#,0;-#,0} | one fewer at creation {9:+#,0;-#,0}",
+                r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode, kv.Value.Item3, fc.Load * 100, realLoad * 100, now.Load * 100, fc.ProfitPerDay + own, realProfit, now.ProfitPerDay + own, kv.Value.Item2.ProfitPerDay + own));
+        }
+        int k = Math.Max(1, n2);
+        Console.WriteLine(string.Format("NEWPROBE {0} new routes, {1:MMM yyyy}: load at creation {2:0}% real {3:0}% | tickets a day at creation {4:N0} real {5:N0} | profit a day (before ownership) at creation {6:N0} real {7:N0} | score at creation {8:0.00} real {9:0.00} | reputation share {10:0.00} real {11:0.00} | fare level {12:0.00} real {13:0.00}",
+            n2, last, 100 * fl / k, 100 * rl / k, ft / k, rt / k, fp / k, rp / k, sScore / k, sRealScore / k, sRep / k, sRealRep / k, sFare / k, sRealFare / k));
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2543,6 +2718,9 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }

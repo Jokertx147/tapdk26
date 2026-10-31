@@ -3543,6 +3543,18 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>The season's effect on the demand to an airport today (for the route forecast).</summary>
+        /// <summary>A holiday's effect on the demand at an airport today (for the route forecast).</summary>
+        public static double HolidayFactorFor(Airport airport)
+        {
+            return GetHolidayFactor(airport);
+        }
+
+        /// <summary>A route's service score as the flights use it today (out of 10).</summary>
+        public static double RouteScoreFor(Route route)
+        {
+            return RouteScore(route);
+        }
+
         public static double SeasonFactorFor(Airport airport)
         {
             return GetSeasonFactor(airport);

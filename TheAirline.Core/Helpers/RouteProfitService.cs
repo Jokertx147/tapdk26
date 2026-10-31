@@ -30,6 +30,9 @@ namespace TheAirline.Helpers
         public double ProfitPerFlight { get; set; }
         public string Aircraft { get; set; }
         public string Advice { get; set; }
+
+        /// <summary>More or fewer round trips a day that the forecast says earn clearly more (null when none, or not known).</summary>
+        public TripAdvice Trips { get; set; }
         public bool Losing => (Months > 0 ? Last12 : ThisMonth) < 0;
     }
 
@@ -140,6 +143,19 @@ namespace TheAirline.Helpers
             var aircraft = route.GetAirliners();
             f.Aircraft = aircraft.Count == 0 ? "no aircraft" : string.Join(", ", aircraft.Select(a => a.Name + " (" + a.Airliner.Type.Name + ")"));
             f.Advice = Advice(f, aircraft.Count, now - started);
+            try
+            {
+                var trips = route.Airline != null ? RouteForecastService.AdviseTrips(route.Airline, route) : null;
+                if (trips != null && trips.Change && (now - started).TotalDays >= 14)
+                {
+                    f.Trips = trips;
+                    f.Advice = trips.Text + " " + f.Advice;
+                }
+            }
+            catch (Exception)
+            {
+                // a forecast that fails leaves the other advice
+            }
             return f;
         }
 

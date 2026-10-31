@@ -381,6 +381,10 @@ namespace TheAirline.Helpers
             const int maxHours = 22 - 6; //from 06.00 to 22.00
 
             int flightsPerDay = Convert.ToInt16(maxHours*60/(2*minFlightTime.TotalMinutes));
+            if (AIRouteChoice.RecordCreation != null && route is PassengerRoute && airliner.Airliner.Airline != null && !airliner.Airliner.Airline.IsHuman)
+            {
+                try { AIRouteChoice.RecordCreation(route, airliner, flightsPerDay); } catch (Exception) { }
+            }
 
             string flightCode1 = airliner.Airliner.Airline.GetNextFlightCode(0);
             string flightCode2 = airliner.Airliner.Airline.GetNextFlightCode(1);
