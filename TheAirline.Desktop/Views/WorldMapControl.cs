@@ -173,6 +173,7 @@ namespace TheAirline.Desktop.Views
 
         public void PanBy(double dx, double dy)
         {
+            StopFollowing();
             _cx += dx / _scale;
             _cy += dy / _scale;
             Clamp();
@@ -184,6 +185,33 @@ namespace TheAirline.Desktop.Views
         {
             Fit();
             InvalidateVisual();
+        }
+
+        private DateTime _frameNow;
+        private bool _wasFollowing;
+
+        // following: the selected aircraft in the middle, where this frame draws it (zoomed in a little when following
+        // starts on a wide view)
+        private void FollowSelected()
+        {
+            bool following = _vm != null && _vm.Follow && _vm.Selected != null;
+            if (following)
+            {
+                var a = _vm.Selected;
+                double u = a.U, v = a.V, heading;
+                if (_vm.Animate) a.At(_frameNow, out u, out v, out heading);
+                if (!_wasFollowing && _scale < MinScale * 3) _scale = MinScale * 3;
+                _cx = u;
+                _cy = v;
+                Clamp();
+            }
+            _wasFollowing = following;
+        }
+
+        // moving the map by hand stops following
+        private void StopFollowing()
+        {
+            if (_vm != null && _vm.Follow) _vm.Follow = false;
         }
 
         /// <summary>Centres the view on the selected aircraft and zooms in a little if the view is wide.</summary>
@@ -259,6 +287,10 @@ namespace TheAirline.Desktop.Views
                 Clamp();
             }
 
+            // the game time this frame shows (worked out once: the clock moves on each time it is asked)
+            _frameNow = _vm == null ? default(DateTime) : _vm.Animate ? _vm.Clock.Now(WorldMapViewModel.WallSeconds) : _vm.Clock.Latest;
+            FollowSelected();
+
             LoadTiles();
             if (_tiles == null)
             {
@@ -333,7 +365,7 @@ namespace TheAirline.Desktop.Views
             }
 
             bool animate = _vm.Animate;
-            DateTime now = animate ? _vm.Clock.Now(WorldMapViewModel.WallSeconds) : _vm.Clock.Latest;
+            DateTime now = _frameNow;
 
             // dashes flowing along each route that has an aircraft in the air, the way it flies
             if (animate && _vm.ShowRoutes) DrawFlow(ctx, now);
@@ -541,6 +573,7 @@ namespace TheAirline.Desktop.Views
             if (Math.Abs(p.X - _down.X) + Math.Abs(p.Y - _down.Y) > 4) _moved = true;
             if (_moved)
             {
+                StopFollowing();
                 _cx -= (p.X - _last.X) / _scale;
                 _cy -= (p.Y - _last.Y) / _scale;
                 Clamp();

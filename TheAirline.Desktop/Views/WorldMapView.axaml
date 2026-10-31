@@ -13,7 +13,10 @@
       <Button Content="+" Click="ZoomIn" ToolTip.Tip="Zoom in" MinWidth="32" />
       <Button Content="-" Click="ZoomOut" ToolTip.Tip="Zoom out" MinWidth="32" />
       <Button Content="Fit network" Click="FitNetwork" ToolTip.Tip="Show the whole airline network" />
-      <Button Content="Find selected" Click="FindSelected" ToolTip.Tip="Centre on the selected aircraft" />
+      <ComboBox ItemsSource="{Binding AircraftChoices}" SelectedItem="{Binding PickedAircraft}" PlaceholderText="Pick an aircraft" MinWidth="200" MaxDropDownHeight="420"
+                ToolTip.Tip="One of your aircraft: selected and followed on the map" />
+      <ToggleButton Content="Follow" IsChecked="{Binding Follow}" IsEnabled="{Binding HasSelection}"
+                    ToolTip.Tip="Keep the selected aircraft in the middle of the map as it flies. Dragging the map stops it." />
     </StackPanel>
     <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,6">
       <StackPanel Orientation="Horizontal" Spacing="8">
@@ -40,7 +43,7 @@
     </Border>
     <StackPanel Grid.Row="3" Margin="0,6,0,0" Spacing="2">
       <TextBlock Text="{Binding SelectedText}" TextWrapping="Wrap" />
-      <TextBlock Text="Drag to move (arrow keys work too), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air (they glide with a trail while the game runs, and white dashes flow along their routes the way they fly; click one to see its whole flight), grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes. Rivals you choose to show are drawn in their own colours (their airports as small white dots)." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="Drag to move (arrow keys work too; either stops following), scroll or double-click to zoom, + and - keys or the buttons also zoom, Home fits the network. Yellow arrows are aircraft in the air (they glide with a trail while the game runs, and white dashes flow along their routes the way they fly; click one to see its whole flight), grey dots are aircraft on the ground, red dots are hubs. Orange dashed lines are cargo routes. Rivals you choose to show are drawn in their own colours (their airports as small white dots)." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
 </UserControl>

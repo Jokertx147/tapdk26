@@ -1213,6 +1213,58 @@ static class VmTest
             n2, last, 100 * fl / k, 100 * rl / k, ft / k, rt / k, fp / k, rp / k, sScore / k, sRealScore / k, sRep / k, sRealRep / k, sFare / k, sRealFare / k));
     }
 
+    // the world map follows one aircraft: picked in the list or clicked, kept through refreshes, stopped when it goes
+    static void FollowTest(AirlineViewModel av)
+    {
+        Console.WriteLine("FOLLOW TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var t320 = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+        var mine = new System.Collections.Generic.List<TheAirline.Models.Airliners.FleetAirliner>();
+        for (int i = 0; i < 3; i++)
+        {
+            var al = new TheAirline.Models.Airliners.Airliner("fol" + i, t320, "N-FOL" + i, g.GameTime.AddYears(-1)) { Airline = me };
+            TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+            mine.Add(TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, me.Airports.First(), false));
+        }
+        var map = av.Map;
+        map.Reload();
+        Console.WriteLine("  choices: " + string.Join(", ", map.AircraftChoices.Select(c => c.Name)));
+        if (map.AircraftChoices.Count != me.Fleet.Count(f => f.Airliner.BuiltDate <= g.GameTime)) fail("the list isn't the fleet");
+        if (map.Follow || map.HasSelection) fail("following before a pick");
+        map.Follow = true;
+        if (map.Follow) fail("following with nothing selected");
+
+        // a pick selects and follows it
+        var pick = map.AircraftChoices.First(c => c.Value == mine[1]);
+        map.PickedAircraft = pick;
+        if (map.Selected?.Aircraft != mine[1] || !map.Follow) fail("the pick isn't selected and followed");
+        Console.WriteLine("  " + map.SelectedText);
+        if (!map.SelectedText.StartsWith("Following ")) fail("the text doesn't say it's followed");
+
+        // refreshes and new days keep it
+        av.Refresh();
+        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        map.Reload();
+        if (map.Selected?.Aircraft != mine[1] || !map.Follow || map.PickedAircraft?.Value != mine[1]) fail("lost after a refresh");
+
+        // clicking another aircraft keeps following, now that one; stopping keeps the selection
+        map.Selected = map.Aircraft.First(a => a.Aircraft == mine[2]);
+        if (!map.Follow || map.PickedAircraft?.Value != mine[2]) fail("the list doesn't show the clicked aircraft");
+        map.Follow = false;
+        if (map.Selected?.Aircraft != mine[2]) fail("stopping lost the selection");
+        map.Follow = true;
+
+        // the followed aircraft leaves the fleet: no longer followed
+        me.RemoveAirliner(mine[2]);
+        map.Reload();
+        if (map.Follow || map.HasSelection) fail("still following a sold aircraft");
+        if (map.AircraftChoices.Any(c => c.Value == mine[2])) fail("a sold aircraft is still in the list");
+        Console.WriteLine("  after selling it: " + map.SelectedText);
+        Console.WriteLine("FOLLOW TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2718,6 +2770,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }

@@ -298,13 +298,82 @@ namespace TheAirline.Presentation
             {
                 if (SetProperty(ref _selected, value))
                 {
+                    if (value == null) Follow = false;
+                    SyncPick();
+                    OnPropertyChanged(nameof(SelectedText));
+                    OnPropertyChanged(nameof(HasSelection));
+                    Changed?.Invoke();
+                }
+            }
+        }
+
+        public bool HasSelection => _selected != null;
+
+        public string SelectedText => _selected == null
+            ? "Click an aircraft on the map, or pick one of yours in the list, for details. Follow keeps it in the middle of the map."
+            : (_follow ? "Following " : "") + _selected.Name + "  |  " + _selected.Info;
+
+        private bool _follow;
+
+        /// <summary>The map keeps the selected aircraft in the middle as it flies (moving the map by hand stops it).</summary>
+        public bool Follow
+        {
+            get { return _follow; }
+            set
+            {
+                if (value && _selected == null) value = false;
+                if (SetProperty(ref _follow, value))
+                {
                     OnPropertyChanged(nameof(SelectedText));
                     Changed?.Invoke();
                 }
             }
         }
 
-        public string SelectedText => _selected == null ? "Click an aircraft on the map for details." : _selected.Name + "  |  " + _selected.Info;
+        /// <summary>The player's aircraft to pick from, by name (rebuilt when the fleet changes).</summary>
+        public System.Collections.ObjectModel.ObservableCollection<NamedChoice<FleetAirliner>> AircraftChoices { get; } =
+            new System.Collections.ObjectModel.ObservableCollection<NamedChoice<FleetAirliner>>();
+
+        private NamedChoice<FleetAirliner> _pick;
+        private bool _syncing;
+
+        /// <summary>An aircraft picked in the list: selected and followed.</summary>
+        public NamedChoice<FleetAirliner> PickedAircraft
+        {
+            get { return _pick; }
+            set
+            {
+                if (!SetProperty(ref _pick, value) || _syncing || value == null) return;
+                var a = Aircraft.FirstOrDefault(x => x.Aircraft == value.Value);
+                if (a == null) return; // not delivered yet
+                Selected = a;
+                Follow = true;
+            }
+        }
+
+        // the list shows the selected aircraft (or nothing for a rival's)
+        private void SyncPick()
+        {
+            _syncing = true;
+            var match = _selected == null ? null : AircraftChoices.FirstOrDefault(c => c.Value == _selected.Aircraft);
+            if (!ReferenceEquals(match, _pick))
+            {
+                _pick = match;
+                OnPropertyChanged(nameof(PickedAircraft));
+            }
+            _syncing = false;
+        }
+
+        private void LoadAircraftChoices(List<FleetAirliner> fleet, DateTime now)
+        {
+            var mine = fleet.Where(f => f.Airliner.BuiltDate <= now).OrderBy(f => f.Name).ToList();
+            if (mine.Count == AircraftChoices.Count && mine.Select((f, i) => AircraftChoices[i].Value == f).All(x => x)) return;
+            _syncing = true;
+            AircraftChoices.Clear();
+            foreach (var f in mine) AircraftChoices.Add(new NamedChoice<FleetAirliner> {Name = f.Name + " (" + f.Airliner.Type.Name + ")", Value = f});
+            _syncing = false;
+            SyncPick();
+        }
 
         public string Caption
         {
@@ -526,8 +595,8 @@ namespace TheAirline.Presentation
                         if (du > 0.5) du -= 1; else if (du < -0.5) du += 1;
                         heading = Math.Atan2(du, -(p1[1] - p0[1])) * 180 / Math.PI;
                         flying = true;
-                        info = "flying " + from.Profile.IATACode + " - " + to.Profile.IATACode + ", " + (int) (fr * 100) + "% of the way, lands "
-                               + DateFormatter.DateTime(landing);
+                        info = "flying " + from.Profile.IATACode + " - " + to.Profile.IATACode + (flight.Entry.Destination.FlightCode != null ? " (" + flight.Entry.Destination.FlightCode + ")" : "")
+                               + ", " + (int) (fr * 100) + "% of the way, lands " + DateFormatter.DateTime(landing) + OnBoard(flight);
                         double[] pos = Project(lat, lon);
                         return WithFlight(Make(f, pos, heading, true, info), la1, lo1, la2, lo2, takeoff, landing);
                     }
@@ -561,6 +630,24 @@ namespace TheAirline.Presentation
 
             Coords(at, out lat, out lon);
             return Make(f, Project(lat, lon), heading, flying, info);
+        }
+
+        // what the flight carries, as the tooltip and the followed aircraft show it
+        private static string OnBoard(Flight flight)
+        {
+            try
+            {
+                if (flight.IsPassengerFlight())
+                {
+                    int pax = flight.GetTotalPassengers();
+                    return pax > 0 ? ", " + pax + " passengers" : "";
+                }
+                if (flight.IsCargoFlight() && flight.Cargo > 0) return ", " + Math.Round(flight.Cargo) + " units of cargo";
+            }
+            catch (Exception)
+            {
+            }
+            return "";
         }
 
         private static MapAircraft WithFlight(MapAircraft a, double la1, double lo1, double la2, double lo2, DateTime takeoff, DateTime landing)
@@ -745,7 +832,7 @@ namespace TheAirline.Presentation
             }
 
             DateTime now = GameObject.GetInstance().GameTime;
-            string keep = _selected?.Aircraft.Name;
+            FleetAirliner keep = _selected?.Aircraft;
             bool paused = true;
             try { paused = TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused; } catch (Exception) { }
             Clock.Sample(WallSeconds, now, paused);
@@ -811,7 +898,16 @@ namespace TheAirline.Presentation
             Places = places;
             Lines = lines;
             Aircraft = aircraft;
-            _selected = aircraft.FirstOrDefault(a => a.Aircraft.Name == keep);
+            // the same aircraft stays selected (and followed); one that left the map (sold, or a rival no longer shown) doesn't
+            _selected = keep == null ? null : aircraft.FirstOrDefault(a => a.Aircraft == keep);
+            if (_selected == null && _follow)
+            {
+                _follow = false;
+                OnPropertyChanged(nameof(Follow));
+            }
+            LoadAircraftChoices(fleet, now);
+            SyncPick();
+            OnPropertyChanged(nameof(HasSelection));
             OnPropertyChanged(nameof(SelectedText));
             int mine = aircraft.Count(a => a.IsMine);
             Caption = string.Format("{0} aircraft ({1} in the air), {2} routes, {3} airports", mine, aircraft.Count(a => a.IsMine && a.InFlight), lines.Count(l => l.Color == null), places.Count(p => !p.IsRivalOnly))
