@@ -1320,6 +1320,78 @@ static class VmTest
         Console.WriteLine("FLIGHT BOARD TEST OK");
     }
 
+    // "vm oneway": passenger demand both ways on airport pairs
+    static void OneWayProbe()
+    {
+        var eco = TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass;
+        Func<string, TheAirline.Models.Airports.Airport> ap = c => TheAirline.Models.Airports.Airports.GetAirport(c);
+        foreach (var pr in new[] { "ATL CLT", "ATL MCO", "ATL DCA", "CLT DCA", "JFK LAX", "ATL ORD" })
+        {
+            var x = pr.Split(' '); var a = ap(x[0]); var b = ap(x[1]);
+            if (a == null || b == null) { Console.WriteLine("  " + pr + ": not in the game"); continue; }
+            Console.WriteLine(string.Format("  {0}->{1}: {2} a day, {1}->{0}: {3} a day (statics {4} / {5}) size {6}/{7}", x[0], x[1], a.GetDestinationPassengersRate(b, eco), b.GetDestinationPassengersRate(a, eco),
+                a.Statics.GetDestinationPassengersRate(b, eco), b.Statics.GetDestinationPassengersRate(a, eco), a.Profile.Size, b.Profile.Size));
+        }
+        foreach (var c in new[] { "CLT", "MCO", "DCA", "ORD", "ATL", "JFK" })
+        {
+            var a = ap(c);
+            var md = a.Profile.MajorDestionations;
+            Console.WriteLine("  " + c + " major destinations: " + md.Count + " | " + string.Join(", ", md.Take(8).Select(k => k.Key + "=" + k.Value)) + (md.ContainsKey("ATL") ? " | ATL=" + md["ATL"] : " | no ATL"));
+        }
+        // over all pairs with routes: how many have demand one way only
+        var pairs = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(l => l.Routes.ToList()).Where(r => !r.IsCargoRoute).Select(r => Tuple.Create(r.Destination1, r.Destination2)).Distinct().ToList();
+        int oneWay = 0, both = 0, none = 0;
+        var examples = new System.Collections.Generic.List<string>();
+        foreach (var p in pairs)
+        {
+            int ab = p.Item1.GetDestinationPassengersRate(p.Item2, eco), ba = p.Item2.GetDestinationPassengersRate(p.Item1, eco);
+            if (ab > 0 && ba > 0) both++; else if (ab == 0 && ba == 0) none++; else { oneWay++; if (examples.Count < 12) examples.Add(p.Item1.Profile.IATACode + "->" + p.Item2.Profile.IATACode + " " + ab + " / back " + ba + " (" + p.Item1.Profile.Size + ", " + p.Item2.Profile.Size + ", " + TheAirline.Helpers.MathHelpers.GetDistance(p.Item1, p.Item2).ToString("0") + " km)"); }
+        }
+        Console.WriteLine("ONEWAY " + pairs.Count + " flown pairs: demand both ways " + both + ", one way only " + oneWay + ", none " + none);
+        examples.ForEach(e => Console.WriteLine("  " + e));
+        // across all airport pairs in the demand data
+        long all = 0, missing = 0;
+        var bySize = new System.Collections.Generic.Dictionary<string, int>();
+        var airports = TheAirline.Models.Airports.Airports.GetAllActiveAirports();
+        foreach (var a in airports)
+            foreach (var b in airports)
+            {
+                if (a == b) continue;
+                int ab = a.Statics.GetDestinationPassengersRate(b, eco);
+                if (ab <= 0) continue;
+                all++;
+                if (b.Statics.GetDestinationPassengersRate(a, eco) <= 0) { missing++; string k = b.Profile.Size + " to " + a.Profile.Size; int n0; bySize.TryGetValue(k, out n0); bySize[k] = n0 + 1; }
+            }
+        Console.WriteLine("ONEWAY all " + airports.Count + " airports: " + all + " pairs with demand one way, " + missing + " of them with none back");
+        foreach (var kv in bySize.OrderByDescending(x => x.Value).Take(12)) Console.WriteLine("  none from " + kv.Key + ": " + kv.Value);
+        // the test: the airlines' airports (made first at the start) get demand from the busier airports too
+        var homes = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(l => l.Airports.ToList()).Distinct().ToList();
+        int broken = 0, checkedPairs = 0;
+        var brokenExamples = new System.Collections.Generic.List<string>();
+        foreach (var h in homes)
+            foreach (var x in airports)
+            {
+                if (x == h || x.Profile.Size < TheAirline.Helpers.GeneralHelpers.Size.Medium) continue;
+                int out1 = h.Statics.GetDestinationPassengersRate(x, eco);
+                if (out1 < 100) continue;
+                checkedPairs++;
+                if (x.Statics.GetDestinationPassengersRate(h, eco) == 0) { broken++; if (brokenExamples.Count < 5) brokenExamples.Add(x.Profile.IATACode + "->" + h.Profile.IATACode); }
+            }
+        Console.WriteLine("ONEWAY airlines' airports: " + homes.Count + ", " + checkedPairs + " busy pairs checked, " + broken + " with no demand back" + (broken > 0 ? " (" + string.Join(", ", brokenExamples) + ")" : ""));
+        if (Environment.GetCommandLineArgs().Contains("onewaytest"))
+        {
+            if (checkedPairs == 0 || broken > 0) { Console.WriteLine("  FAILED demand missing towards the airlines' airports"); Environment.Exit(1); }
+            Console.WriteLine("DEMAND BOTH WAYS TEST OK");
+        }
+        foreach (var g in airports.GroupBy(a => a.Profile.Size).OrderByDescending(x => (int) x.Key))
+        {
+            double sum = g.Sum(a => (double) a.Statics.GetDestinationPassengersSum());
+            double pax = g.Sum(a => a.Profile.Pax);
+            int dests = g.Sum(a => a.GetDestinationsPassengers().Count);
+            Console.WriteLine(string.Format("  {0,-10} {1,3} airports: demand out {2,10:N0} a day ({3,7:N0} each), {4,6:N0} destinations each, data passengers {5,8:N0} thousand a year each", g.Key, g.Count(), sum, sum / g.Count(), dests / g.Count(), pax / g.Count()));
+        }
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2825,6 +2897,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("routeprofit")) { await RouteProfitTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("forecast")) { await ForecastTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aiplan")) { AiPlanTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("oneway") || Environment.GetCommandLineArgs().Contains("onewaytest")) { OneWayProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("board")) { BoardTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }

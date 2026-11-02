@@ -224,6 +224,12 @@ namespace TheAirline.Helpers
 
             List<Airport> airports = Airports.GetAllAirports(a => a.Statics.GetDestinationPassengersSum() == 0);
             int count = airports.Count;
+            // the airports whose demand was made before (the airlines' airports, at the start of a game): they have
+            // their demand to every airport, but the others' demand to them is made here, or nobody would travel to
+            // them (a new game had no passengers from Charlotte, Orlando or Chicago to Atlanta)
+            var built = new HashSet<Airport>(airports);
+            List<Airport> before = Airports.GetAllAirports(a => !built.Contains(a));
+            var beforePoints = before.Select(a => a.Profile.Coordinates.ConvertToGeoCoordinate()).ToArray();
             // each airport's position once, instead of converting it for every pair
             var points = airports.Select(a => a.Profile.Coordinates.ConvertToGeoCoordinate()).ToArray();
 
@@ -231,9 +237,20 @@ namespace TheAirline.Helpers
 
             Parallel.For(
                 0,
-                count - 1,
+                count,
                 i =>
                     {
+                        for (int k = 0; k < before.Count; k++)
+                        {
+                            if (airports[i].Profile.Town == before[k].Profile.Town) continue;
+                            double km = points[i].GetDistanceTo(beforePoints[k])/1000;
+                            if (km > 50)
+                            {
+                                CreateDestinationPassengers(airports[i], before[k]);
+                                CreateDestinationCargo(airports[i], before[k]);
+                            }
+                        }
+
                         // the pairs of one airport in a plain loop: the outer loop already uses every processor,
                         // and starting a parallel loop for each airport cost more than the work in it
                         for (int j = i + 1; j < count; j++)
