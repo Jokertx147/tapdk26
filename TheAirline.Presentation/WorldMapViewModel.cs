@@ -850,6 +850,9 @@ namespace TheAirline.Presentation
             }
 
             string keep = _rival?.Value.Key ?? RivalView.None.Key;
+            // a choice added on request (an airline or airport not in the list) stays while it is chosen
+            if (_rival != null && _rival.Value != RivalView.None && !choices.Any(c => c.Value.Key == keep) && (_rival.Value.Airline == null || Airlines.GetAllAirlines().Contains(_rival.Value.Airline)))
+                choices.Add(_rival);
             if (choices.Select(c => c.Name + c.Value.Key).SequenceEqual(RivalChoices.Select(c => c.Name + c.Value.Key))) return;
             _loadingChoices = true;
             RivalChoices.Clear();
@@ -864,8 +867,21 @@ namespace TheAirline.Presentation
         {
             var me = GameObject.GetInstance()?.HumanAirline;
             if (me == null) return;
-            if (RivalChoices.Count == 0) LoadRivalChoices(me, GameObject.GetInstance().GameTime);
-            SelectedRival = RivalChoices.FirstOrDefault(c => c.Value.Key == view.Key) ?? RivalChoices[0];
+            if (RivalChoices.Count == 0 || !ReferenceEquals(_game, me)) LoadRivalChoices(me, GameObject.GetInstance().GameTime);
+            var choice = RivalChoices.FirstOrDefault(c => c.Value.Key == view.Key);
+            if (choice == null && (view.Airline != null || view.Airport != null))
+            {
+                // an airline that doesn't fly to the player's airports, or another airport: added to the list
+                choice = new NamedChoice<RivalView>
+                {
+                    Name = view.Airline != null ? view.Airline.Profile.IATACode + " " + view.Airline.Profile.Name : "Everyone at " + view.Airport.Profile.IATACode + " " + view.Airport.Profile.Town?.Name,
+                    Value = view
+                };
+                _loadingChoices = true;
+                RivalChoices.Add(choice);
+                _loadingChoices = false;
+            }
+            SelectedRival = choice ?? RivalChoices[0];
         }
 
         private static bool SameCompany(Airline a, Airline b)

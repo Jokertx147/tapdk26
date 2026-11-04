@@ -999,6 +999,16 @@ static class VmTest
         TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         map.Reload();
         if (map.SelectedRival?.Value.Airport != theirs.Destination1) fail("the choice was lost on a new day");
+        // an airline that doesn't fly to my airports can be shown too (it is added to the list)
+        var far = TheAirline.Models.Airlines.Airlines.GetAllAirlines().FirstOrDefault(a => !a.IsHuman && a.Routes.Any(r => r.HasAirliner) && !map.RivalChoices.Any(c => c.Value.Airline == a));
+        if (far != null)
+        {
+            map.ShowRivals(new TheAirline.Presentation.RivalView { Airline = far });
+            if (map.SelectedRival?.Value.Airline != far || !map.Aircraft.Any(a => !a.IsMine)) fail("an airline away from my airports isn't shown");
+            map.Reload();
+            if (map.SelectedRival?.Value.Airline != far) fail("the added choice was lost on a refresh");
+            Console.WriteLine("  " + far.Profile.Name + " (not at my airports): " + map.Aircraft.Count(a => !a.IsMine) + " aircraft shown");
+        }
         map.ShowRivals(TheAirline.Presentation.RivalView.None);
         if (map.Lines.Any(l => l.Color != null) || map.Aircraft.Any(a => !a.IsMine) || map.Places.Any(p => p.IsRivalOnly) || map.HasLegend) fail("rivals still shown");
         me.RemoveRoute(mine);
