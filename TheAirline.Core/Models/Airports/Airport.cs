@@ -887,6 +887,37 @@ namespace TheAirline.Models.Airports
             return GetAllActiveAirports().Count;
         }
 
+        /// <summary>
+        ///     Counts the airports of each size (the demand formula shares an airport's passengers among them). Sizes
+        ///     change with the year: counted again when the demand is made, for the game's date then (counted only when
+        ///     the data was loaded, a new game and a loaded one got slightly different demand).
+        /// </summary>
+        // every airport of the data files (the whole world, also those outside the game's area): the demand formula
+        // shares an airport's passengers among all the world's airports of a size, so in a game of one area the
+        // passengers to the rest of the world aren't there (counting only the game's airports put them all on its
+        // routes: a fifth more demand)
+        private static List<AirportProfile> _world;
+
+        /// <summary>Remembers the data files' airports (when they are loaded, before a game keeps only its area).</summary>
+        public static void RememberWorld()
+        {
+            _world = _airports.Select(a => a.Profile).ToList();
+        }
+
+        public static void CountSizes()
+        {
+            var profiles = _world != null && _world.Count > 0 ? _world : GetAllActiveAirports().Select(a => a.Profile).ToList();
+            var sizes = profiles.Where(p => p.Period == null || (p.Period.From <= GameObject.GetInstance().GameTime && p.Period.To > GameObject.GetInstance().GameTime) || GameObject.GetInstance().GameTime == default(DateTime))
+                                .Select(p => p.Size).ToList();
+            LargestAirports = sizes.Count(s => s == GeneralHelpers.Size.Largest);
+            VeryLargeAirports = sizes.Count(s => s == GeneralHelpers.Size.VeryLarge);
+            LargeAirports = sizes.Count(s => s == GeneralHelpers.Size.Large);
+            MediumAirports = sizes.Count(s => s == GeneralHelpers.Size.Medium);
+            SmallAirports = sizes.Count(s => s == GeneralHelpers.Size.Small);
+            VerySmallAirports = sizes.Count(s => s == GeneralHelpers.Size.VerySmall);
+            SmallestAirports = sizes.Count(s => s == GeneralHelpers.Size.Smallest);
+        }
+
         public static double CountLarge()
         {
             return LargeAirports;

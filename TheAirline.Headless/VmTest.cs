@@ -1468,6 +1468,164 @@ static class VmTest
         Console.WriteLine("HISTORY TEST OK");
     }
 
+    // "vm demandaudit": every airport pair's demand against the data files' figures, the gaps and outliers, and how
+    // the demand changes with a save and load and with a new year
+    static System.Collections.Generic.Dictionary<long, int> DemandSnapshot(System.Collections.Generic.List<TheAirline.Models.Airports.Airport> airports)
+    {
+        var eco = TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass;
+        var d = new System.Collections.Generic.Dictionary<long, int>();
+        for (int i = 0; i < airports.Count; i++)
+            for (int j = 0; j < airports.Count; j++)
+            {
+                if (i == j) continue;
+                int r = airports[i].Statics.GetDestinationPassengersRate(airports[j], eco);
+                if (r > 0) d[(long) i * 100000 + j] = r;
+            }
+        return d;
+    }
+
+    static string CompareDemand(System.Collections.Generic.Dictionary<long, int> a, System.Collections.Generic.Dictionary<long, int> b, out double totalRatio, out int changed)
+    {
+        long ta = a.Values.Sum(x => (long) x), tb = b.Values.Sum(x => (long) x);
+        totalRatio = ta > 0 ? (double) tb / ta : 0;
+        changed = 0; int gone = 0, came = 0; double rel = 0; int n = 0;
+        foreach (var kv in a)
+        {
+            int v; if (!b.TryGetValue(kv.Key, out v)) { gone++; continue; }
+            if (v != kv.Value) changed++;
+            rel += Math.Abs(v - kv.Value) / (double) kv.Value; n++;
+        }
+        came = b.Keys.Count(k => !a.ContainsKey(k));
+        return string.Format("total {0:N0} -> {1:N0} a day ({2:+0.0;-0.0}%), {3:N0} of {4:N0} pairs changed (on average {5:0.0}%), {6} gone, {7} new", ta, tb, (totalRatio - 1) * 100, changed, a.Count, n > 0 ? 100 * rel / n : 0, gone, came);
+    }
+
+    static int auditDataProblems;
+
+    static void DemandAudit(AirlineViewModel av)
+    {
+        Console.WriteLine("DEMAND AUDIT");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var eco = TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass;
+        var airports = TheAirline.Models.Airports.Airports.GetAllActiveAirports().OrderBy(a => a.Profile.IATACode).ToList();
+        double level = g.Difficulty.PassengersLevel;
+        var activeSet = new System.Collections.Generic.HashSet<TheAirline.Models.Airports.Airport>(airports);
+        double yearFactor = 0.15 * ((g.GameTime.Year - TheAirline.Models.General.GameObject.StartYear) / 10.0 + 1);
+        Console.WriteLine("  " + airports.Count + " airports, " + g.GameTime.Year + ", passengers level " + level + ", year factor " + yearFactor.ToString("0.000"));
+
+        // 1. the pairs with a figure in the data files
+        int dataPairs = 0, exact = 0, missing = 0, off = 0, overflow = 0, selfOrNear = 0;
+        var offExamples = new System.Collections.Generic.List<string>();
+        var missingExamples = new System.Collections.Generic.List<string>();
+        foreach (var a in airports)
+            foreach (var kv in a.Profile.MajorDestionations)
+            {
+                var b = TheAirline.Models.Airports.Airports.GetAirport(kv.Key);
+                if (b == null || !activeSet.Contains(b)) continue;
+                if (b == a || b.Profile.Town == a.Profile.Town || TheAirline.Helpers.MathHelpers.GetDistance(a, b) <= 50) { selfOrNear++; continue; }
+                dataPairs++;
+                double expected = kv.Value * 1000.0 / 365 * level * yearFactor;
+                int actual = a.Statics.GetDestinationPassengersRate(b, eco);
+                if (expected > 65535) overflow++;
+                if (actual == 0 && expected >= 1) { missing++; if (missingExamples.Count < 6) missingExamples.Add(a.Profile.IATACode + "->" + b.Profile.IATACode + " data " + kv.Value + " expected " + expected.ToString("0")); }
+                else if (Math.Abs(actual - Math.Min(65535, Math.Floor(expected))) <= 1) exact++;
+                else { off++; if (offExamples.Count < 6) offExamples.Add(a.Profile.IATACode + "->" + b.Profile.IATACode + " data " + kv.Value + " expected " + expected.ToString("0") + " got " + actual); }
+            }
+        auditDataProblems = missing + off + overflow;
+        Console.WriteLine(string.Format("AUDIT data pairs: {0:N0} (and {1} to the same town, nearby or itself) | as the data says: {2:N0} | missing: {3} | different: {4} | above the 65,535 a day limit: {5}", dataPairs, selfOrNear, exact, missing, off, overflow));
+        missingExamples.ForEach(x => Console.WriteLine("    missing " + x));
+        offExamples.ForEach(x => Console.WriteLine("    different " + x));
+
+        // 2. the data's own symmetry: A->B against B->A where both are listed
+        int both = 0, lopsided = 0;
+        foreach (var a in airports)
+            foreach (var kv in a.Profile.MajorDestionations)
+            {
+                var b = TheAirline.Models.Airports.Airports.GetAirport(kv.Key);
+                int back;
+                if (b == null || b == a || string.CompareOrdinal(a.Profile.IATACode, b.Profile.IATACode) > 0 || !b.Profile.MajorDestionations.TryGetValue(a.Profile.IATACode, out back)) continue;
+                both++;
+                if (Math.Max(kv.Value, back) > 3 * Math.Max(1, Math.Min(kv.Value, back)) && Math.Max(kv.Value, back) > 50) lopsided++;
+            }
+        Console.WriteLine("AUDIT data listed both ways: " + both + " pairs, " + lopsided + " more than three times bigger one way");
+
+        // 3. every pair: none, and outliers against the origin's size
+        var snap = DemandSnapshot(airports);
+        long total = snap.Values.Sum(x => (long) x);
+        var origins = airports.Select((a, i) => new { a, i, sum = snap.Where(kv => kv.Key / 100000 == i).Sum(kv => (long) kv.Value), n = snap.Count(kv => kv.Key / 100000 == i) }).ToList();
+        var none = origins.Where(o => o.n == 0).ToList();
+        Console.WriteLine(string.Format("AUDIT all pairs: {0:N0} with demand, {1:N0} a day in all; airports with no demand at all: {2}{3}", snap.Count, total, none.Count, none.Count > 0 ? " (" + string.Join(", ", none.Take(8).Select(o => o.a.Profile.IATACode)) + ")" : ""));
+        // demand per data passenger by airport: the far outliers
+        var ratios = origins.Where(o => o.a.Profile.Pax > 0 && o.sum > 0).Select(o => new { o.a, r = o.sum / o.a.Profile.Pax }).OrderBy(x => x.r).ToList();
+        if (ratios.Count > 0)
+        {
+            double median = ratios[ratios.Count / 2].r;
+            var low = ratios.Where(x => x.r < median / 4).ToList();
+            var high = ratios.Where(x => x.r > median * 4).ToList();
+            Console.WriteLine(string.Format("AUDIT demand per thousand yearly passengers: median {0:0.00} a day; below a quarter of it: {1}{2}; above four times: {3}{4}", median, low.Count,
+                low.Count > 0 ? " (" + string.Join(", ", low.Take(6).Select(x => x.a.Profile.IATACode + " " + x.r.ToString("0.00"))) + ")" : "", high.Count,
+                high.Count > 0 ? " (" + string.Join(", ", high.Take(6).Select(x => x.a.Profile.IATACode + " " + x.r.ToString("0.00"))) + ")" : ""));
+        }
+        var noPax = airports.Count(a => a.Profile.Pax <= 0);
+        Console.WriteLine("AUDIT airports without a passenger figure in the data: " + noPax);
+
+        // 4. a save and a load (and the extra demand from events, which the save keeps)
+        Func<System.Collections.Generic.List<TheAirline.Models.Airports.Airport>, string> extras = list => string.Join(";", list.Select(a => a.Profile.IATACode + "=" + (a.GetDestinationPassengersSum() - a.Statics.GetDestinationPassengersSum())).Where(x => !x.EndsWith("=0")));
+        var someone = airports.First(a => a.Profile.Size >= TheAirline.Helpers.GeneralHelpers.Size.Large);
+        var target = airports.First(a => a != someone && a.Profile.Size >= TheAirline.Helpers.GeneralHelpers.Size.Large);
+        someone.AddDestinationPassengersRate(target, 77);
+        string extraBefore = extras(airports);
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("demandaudit");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("demandaudit");
+        var airports2 = TheAirline.Models.Airports.Airports.GetAllActiveAirports().OrderBy(a => a.Profile.IATACode).ToList();
+        double ratio; int changed;
+        var snap2 = DemandSnapshot(airports2);
+        Console.WriteLine("AUDIT save and load: " + CompareDemand(snap, snap2, out ratio, out changed));
+        int loadChanged = changed + snap.Keys.Count(k => !snap2.ContainsKey(k)) + snap2.Keys.Count(k => !snap.ContainsKey(k));
+        string extraAfter = extras(airports2);
+        Console.WriteLine("AUDIT extra demand from events: before saving " + extraBefore + " | after loading " + extraAfter);
+        {
+            var byOrigin = snap.Where(kv => { int v; return !snap2.TryGetValue(kv.Key, out v) || v != kv.Value; }).GroupBy(kv => airports[(int) (kv.Key / 100000)].Profile.IATACode).OrderByDescending(x => x.Count()).Take(8);
+            Console.WriteLine("    changed by origin: " + string.Join(", ", byOrigin.Select(x => x.Key + " " + x.Count())));
+            var ex = snap.Where(kv => { int v; return snap2.TryGetValue(kv.Key, out v) && v != kv.Value; }).Take(5).Select(kv => airports[(int) (kv.Key / 100000)].Profile.IATACode + "->" + airports[(int) (kv.Key % 100000)].Profile.IATACode + " " + kv.Value + " -> " + snap2[kv.Key]);
+            Console.WriteLine("    e.g. " + string.Join(", ", ex));
+        }
+
+        // 5. a new year
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        while (!(g.GameTime.Month == 12 && g.GameTime.Day == 31)) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var before = DemandSnapshot(airports2);
+        var swYear = System.Diagnostics.Stopwatch.StartNew();
+        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("AUDIT the new year's day took " + swYear.ElapsedMilliseconds + " ms (the demand made again)");
+        var after = DemandSnapshot(airports2);
+        Console.WriteLine("AUDIT new year " + g.GameTime.Year + ": " + CompareDemand(before, after, out ratio, out changed));
+        double yearRatio = ratio;
+        // and a load after it: does the year's growth survive?
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("demandaudit");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("demandaudit");
+        var airports3 = TheAirline.Models.Airports.Airports.GetAllActiveAirports().OrderBy(a => a.Profile.IATACode).ToList();
+        var snap3 = DemandSnapshot(airports3);
+        Console.WriteLine("AUDIT save and load after the new year: " + CompareDemand(after, snap3, out ratio, out changed));
+        int afterYear = changed + after.Keys.Count(k => !snap3.ContainsKey(k)) + snap3.Keys.Count(k => !after.ContainsKey(k));
+        foreach (var k in snap3.Keys.Where(k => !after.ContainsKey(k)).Take(8))
+        {
+            var o = airports3[(int) (k / 100000)]; var d = airports3[(int) (k % 100000)];
+            Console.WriteLine("    new after the load: " + o.Profile.IATACode + " (" + o.Profile.Size + ", " + o.Profile.MajorDestionations.Count + " in the data) -> " + d.Profile.IATACode + " (" + d.Profile.Size + ") " + snap3[k] + " a day; data " + (o.Profile.MajorDestionations.ContainsKey(d.Profile.IATACode) ? o.Profile.MajorDestionations[d.Profile.IATACode].ToString() : "none") + "; airport list same: " + (airports3.Count == airports2.Count));
+        }
+
+        if (Environment.GetCommandLineArgs().Contains("demandaudit"))
+        {
+            if (auditDataProblems > 0) fail(auditDataProblems + " pairs aren't what the data files say");
+            if (none.Count > 0) fail(none.Count + " airports without any demand");
+            if (loadChanged > 0) fail("a save and load changed " + loadChanged + " pairs");
+            if (extraAfter != extraBefore) fail("the extra demand from events didn't come back with the saved game");
+            if (yearRatio < 1.005 || yearRatio > 1.03) fail("the new year changed the demand by " + ((yearRatio - 1) * 100).ToString("0.0") + "%");
+            if (afterYear > after.Count / 1000) fail("a save and load after the new year changed " + afterYear + " pairs");
+            Console.WriteLine("DEMAND AUDIT TEST OK");
+        }
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2977,6 +3135,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("board")) { BoardTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("history")) { HistoryTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("demandaudit")) { DemandAudit(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }

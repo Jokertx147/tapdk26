@@ -345,16 +345,8 @@ namespace TheAirline.Infrastructure
                 file.Close();
             }
             DataAirportCodes = new HashSet<string>(Airports.GetAllAirports().Select(a => a.Profile.IATACode));
-            Airports.LargestAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Largest).Count;
-            Airports.VeryLargeAirports =
-                Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.VeryLarge).Count;
-            Airports.LargeAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Large).Count;
-            Airports.MediumAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Medium).Count;
-            Airports.SmallAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Small).Count;
-            Airports.VerySmallAirports =
-                Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.VerySmall).Count;
-            Airports.SmallestAirports = Airports.GetAirports(a => a.Profile.Size == GeneralHelpers.Size.Smallest).Count;
-
+            Airports.RememberWorld();
+            Airports.CountSizes();
             foreach (GeneralHelpers.Size size in Enum.GetValues(typeof (GeneralHelpers.Size)))
             {
                 if (!Airports.CargoAirportsSizes.ContainsKey(size))

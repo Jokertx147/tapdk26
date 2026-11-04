@@ -334,12 +334,51 @@ namespace TheAirline.Helpers
 
         public static double GetRandomDoubleNumber(double minimum, double maximum)
         {
-            return Rnd.NextDouble()*(maximum - minimum) + minimum;
+            var seeded = _seeded;
+            return (seeded != null ? seeded.NextDouble() : Rnd.NextDouble())*(maximum - minimum) + minimum;
         }
 
         public static int GetRandomInt(int min, int max)
         {
-            return Rnd.Next(min, max);
+            var seeded = _seeded;
+            return seeded != null ? seeded.Next(min, max) : Rnd.Next(min, max);
+        }
+
+        // while set (on this thread), the random numbers above repeat for the same key: a pair of airports gets the
+        // same demand every time it is built (a new game, a load, a new year)
+        [ThreadStatic]
+        private static Random _seeded;
+
+        private sealed class SeedScope : IDisposable
+        {
+            private readonly Random _previous;
+
+            public SeedScope(Random previous)
+            {
+                _previous = previous;
+            }
+
+            public void Dispose()
+            {
+                _seeded = _previous;
+            }
+        }
+
+        /// <summary>Random numbers that repeat for the same key until the result is disposed (a stable hash, not string.GetHashCode).</summary>
+        public static IDisposable SeedFor(string key)
+        {
+            unchecked
+            {
+                uint h = 2166136261;
+                foreach (char c in key ?? "")
+                {
+                    h ^= c;
+                    h *= 16777619;
+                }
+                var previous = _seeded;
+                _seeded = new Random((int) h);
+                return new SeedScope(previous);
+            }
         }
 
         public static GeoCoordinate GetRoutePoint(GeoCoordinate c1, GeoCoordinate c2, double distance)

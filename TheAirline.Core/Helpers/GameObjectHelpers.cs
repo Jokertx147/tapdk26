@@ -2854,7 +2854,18 @@ namespace TheAirline.Helpers
                 }
             }
 
-            //increases the passenger demand between airports with up to 5%
+            // the year's demand: made again from the year's figures (the random growth below only ever reached the extra
+            // demand from events, never the airports' own demand, which a load made again from the new year anyway)
+            try
+            {
+                PassengerHelpers.RebuildDemand();
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.StartupLog.Write("New year: making the demand again failed: " + ex);
+            }
+
+            //increases the extra passenger demand (from events) between airports with up to 5%
             //Parallel.ForEach(
             //    Airports.GetAllActiveAirports(),
             //    airport =>

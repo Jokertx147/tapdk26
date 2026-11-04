@@ -118,6 +118,7 @@ namespace TheAirline.Helpers
 
         public static void CreateAirlineDestinationDemand()
         {
+            Airports.CountSizes();
             //sets up the factors if they are not already setted up
 
             if (CargoFactors.Count == 0)
@@ -150,7 +151,7 @@ namespace TheAirline.Helpers
                         CreateDestinationCargo(airport, dAirport);
                     }
                 } //);
-                if (airport.GetDestinationPassengersSum() == 0)
+                if (airport.Statics.GetDestinationPassengersSum() == 0)
                 {
                     Airport airport1 = airport;
                     List<Airport> subAirports =
@@ -209,8 +210,23 @@ namespace TheAirline.Helpers
             }
         }
 
+        /// <summary>
+        ///     Makes every airport's demand again (as loading a game does): on a new year, so the year's growth is the same
+        ///     whether the game is played on or saved and loaded. The player's edits to the demand are kept.
+        /// </summary>
+        public static void RebuildDemand()
+        {
+            foreach (Airport airport in Airports.GetAllAirports())
+            {
+                airport.Statics = new AirportStatics(airport);
+            }
+            CreateDestinationDemand();
+            DemandOverrides.Apply();
+        }
+
         public static void CreateDestinationDemand()
         {
+            Airports.CountSizes();
             if (CargoFactors.Count == 0)
             {
                 CargoFactors.Add(GeneralHelpers.Size.Largest, 0.23);
@@ -269,27 +285,23 @@ namespace TheAirline.Helpers
                                     }
                                 }
 
-                        if (airports[i].GetDestinationPassengersSum() == 0)
-                        {
-                            List<Airport> subAirports =
-                                airports.FindAll(a => a.Profile.Country == airports[i].Profile.Country)
-                                        .DefaultIfEmpty()
-                                        .ToList();
-                            subAirports.RemoveAll(a => a == null);
-
-                            if (subAirports.Any())
-                            {
-                                CreateDestinationPassengers(airports[i], subAirports);
-                            }
-                            else
-                            {
-                                subAirports =
-                                    airports.FindAll(a => a.Profile.Country.Region == airports[i].Profile.Country.Region)
-                                            .ToList();
-                                CreateDestinationPassengers(airports[i], subAirports);
-                            }
-                        }
                     });
+
+            // an airport left without any demand gets a little to the country's (or region's) biggest airports: only
+            // now that every pair is made (checked inside the parallel loop, another thread could still be adding the
+            // airport's pairs, and the made-up demand came first: Altoona to Washington Dulles had 1 a day for 28)
+            // (to any of the game's airports: the airlines' airports, made earlier in a new game, too)
+            List<Airport> all = Airports.GetAllActiveAirports();
+            for (int i = 0; i < count; i++)
+            {
+                if (airports[i].Statics.GetDestinationPassengersSum() != 0) continue; // (the built demand only, not the extra from events)
+                List<Airport> subAirports = all.FindAll(a => a != airports[i] && a.Profile.Country == airports[i].Profile.Country);
+                if (!subAirports.Any())
+                {
+                    subAirports = all.FindAll(a => a != airports[i] && a.Profile.Country.Region == airports[i].Profile.Country.Region);
+                }
+                if (subAirports.Any()) CreateDestinationPassengers(airports[i], subAirports);
+            }
         }
 
         public static void CreateDestinationPassengers(Airport airport)
@@ -334,6 +346,13 @@ namespace TheAirline.Helpers
         }
 
         public static void CreateDestinationPassengers(Airport airport, Airport dAirport)
+        {
+            // the same pair gets the same numbers every time the demand is built
+            using (MathHelpers.SeedFor(airport.Profile.IATACode + ">" + dAirport.Profile.IATACode))
+                CreateDestinationPassengersSeeded(airport, dAirport);
+        }
+
+        private static void CreateDestinationPassengersSeeded(Airport airport, Airport dAirport)
         {
             //short_haul, long_haul, demand both ways
             double estimatedPassengerLevel = 0;
@@ -3483,19 +3502,23 @@ namespace TheAirline.Helpers
 
             int maxValue = Math.Max(2, (int) Math.Ceiling(airport.Profile.Pax/2));
 
-            if (largestAirports.Count > 0)
+            // the same every time the demand is built
+            using (MathHelpers.SeedFor(airport.Profile.IATACode + ">fallback"))
             {
-                foreach (Airport lAirport in largestAirports)
+                if (largestAirports.Count > 0)
                 {
-                    airport.AddDestinationPassengersRate(
-                        new DestinationDemand(lAirport.Profile.IATACode, (ushort) Rnd.Next(1, maxValue)));
+                    foreach (Airport lAirport in largestAirports.OrderBy(a => a.Profile.IATACode))
+                    {
+                        airport.AddDestinationPassengersRate(
+                            new DestinationDemand(lAirport.Profile.IATACode, (ushort) MathHelpers.GetRandomInt(1, maxValue)));
+                    }
                 }
-            }
-            else
-            {
-                subAirports = subAirports.OrderByDescending(a => a.Profile.Size).ToList();
-                airport.AddDestinationPassengersRate(
-                    new DestinationDemand(subAirports[0].Profile.IATACode, (ushort) Rnd.Next(1, maxValue)));
+                else
+                {
+                    subAirports = subAirports.OrderByDescending(a => a.Profile.Size).ThenBy(a => a.Profile.IATACode).ToList();
+                    airport.AddDestinationPassengersRate(
+                        new DestinationDemand(subAirports[0].Profile.IATACode, (ushort) MathHelpers.GetRandomInt(1, maxValue)));
+                }
             }
         }
 
