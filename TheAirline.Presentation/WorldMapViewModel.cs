@@ -258,6 +258,7 @@ namespace TheAirline.Presentation
         public bool HasLegend => Legend.Count > 1;
 
         private NamedChoice<RivalView> _rival;
+        private Airline _game;
         private DateTime _choicesDay;
         private bool _loadingChoices;
 
@@ -978,6 +979,19 @@ namespace TheAirline.Presentation
             }
 
             DateTime now = GameObject.GetInstance().GameTime;
+            // another game (loaded or started): the choices and the selection were the old game's objects
+            if (!ReferenceEquals(_game, airline))
+            {
+                _game = airline;
+                _choicesDay = default(DateTime);
+                _loadingChoices = true;
+                RivalChoices.Clear();
+                _loadingChoices = false;
+                _selected = null;
+                _follow = false;
+                OnPropertyChanged(nameof(Follow));
+                OnPropertyChanged(nameof(Selected));
+            }
             FleetAirliner keep = _selected?.Aircraft;
             bool paused = true;
             try { paused = TheAirline.Helpers.Workers.GameObjectWorker.GetInstance().IsPaused; } catch (Exception) { }

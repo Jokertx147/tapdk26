@@ -279,7 +279,9 @@ namespace TheAirline.Helpers
             AirlinerHelpers.CreateStartUpAirliners();
 
             RouteIndex.Invalidate();
-            CompetitorService.Clear();
+            int moves = CompetitorService.Restore(deserializedSaveObject.RivalMovesList);
+            int flights = FlightRecords.Restore(deserializedSaveObject.FlownFlightsList);
+            StartupLog.Write("LoadGame: " + moves + " rival moves and " + flights + " recorded flights restored");
             StartupLog.Write("LoadGame: starting the game paused");
             //Start the game paused
             GameObjectWorker.GetInstance().StartPaused();
@@ -343,6 +345,8 @@ namespace TheAirline.Helpers
             var so = new SaveObject();
             so.DemandOverridesList = DemandOverrides.ToStrings();
             so.DataAirportsList = Setup.DataAirportCodes?.ToList();
+            so.RivalMovesList = CompetitorService.ToSave();
+            so.FlownFlightsList = FlightRecords.ToSave(Airlines.GetAllAirlines());
             Parallel.Invoke(
                 () =>
                     {
@@ -582,6 +586,13 @@ namespace TheAirline.Helpers
 
         [Versioning("routefacilities")]
         public List<RouteFacility> RouteFacilitiesList { get; set; }
+
+        // the rivals' moves for the competitor screen, and each aircraft's last flights for the flight board
+        [Versioning("rivalmoves")]
+        public List<SavedRivalMove> RivalMovesList { get; set; }
+
+        [Versioning("flownflights")]
+        public List<SavedFlights> FlownFlightsList { get; set; }
 
         public string SaveType { get; set; }
 

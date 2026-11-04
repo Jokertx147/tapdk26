@@ -128,6 +128,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm onewaytest 2>&1 | tee onewaytest.log
           grep -q "DEMAND BOTH WAYS TEST OK" onewaytest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " onewaytest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: History test (rival moves and recorded flights come back with a saved game)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm history 2>&1 | tee historytest.log
+          grep -q "HISTORY TEST OK" historytest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " historytest.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log

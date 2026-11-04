@@ -32,9 +32,16 @@ namespace TheAirline.Helpers
         public double Profit { get; set; }
     }
 
+    /// <summary>One aircraft's recorded flights as a saved game keeps them.</summary>
+    public class SavedFlights
+    {
+        public FleetAirliner Airliner;
+        public List<FlownFlight> Flights;
+    }
+
     /// <summary>
-    ///     Each aircraft's last flights, for the world map's flight board. Kept while the game runs (not saved: after
-    ///     loading a game the board shows the flights from then on).
+    ///     Each aircraft's last flights, for the world map's flight board. Saved with the game (an older save has none:
+    ///     the board shows the flights from loading on).
     /// </summary>
     public static class FlightRecords
     {
@@ -113,6 +120,43 @@ namespace TheAirline.Helpers
         public static void Clear()
         {
             Flights.Clear();
+        }
+
+        /// <summary>The flights of every aircraft in the fleets, for a saved game.</summary>
+        public static List<SavedFlights> ToSave(IEnumerable<Models.Airlines.Airline> airlines)
+        {
+            var result = new List<SavedFlights>();
+            foreach (var airline in airlines)
+            {
+                List<FleetAirliner> fleet;
+                lock (airline.Fleet) fleet = airline.Fleet.ToList();
+                foreach (FleetAirliner f in fleet)
+                {
+                    List<FlownFlight> list = Of(f);
+                    if (list.Count > 0) result.Add(new SavedFlights {Airliner = f, Flights = list});
+                }
+            }
+            return result;
+        }
+
+        /// <summary>The flights of a loaded game.</summary>
+        public static int Restore(List<SavedFlights> saved)
+        {
+            Clear();
+            if (saved == null) return 0;
+            int n = 0;
+            foreach (SavedFlights s in saved)
+            {
+                if (s?.Airliner == null || s.Flights == null) continue;
+                var list = Flights.GetValue(s.Airliner, x => new List<FlownFlight>());
+                lock (list)
+                {
+                    list.AddRange(s.Flights.Where(x => x != null).OrderBy(x => x.Takeoff));
+                    if (list.Count > Keep) list.RemoveRange(0, list.Count - Keep);
+                    n += list.Count;
+                }
+            }
+            return n;
         }
     }
 }

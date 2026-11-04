@@ -33,6 +33,18 @@ namespace TheAirline.Helpers
         public bool IsCargo { get; set; }
     }
 
+    /// <summary>A rival move as a saved game keeps it (the airports by code: they are found again on loading).</summary>
+    public class SavedRivalMove
+    {
+        public DateTime Date;
+        public Airline Airline;
+        public string A, B;
+        public int Kind;
+        public string RouteId;
+        public double Factor;
+        public bool IsCargo;
+    }
+
     /// <summary>A rival's flights on one of the player's airport pairs.</summary>
     public class RivalOnRoute
     {
@@ -120,6 +132,35 @@ namespace TheAirline.Helpers
         public static void Clear()
         {
             lock (Log) Log.Clear();
+        }
+
+        /// <summary>The remembered moves, for a saved game.</summary>
+        public static List<SavedRivalMove> ToSave()
+        {
+            lock (Log)
+            {
+                return Log.Where(m => m.Airline != null && m.A != null && m.B != null)
+                          .Select(m => new SavedRivalMove {Date = m.Date, Airline = m.Airline, A = m.A.Profile.IATACode, B = m.B.Profile.IATACode, Kind = (int) m.Kind, RouteId = m.RouteId, Factor = m.Factor, IsCargo = m.IsCargo})
+                          .ToList();
+            }
+        }
+
+        /// <summary>The moves of a loaded game (an older save has none: they are remembered from then on).</summary>
+        public static int Restore(List<SavedRivalMove> saved)
+        {
+            lock (Log)
+            {
+                Log.Clear();
+                if (saved == null) return 0;
+                foreach (SavedRivalMove m in saved.OrderBy(x => x.Date))
+                {
+                    Airport a = Airports.GetAirport(m.A), b = Airports.GetAirport(m.B);
+                    if (m.Airline == null || a == null || b == null || !Enum.IsDefined(typeof (RivalMoveKind), m.Kind)) continue;
+                    Log.Add(new RivalMove {Date = m.Date, Airline = m.Airline, A = a, B = b, Kind = (RivalMoveKind) m.Kind, RouteId = m.RouteId, Factor = m.Factor, IsCargo = m.IsCargo});
+                }
+                if (Log.Count > MaxMoves) Log.RemoveRange(0, Log.Count - MaxMoves);
+                return Log.Count;
+            }
         }
 
         private static void Add(RivalMove m)

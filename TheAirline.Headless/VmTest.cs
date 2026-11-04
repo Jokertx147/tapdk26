@@ -1392,6 +1392,72 @@ static class VmTest
         }
     }
 
+    // the rivals' moves and each aircraft's flights come back with a saved game
+    static void HistoryTest(AirlineViewModel av)
+    {
+        Console.WriteLine("HISTORY TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int i = 0; i < 25; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var me = g.HumanAirline;
+        // a move of each kind, and the player's airports for the moves list
+        var theirs = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList()).OfType<TheAirline.Models.Routes.PassengerRoute>().First(r => r.HasAirliner);
+        TheAirline.Helpers.CompetitorService.RecordFare(theirs.Airline, theirs, 0.9);
+        TheAirline.Helpers.CompetitorService.RecordDropped(theirs.Airline, theirs);
+        if (!me.Airports.Contains(theirs.Destination1)) me.AddAirport(theirs.Destination1);
+        Func<string> movesKey = () => string.Join(";", TheAirline.Helpers.CompetitorService.ToSave().Select(m => m.Date.ToString("s") + m.Airline.Profile.IATACode + m.A + m.B + m.Kind + m.RouteId + m.Factor.ToString("0.000")));
+        Func<string> flightsKey = () => string.Join(";", TheAirline.Helpers.FlightRecords.ToSave(TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+            .OrderBy(x => x.Airliner.Airliner.Airline.Profile.IATACode + x.Airliner.Name)
+            .Select(x => x.Airliner.Airliner.Airline.Profile.IATACode + x.Airliner.Name + ":" + x.Flights.Count + ":" + x.Flights.Sum(f => f.Passengers) + ":" + x.Flights.Sum(f => f.Profit).ToString("0")));
+        int moves = TheAirline.Helpers.CompetitorService.Remembered;
+        string mk = movesKey(), fk = flightsKey();
+        int aircraftWithFlights = TheAirline.Helpers.FlightRecords.ToSave(TheAirline.Models.Airlines.Airlines.GetAllAirlines()).Count;
+        Console.WriteLine("  before saving: " + moves + " rival moves, " + aircraftWithFlights + " aircraft with recorded flights");
+        if (moves < 3 || aircraftWithFlights == 0) fail("nothing to save");
+
+        // a flight board to compare: an aircraft of the rival that flies today
+        var f0 = theirs.Airline.Fleet.ToList().First(x => TheAirline.Helpers.FlightRecords.Of(x).Count > 0 && x.Routes.Count > 0);
+        string code = f0.Airliner.Airline.Profile.IATACode, name = f0.Name;
+        av.Map.ShowRivals(new TheAirline.Presentation.RivalView { Airline = f0.Airliner.Airline });
+        av.Map.Reload();
+        av.Map.Selected = av.Map.Aircraft.First(a => a.Aircraft == f0);
+        var t = g.GameTime.Date.AddHours(23);
+        av.Map.LoadBoard(t);
+        string board = string.Join(";", av.Map.FlightBoard.Select(r => r.Key)) + "|" + av.Map.BoardSummary;
+        string movesShown = string.Join(";", TheAirline.Helpers.CompetitorService.Moves(me, 30).Select(m => m.Date.ToString("s") + m.Kind + m.RouteId));
+
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("historytest");
+        TheAirline.Helpers.CompetitorService.Clear();
+        TheAirline.Helpers.FlightRecords.Clear();
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("historytest");
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        me = g.HumanAirline;
+
+        Console.WriteLine("  after loading: " + TheAirline.Helpers.CompetitorService.Remembered + " rival moves, " + TheAirline.Helpers.FlightRecords.ToSave(TheAirline.Models.Airlines.Airlines.GetAllAirlines()).Count + " aircraft with recorded flights");
+        if (movesKey() != mk) fail("the rival moves changed");
+        if (flightsKey() != fk) fail("the recorded flights changed");
+        if (string.Join(";", TheAirline.Helpers.CompetitorService.Moves(me, 30).Select(m => m.Date.ToString("s") + m.Kind + m.RouteId)) != movesShown) fail("the moves at my airports changed");
+
+        // the same aircraft's flight board, with its flights matched to the timetable again
+        var airline = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First(a => a.Profile.IATACode == code);
+        var f1 = airline.Fleet.ToList().First(x => x.Name == name);
+        var map = av.Map;
+        map.ShowRivals(new TheAirline.Presentation.RivalView { Airline = airline });
+        map.Reload();
+        map.Selected = map.Aircraft.First(a => a.Aircraft == f1);
+        map.LoadBoard(t);
+        string board2 = string.Join(";", map.FlightBoard.Select(r => r.Key)) + "|" + map.BoardSummary;
+        Console.WriteLine("  " + map.BoardTitle + " | " + map.BoardSummary);
+        if (board2 != board) { Console.WriteLine("    before: " + board); Console.WriteLine("    after:  " + board2); fail("the flight board changed"); }
+        if (!map.FlightBoard.Any(r => r.IsDone && r.HasResult)) fail("no results on the board after loading");
+
+        // the game plays on and keeps recording
+        int n0 = TheAirline.Helpers.FlightRecords.Of(f1).Count;
+        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  a day later: " + TheAirline.Helpers.FlightRecords.Of(f1).Count + " flights recorded for " + name + " (was " + n0 + ")");
+        Console.WriteLine("HISTORY TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -2900,6 +2966,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("oneway") || Environment.GetCommandLineArgs().Contains("onewaytest")) { OneWayProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("board")) { BoardTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("history")) { HistoryTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
