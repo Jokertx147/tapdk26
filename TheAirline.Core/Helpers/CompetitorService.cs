@@ -45,6 +45,13 @@ namespace TheAirline.Helpers
         public bool IsCargo;
     }
 
+    /// <summary>What a rival alert in the news points to: the airport pair on the competitor screen.</summary>
+    public class RivalLink
+    {
+        public string A, B, Airline;
+        public bool IsCargo;
+    }
+
     /// <summary>A rival's flights on one of the player's airport pairs.</summary>
     public class RivalOnRoute
     {
@@ -131,6 +138,7 @@ namespace TheAirline.Helpers
 
         public static void Clear()
         {
+            lock (LastAlert) LastAlert.Clear();
             lock (Log) Log.Clear();
         }
 
@@ -178,25 +186,130 @@ namespace TheAirline.Helpers
         public static void RecordOpened(Route route)
         {
             if (route?.Airline == null || route.Airline.IsHuman) return;
-            Add(new RivalMove {Date = GameObject.GetInstance().GameTime, Airline = route.Airline, A = route.Destination1, B = route.Destination2, Kind = RivalMoveKind.Opened, RouteId = route.Id, IsCargo = route.Type == Route.RouteType.Cargo});
+            var m = new RivalMove {Date = GameObject.GetInstance().GameTime, Airline = route.Airline, A = route.Destination1, B = route.Destination2, Kind = RivalMoveKind.Opened, RouteId = route.Id, IsCargo = route.Type == Route.RouteType.Cargo};
+            Add(m);
+            Alert(m, route, 0);
         }
 
         /// <summary>A computer airline gave up a route.</summary>
         public static void RecordDropped(Airline airline, Route route)
         {
             if (airline == null || airline.IsHuman || route == null) return;
-            Add(new RivalMove {Date = GameObject.GetInstance().GameTime, Airline = airline, A = route.Destination1, B = route.Destination2, Kind = RivalMoveKind.Dropped, RouteId = route.Id, IsCargo = route.Type == Route.RouteType.Cargo});
+            var m = new RivalMove {Date = GameObject.GetInstance().GameTime, Airline = airline, A = route.Destination1, B = route.Destination2, Kind = RivalMoveKind.Dropped, RouteId = route.Id, IsCargo = route.Type == Route.RouteType.Cargo};
+            Add(m);
+            Alert(m, route, 0);
         }
 
         /// <summary>A computer airline changed its fares on a route by `factor`.</summary>
-        public static void RecordFare(Airline airline, Route route, double factor)
+        public static void RecordFare(Airline airline, Route route, double factor, double load = 0)
         {
             if (airline == null || airline.IsHuman || route == null || Math.Abs(factor - 1) < 0.005) return;
-            Add(new RivalMove
+            var m = new RivalMove
             {
                 Date = GameObject.GetInstance().GameTime, Airline = airline, A = route.Destination1, B = route.Destination2,
                 Kind = factor < 1 ? RivalMoveKind.FareCut : RivalMoveKind.FareRise, RouteId = route.Id, Factor = factor, IsCargo = route.Type == Route.RouteType.Cargo
-            });
+            };
+            Add(m);
+            if (m.Kind == RivalMoveKind.FareCut) Alert(m, route, load);
+        }
+
+        // ---- alerts: the player hears when a rival opens, undercuts or gives up one of the player's routes ----
+
+        /// <summary>The days before the same rival's same kind of move on the same airport pair is told again.</summary>
+        public const int AlertDays = 30;
+
+        /// <summary>A fare cut is told only when it is at least this deep (0.97 = 3%) and leaves the rival cheaper than the player.</summary>
+        public const double AlertCut = 0.97;
+
+        /// <summary>For the tests: alerts sent, and alerts held back because the same one was sent lately.</summary>
+        public static int AlertsSent, AlertsHeld;
+
+        private static readonly Dictionary<string, DateTime> LastAlert = new Dictionary<string, DateTime>();
+
+        // the player's routes on the move's airport pair, of the same kind (passenger or cargo)
+        private static List<Route> PlayerRoutesOn(RivalMove m, Airline human)
+        {
+            return RouteIndex.Direct(m.A, m.B)
+                             .Where(r => r.Airline != null && SameCompany(r.Airline, human) && (r.Type == Route.RouteType.Cargo) == m.IsCargo && r.Airline.Routes.Contains(r))
+                             .Distinct().ToList();
+        }
+
+        private static void Alert(RivalMove m, Route route, double load)
+        {
+            try
+            {
+                var game = GameObject.GetInstance();
+                Airline human = game?.HumanAirline;
+                if (human == null || m.A == null || m.B == null || SameCompany(m.Airline, human)) return;
+                if (Infrastructure.Settings.GetInstance().NoRivalAlerts) return;
+                List<Route> mine = PlayerRoutesOn(m, human);
+                if (mine.Count == 0) return;
+                Route my = mine[0];
+
+                string body;
+                var f = new ValueCurrencyFormatter();
+                string pair = m.A.Profile.IATACode + "-" + m.B.Profile.IATACode;
+                string what = m.IsCargo ? "cargo rate" : "economy fare";
+                string name = m.Airline.Profile.Name;
+                switch (m.Kind)
+                {
+                    case RivalMoveKind.Opened:
+                        body = string.Format("{0} opened a {1} route between {2} and {3}: {4} flights a week with {5}, at {6}. {7}",
+                                             name, m.IsCargo ? "cargo" : "passenger", m.A.Profile.Name, m.B.Profile.Name, route.TimeTable.Entries.Count, AircraftOf(route),
+                                             Price(f, Fare(route)),
+                                             my.TimeTable.Entries.Count == 0 ? "Your route there has no flights yet; your " + what + " is " + Price(f, Fare(my)) + "."
+                                                 : "You fly it " + my.TimeTable.Entries.Count + " times a week at " + Price(f, Fare(my)) + ".");
+                        break;
+                    case RivalMoveKind.FareCut:
+                        double theirs = Fare(route), yours = Fare(my);
+                        if (m.Factor > AlertCut || theirs <= 0 || yours <= 0 || theirs >= yours) return;
+                        body = string.Format("{0} cut its {1} on {2} by {3:0}% to {4}, below your {5}.{6}",
+                                             name, what, pair, (1 - m.Factor)*100, f.Convert(theirs), f.Convert(yours),
+                                             load > 0 ? string.Format(" Their {0} were {1:0}% full.", m.IsCargo ? "freighters" : "flights", load*100) : "");
+                        break;
+                    case RivalMoveKind.Dropped:
+                        int left = RivalRoutes(my).Count;
+                        body = string.Format("{0} gave up its {1} route on {2}. {3}", name, m.IsCargo ? "cargo" : "passenger", pair,
+                                             left == 0 ? "You fly it alone now." : left == 1 ? "One rival still flies it." : left + " rivals still fly it.");
+                        break;
+                    default:
+                        return;
+                }
+
+                // one alert per rival, airport pair and kind of move in a month
+                string a = string.CompareOrdinal(m.A.Profile.IATACode, m.B.Profile.IATACode) <= 0 ? m.A.Profile.IATACode : m.B.Profile.IATACode;
+                string b = a == m.A.Profile.IATACode ? m.B.Profile.IATACode : m.A.Profile.IATACode;
+                string key = m.Airline.Profile.IATACode + "|" + a + "|" + b + "|" + m.Kind + "|" + m.IsCargo;
+                lock (LastAlert)
+                {
+                    DateTime last;
+                    if (LastAlert.TryGetValue(key, out last) && (m.Date - last).TotalDays < AlertDays && m.Date >= last)
+                    {
+                        AlertsHeld++;
+                        return;
+                    }
+                    LastAlert[key] = m.Date;
+                    AlertsSent++;
+                }
+
+                string subject = m.Kind == RivalMoveKind.Opened ? name + " now flies " + pair
+                    : m.Kind == RivalMoveKind.FareCut ? name + " undercuts you on " + pair
+                    : name + " leaves " + pair;
+                var news = new News(News.NewsType.RivalNews, m.Date, subject, body)
+                {
+                    ActionObject = new RivalLink {A = m.A.Profile.IATACode, B = m.B.Profile.IATACode, IsCargo = m.IsCargo, Airline = name}
+                };
+                lock (game.NewsBox) game.NewsBox.AddNews(news);
+            }
+            catch (Exception)
+            {
+                // an alert never stops the game day (another airline may change its routes meanwhile)
+            }
+        }
+
+        private static string Price(ValueCurrencyFormatter f, double fare)
+        {
+            return fare > 0 ? f.Convert(fare).ToString() : "a fare not set yet";
         }
 
         private static bool SameCompany(Airline a, Airline b)

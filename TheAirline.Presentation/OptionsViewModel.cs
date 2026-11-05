@@ -337,6 +337,13 @@ namespace TheAirline.Presentation
         public string DistanceExample => "Example: " + DistanceFormatter.Km(1000) + ", " + DistanceFormatter.Speed(800);
 
         /// <summary>Save automatically (as "Autosave ...") when leaving the game or closing the window.</summary>
+        /// <summary>News when a rival opens, undercuts or gives up one of my routes (kept with the game).</summary>
+        public bool RivalAlerts
+        {
+            get { return !TheAirline.Infrastructure.Settings.GetInstance().NoRivalAlerts; }
+            set { TheAirline.Infrastructure.Settings.GetInstance().NoRivalAlerts = !value; OnPropertyChanged(nameof(RivalAlerts)); }
+        }
+
         public bool AutoSave
         {
             get { return GameSession.AutoSaveOnExit; }

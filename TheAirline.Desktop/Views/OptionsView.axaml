@@ -60,6 +60,9 @@
       </StackPanel>
       <TextBlock Text="{Binding MoneyStatus}" TextWrapping="Wrap" />
 
+      <TextBlock Text="News" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+      <CheckBox Content="Rival alerts: tell me when a rival opens, undercuts or gives up one of my routes" IsChecked="{Binding RivalAlerts}" />
+
       <TextBlock Text="Game area" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <TextBlock Text="{Binding AreaText}" Opacity="0.7" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" />
       <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasAreas}">

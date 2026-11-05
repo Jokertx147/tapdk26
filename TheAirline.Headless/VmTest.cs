@@ -876,6 +876,127 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    static void RivalAlertsTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RIVAL ALERTS TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        Func<System.Collections.Generic.List<TheAirline.Models.General.News>> rivalNews = () =>
+        {
+            lock (g.NewsBox) return g.NewsBox.GetNews().Where(n => n.Type == TheAirline.Models.General.News.NewsType.RivalNews).ToList();
+        };
+        // my route on a pair a computer airline flies, dearer than the rival
+        var theirs = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList())
+                                .OfType<TheAirline.Models.Routes.PassengerRoute>().First(r => r.HasAirliner && TheAirline.Helpers.AIPricingService.EconomyFare(r) > 0);
+        double theirFare = TheAirline.Helpers.AIPricingService.EconomyFare(theirs);
+        var mine = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), theirs.Destination1, theirs.Destination2, g.GameTime, theirFare * 1.2);
+        Action<double> setMine = fare => { foreach (var c in mine.Classes) c.FarePrice = fare * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type); };
+        setMine(theirFare * 1.2);
+        if (!me.Airports.Contains(theirs.Destination1)) me.AddAirport(theirs.Destination1);
+        if (!me.Airports.Contains(theirs.Destination2)) me.AddAirport(theirs.Destination2);
+        me.AddRoute(mine);
+        string pair = theirs.Destination1.Profile.IATACode + "-" + theirs.Destination2.Profile.IATACode;
+        Console.WriteLine("  my route " + pair + ", rival " + theirs.Airline.Profile.IATACode);
+        // and the pairs the computer airlines fly from my airports, so a month of play brings alerts
+        foreach (var r in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(x => !x.IsHuman).SelectMany(x => x.Routes.ToList())
+                                 .OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner && (me.Airports.Contains(r.Destination1) || me.Airports.Contains(r.Destination2))).Take(15))
+        {
+            if (!me.Airports.Contains(r.Destination1)) me.AddAirport(r.Destination1);
+            if (!me.Airports.Contains(r.Destination2)) me.AddAirport(r.Destination2);
+            var mr = new TheAirline.Models.Routes.PassengerRoute(Guid.NewGuid().ToString(), r.Destination1, r.Destination2, g.GameTime, 1);
+            double f0 = TheAirline.Helpers.AIPricingService.EconomyFare(r) * 1.1;
+            foreach (var c in mr.Classes) c.FarePrice = f0 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+            me.AddRoute(mr);
+        }
+        for (int i = 0; i < 30; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Console.WriteLine("  alerts in 30 days of play: " + rivalNews().Count + " (" + TheAirline.Helpers.CompetitorService.AlertsSent + " sent, " + TheAirline.Helpers.CompetitorService.AlertsHeld + " held back)");
+        foreach (var n in rivalNews().Take(3)) Console.WriteLine("    " + n.Subject + " | " + n.Body);
+        if (rivalNews().Any(n => !(n.ActionObject is TheAirline.Helpers.RivalLink))) fail("an alert without its link");
+        if (g.NewsBox.GetNews().Any(n => n.Subject.Contains(" cuts fares on ") || n.Subject.Contains(" cuts cargo rates on "))) fail("the old fare cut news is still sent");
+
+        TheAirline.Helpers.CompetitorService.Clear();
+        int before = rivalNews().Count;
+        Func<TheAirline.Models.General.News> newest = () => rivalNews().LastOrDefault();
+
+        // opened
+        TheAirline.Helpers.CompetitorService.RecordOpened(theirs);
+        if (rivalNews().Count != before + 1 || !newest().Subject.Contains("now flies " + pair)) fail("no alert for the route opened");
+        Console.WriteLine("  " + newest().Subject + " | " + newest().Body);
+        TheAirline.Helpers.CompetitorService.RecordOpened(theirs);
+        if (rivalNews().Count != before + 1) fail("the same alert was sent twice in a month");
+
+        // fare cuts: too shallow, not below mine, then below mine
+        TheAirline.Helpers.CompetitorService.RecordFare(theirs.Airline, theirs, 0.99, 0.7);
+        if (rivalNews().Count != before + 1) fail("a 1% cut was told");
+        setMine(theirFare * 0.5);
+        TheAirline.Helpers.CompetitorService.RecordFare(theirs.Airline, theirs, 0.9, 0.7);
+        if (rivalNews().Count != before + 1) fail("a cut that leaves the rival dearer than me was told");
+        setMine(theirFare * 1.2);
+        TheAirline.Helpers.CompetitorService.RecordFare(theirs.Airline, theirs, 0.9, 0.7);
+        if (rivalNews().Count != before + 2 || !newest().Subject.Contains("undercuts you on " + pair) || !newest().Body.Contains("70% full")) fail("no alert for the cut below my fare");
+        Console.WriteLine("  " + newest().Subject + " | " + newest().Body);
+
+        // given up
+        TheAirline.Helpers.CompetitorService.RecordDropped(theirs.Airline, theirs);
+        if (rivalNews().Count != before + 3 || !newest().Subject.Contains("leaves " + pair)) fail("no alert for the route given up");
+        Console.WriteLine("  " + newest().Subject + " | " + newest().Body);
+
+        // a move on a pair I don't fly isn't told
+        var other = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).SelectMany(a => a.Routes.ToList())
+                               .FirstOrDefault(r => !me.Routes.Any(m => (m.Destination1 == r.Destination1 && m.Destination2 == r.Destination2) || (m.Destination1 == r.Destination2 && m.Destination2 == r.Destination1)));
+        if (other != null)
+        {
+            TheAirline.Helpers.CompetitorService.RecordOpened(other);
+            if (rivalNews().Count != before + 3) fail("an alert for a route I don't fly");
+        }
+
+        // the switch in Options
+        TheAirline.Helpers.CompetitorService.Clear();
+        if (!av.Options.RivalAlerts) fail("alerts are off by default");
+        av.Options.RivalAlerts = false;
+        if (!TheAirline.Infrastructure.Settings.GetInstance().NoRivalAlerts) fail("the Options switch doesn't reach the setting");
+        TheAirline.Helpers.CompetitorService.RecordOpened(theirs);
+        if (rivalNews().Count != before + 3) fail("an alert with alerts switched off");
+        av.Options.RivalAlerts = true;
+        TheAirline.Helpers.CompetitorService.RecordOpened(theirs);
+        if (rivalNews().Count != before + 4) fail("no alert once switched back on");
+
+        // the link in the news: Airlines > Competitors, My routes, my route on that pair
+        var nv = av.News;
+        nv.Filter = "Rivals";
+        nv.Reload();
+        if (nv.Rows.Count == 0 || nv.Rows.Any(r => r.Type != "Rivals")) fail("the Rivals filter");
+        nv.Selected = nv.Rows.First(r => r.News == newest());
+        if (!nv.HasLink) fail("the alert has no link");
+        nv.OpenLinkCommand.Execute(null);
+        var cv = av.Competitors;
+        if (av.Pages[av.Page] != "Airlines" || av.AirlinesTab != 1) fail("the link didn't open Airlines > Competitors");
+        if (cv.Show != TheAirline.Presentation.CompetitorsViewModel.ByRoute || cv.Selected?.MyRoute != mine) fail("the link didn't select my route");
+        Console.WriteLine("  link opened: " + av.Pages[av.Page] + " > Competitors > " + cv.Show + " > " + cv.Selected.Title + " | " + cv.Selected.Line1);
+
+        // saved with the game: the alert and its link
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("rivalalerts");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("rivalalerts");
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        var loaded = rivalNews().LastOrDefault(n => n.Subject.Contains(pair));
+        var link = loaded?.ActionObject as TheAirline.Helpers.RivalLink;
+        if (link == null || !((link.A + "-" + link.B) == pair) || link.IsCargo) fail("the alert's link after loading");
+        Console.WriteLine("  after loading: " + rivalNews().Count + " alerts, link " + link.A + "-" + link.B + " (" + link.Airline + ")");
+
+        // a link to a route I no longer fly says so
+        me = g.HumanAirline;
+        foreach (var r in me.Routes.ToList().Where(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode == pair)) me.RemoveRoute(r);
+        av.Page = av.Pages.ToList().IndexOf("News");
+        nv.Reload();
+        nv.Selected = nv.Rows.FirstOrDefault(r => r.News == loaded);
+        if (nv.Selected == null) fail("the loaded alert isn't listed");
+        nv.OpenLinkCommand.Execute(null);
+        if (string.IsNullOrEmpty(nv.LinkNote) || av.Pages[av.Page] != "News") fail("a link to a route I gave up");
+        Console.WriteLine("  gone route: " + nv.LinkNote);
+        Console.WriteLine("RIVAL ALERTS TEST OK");
+    }
+
     static void CompetitorsTest(AirlineViewModel av)
     {
         Console.WriteLine("COMPETITORS TEST");
@@ -2756,7 +2877,7 @@ static class VmTest
             var rdP = new TheAirline.Presentation.RouteDetailViewModel(mine, () => { });
             Console.WriteLine("  route page: " + rdP.PricingText.Replace(Environment.NewLine, " / "));
 
-            // a rival cuts its fare on the player's route: the player hears about it, once a month at most
+            // a rival cuts its fare below the player's on the player's route: a rival alert, once a month at most
             // (two computer airlines share a route; for this check one of them stands in for the player)
             if (byPair != null)
             {
@@ -2765,8 +2886,9 @@ static class VmTest
                 var mineN = list2[0]; var rivalP = list2.First(r => r.Airline != mineN.Airline);
                 gP.SetHumanAirline(mineN.Airline);
                 double mk = TheAirline.Helpers.PricingService.MarketFare(mineN.Destination1, mineN.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
-                foreach (var c in mineN.Classes) c.FarePrice = mk * 0.75 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                foreach (var c in mineN.Classes) c.FarePrice = mk * 1.05 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
                 foreach (var c in rivalP.Classes) c.FarePrice = mk * 1.1 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                TheAirline.Helpers.CompetitorService.Clear();
                 int keyP = gP.GameTime.Year * 12 + gP.GameTime.Month - 1;
                 rivalP.ConnectMonth = keyP; rivalP.ConnectLastAllPassengers = 550; rivalP.ConnectLastSeats = 1000;
                 TheAirline.Helpers.AIPricingService.ForgetReviews();
@@ -2774,7 +2896,7 @@ static class VmTest
                 Console.WriteLine("  rival on your route: " + TheAirline.Helpers.AIPricingService.Review(rivalP.Airline, rivalP));
                 var n = gP.NewsBox.GetNews().LastOrDefault();
                 Console.WriteLine("  news: " + (n == null ? "none" : n.Subject + ": " + n.Body));
-                bool okNews = gP.NewsBox.GetNews().Count == newsBefore + 1 && n.Subject.Contains("cuts fares");
+                bool okNews = gP.NewsBox.GetNews().Count == newsBefore + 1 && n.Subject.Contains("undercuts you") && n.Type == TheAirline.Models.General.News.NewsType.RivalNews;
                 TheAirline.Helpers.AIPricingService.ForgetReviews();
                 TheAirline.Helpers.AIPricingService.Review(rivalP.Airline, rivalP);
                 Console.WriteLine("  second cut the same month: news " + (gP.NewsBox.GetNews().Count - newsBefore));
@@ -3234,6 +3356,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("rivalalerts")) { RivalAlertsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

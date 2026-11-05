@@ -363,7 +363,7 @@
 
         <!-- AIRLINES -->
         <TabItem Header="Airlines">
-          <TabControl Classes="sub">
+          <TabControl Classes="sub" SelectedIndex="{Binding AirlinesTab}">
             <TabItem Header="All airlines">
               <v:AirlinesView DataContext="{Binding AirlineList}" />
             </TabItem>

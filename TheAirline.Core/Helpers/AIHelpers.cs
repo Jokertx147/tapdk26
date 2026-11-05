@@ -2012,9 +2012,9 @@ namespace TheAirline.Helpers
                             route.LastUpdated = GameObject.GetInstance().GameTime;
                         }
                         airline.AddRoute(route);
-                        CompetitorService.RecordOpened(route);
 
                         fAirliner?.AddRoute(route);
+                        CompetitorService.RecordOpened(route);
 
                         AirportFacility checkinFacility =
                             AirportFacilities.GetFacilities(AirportFacility.FacilityType.CheckIn)

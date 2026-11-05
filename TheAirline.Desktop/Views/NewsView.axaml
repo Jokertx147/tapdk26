@@ -32,6 +32,10 @@
         <StackPanel Spacing="6">
           <TextBlock Text="{Binding BodyTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
           <TextBlock Text="{Binding Body}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasLink}">
+            <Button Content="{Binding LinkText}" Command="{Binding OpenLinkCommand}" />
+            <TextBlock Text="{Binding LinkNote}" VerticalAlignment="Center" Opacity="0.7" />
+          </StackPanel>
         </StackPanel>
       </ScrollViewer>
     </Border>

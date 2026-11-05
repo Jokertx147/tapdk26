@@ -183,7 +183,18 @@ namespace TheAirline.Presentation
                     if (me != null) Money = Convert.ToString(new ValueCurrencyFormatter().Convert(me.Money));
                     OnGameChanged();
                 };
-            News = new NewsViewModel();
+            News = new NewsViewModel(link =>
+            {
+                // a rival alert: Airlines > Competitors, "My routes", that airport pair
+                if (!(link is RivalLink rl)) return false;
+                bool found = Competitors.ShowRoute(rl.A, rl.B, rl.IsCargo);
+                if (found)
+                {
+                    Page = Array.IndexOf(PageNames, "Airlines");
+                    AirlinesTab = 1;
+                }
+                return found;
+            });
             Map = new WorldMapViewModel();
             Overview = new FleetOverviewViewModel(OnGameChanged, f => Refit = new CabinRefitViewModel(f, CloseRefit), OpenSchedule);
             Refresh();
@@ -299,6 +310,15 @@ namespace TheAirline.Presentation
         public CompareTypesViewModel CompareTypes { get; }
 
         private int _airlinersTab, _routesTab;
+
+        private int _airlinesTab;
+
+        /// <summary>The open sub tab under Airlines: 0 all airlines, 1 competitors, 2 codeshares, 3 shares, 4 subsidiaries.</summary>
+        public int AirlinesTab
+        {
+            get { return _airlinesTab; }
+            set { SetProperty(ref _airlinesTab, value); }
+        }
 
         /// <summary>The open sub tab under Routes: 0 my routes, 1 create route, 2 connections, 3 route profits.</summary>
         public int RoutesTab

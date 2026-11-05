@@ -71,6 +71,10 @@ namespace TheAirline.Infrastructure
         [Versioning("mailsonlandings")]
         public bool MailsOnLandings { get; set; }
 
+        /// <summary>No news when a rival opens, undercuts or gives up one of the player's routes (off: the news comes).</summary>
+        [Versioning("norivalalerts")]
+        public bool NoRivalAlerts { get; set; }
+
         [Versioning("minutes")]
         public int MinutesPerTurn { get; set; }
 

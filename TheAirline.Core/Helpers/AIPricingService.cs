@@ -205,28 +205,9 @@ namespace TheAirline.Helpers
             route.PricePerUnit = Math.Round(market*next, 2);
             double factor = route.PricePerUnit/before;
             string pair = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
-            CompetitorService.RecordFare(airline, route, factor);
+            CompetitorService.RecordFare(airline, route, factor, load);
 
-            var game = GameObject.GetInstance();
-            var human = rivals.FirstOrDefault(r => r.Airline == game.HumanAirline);
-            if (human != null && factor < 0.96)
-            {
-                bool tell;
-                lock (Reported)
-                {
-                    DateTime last;
-                    tell = !Reported.TryGetValue(human, out last) || (game.GameTime - last).TotalDays >= 30;
-                    if (tell) Reported[human] = game.GameTime;
-                }
-                if (tell)
-                {
-                    var f = new ValueCurrencyFormatter();
-                    lock (game.NewsBox) game.NewsBox.AddNews(new News(
-                        News.NewsType.AirlineNews, game.GameTime, airline.Profile.Name + " cuts cargo rates on " + pair,
-                        string.Format("{0} cut its cargo rate on {1} by {2:0}% to {3} per unit. Your rate there is {4}; the market rate is {5}. Their freighters were {6:0}% full.",
-                                      airline.Profile.Name, pair, (1 - factor)*100, f.Convert(route.PricePerUnit), f.Convert(human.PricePerUnit), f.Convert(market), load*100)));
-                }
-            }
+            // (a cut that undercuts the player is told by CompetitorService's rival alerts)
             return string.Format("{0} {1} cargo: {2:0.00} -> {3:0.00} ({4:+0;-0}%), {5:0}% full{6}", airline.Profile.IATACode, pair, before, route.PricePerUnit,
                                  (factor - 1)*100, load*100, rival.HasValue ? string.Format(", cheapest rival {0:0.00}", cheapest.PricePerUnit) : "");
         }
@@ -236,8 +217,6 @@ namespace TheAirline.Helpers
             return r.GetRouteAirlinerClass(AirlinerClass.ClassType.EconomyClass)?.FarePrice ?? 0;
         }
 
-        // the last time a route's cut was reported to the player, so the news isn't flooded
-        private static readonly WeakDates<Route> Reported = new WeakDates<Route>();
 
         /// <summary>Reviews a computer airline's route and changes its fares. Returns what changed, or null.</summary>
         public static string Review(Airline airline, PassengerRoute route)
@@ -273,34 +252,14 @@ namespace TheAirline.Helpers
 
             double factor = next/ratio;
             foreach (var c in route.Classes) c.FarePrice = Math.Round(c.FarePrice*factor, 2);
-            CompetitorService.RecordFare(airline, route, factor);
+            CompetitorService.RecordFare(airline, route, factor, load);
 
             string pair = route.Destination1.Profile.IATACode + "-" + route.Destination2.Profile.IATACode;
             string change = string.Format("{0} {1}: economy {2:0.00} -> {3:0.00} ({4:+0;-0}%), {5:0}% full{6}",
                                           airline.Profile.IATACode, pair, eco.FarePrice/factor, eco.FarePrice, (factor - 1)*100, load*100,
                                           rival.HasValue ? string.Format(", cheapest rival {0:0.00}", EconomyFare(cheapest)) : "");
 
-            // tell the player when a fare on one of their routes is cut
-            var game = GameObject.GetInstance();
-            var human = rivals.FirstOrDefault(r => r.Airline == game.HumanAirline);
-            if (human != null && factor < 0.96)
-            {
-                bool tell;
-                lock (Reported)
-                {
-                    DateTime last;
-                    tell = !Reported.TryGetValue(human, out last) || (game.GameTime - last).TotalDays >= 30;
-                    if (tell) Reported[human] = game.GameTime;
-                }
-                if (tell)
-                {
-                    var f = new ValueCurrencyFormatter();
-                    lock (game.NewsBox) game.NewsBox.AddNews(new News(
-                        News.NewsType.AirlineNews, game.GameTime, airline.Profile.Name + " cuts fares on " + pair,
-                        string.Format("{0} cut its economy fare on {1} by {2:0}% to {3}. Your economy fare there is {4}; the market fare is {5}. Their flights were {6:0}% full.",
-                                      airline.Profile.Name, pair, (1 - factor)*100, f.Convert(eco.FarePrice), f.Convert(EconomyFare(human)), f.Convert(market), load*100)));
-                }
-            }
+            // (a cut that undercuts the player is told by CompetitorService's rival alerts)
             return change;
         }
     }

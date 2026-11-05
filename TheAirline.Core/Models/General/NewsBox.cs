@@ -168,7 +168,9 @@ namespace TheAirline.Models.General
 
             AllianceNews,
 
-            AirlinerNews
+            AirlinerNews,
+
+            RivalNews
         }
 
         #endregion

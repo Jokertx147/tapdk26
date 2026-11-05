@@ -51,6 +51,7 @@ namespace TheAirline.Presentation
                 case News.NewsType.AirlineNews: return "Airlines";
                 case News.NewsType.AllianceNews: return "Alliances";
                 case News.NewsType.AirlinerNews: return "Aircraft";
+                case News.NewsType.RivalNews: return "Rivals";
                 default: return "General";
             }
         }
@@ -67,8 +68,13 @@ namespace TheAirline.Presentation
         private NewsRow _selected;
         private int _seenCount = -1, _seenUnread = -1;
 
-        public NewsViewModel()
+        private readonly Func<object, bool> _openLink;
+
+        /// <param name="openLink">Opens what a message points to (a rival alert's route on the competitor screen); false when it can't.</param>
+        public NewsViewModel(Func<object, bool> openLink = null)
         {
+            _openLink = openLink;
+            OpenLinkCommand = new RelayCommand(OpenLink);
             Types = new List<string> { AllTypes };
             Types.AddRange(Enum.GetValues(typeof(News.NewsType)).Cast<News.NewsType>().Select(NewsRow.TypeName));
             MarkAllReadCommand = new RelayCommand(MarkAllRead);
@@ -87,6 +93,23 @@ namespace TheAirline.Presentation
         public string Body => _selected?.News.Body ?? "";
         public string BodyTitle => _selected == null ? "" : _selected.Date + "  |  " + _selected.Type + "  |  " + _selected.Subject;
         public bool HasSelection => _selected != null;
+        public ICommand OpenLinkCommand { get; }
+
+        /// <summary>The selected message points somewhere (a rival alert: the route on the competitor screen).</summary>
+        public bool HasLink => _openLink != null && _selected?.News.ActionObject is TheAirline.Helpers.RivalLink;
+
+        public string LinkText => "Show in Competitors";
+
+        /// <summary>Said under the message when its link no longer leads anywhere.</summary>
+        public string LinkNote { get; private set; } = "";
+
+        private void OpenLink()
+        {
+            if (!HasLink) return;
+            bool ok = _openLink(_selected.News.ActionObject);
+            LinkNote = ok ? "" : "You no longer fly this route.";
+            OnPropertyChanged(nameof(LinkNote));
+        }
 
         public string Filter
         {
@@ -115,6 +138,9 @@ namespace TheAirline.Presentation
                     OnPropertyChanged(nameof(Body));
                     OnPropertyChanged(nameof(BodyTitle));
                     OnPropertyChanged(nameof(HasSelection));
+                    OnPropertyChanged(nameof(HasLink));
+                    LinkNote = "";
+                    OnPropertyChanged(nameof(LinkNote));
                 }
             }
         }
@@ -164,6 +190,7 @@ namespace TheAirline.Presentation
             OnPropertyChanged(nameof(Body));
             OnPropertyChanged(nameof(BodyTitle));
             OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(HasLink));
             Count = Rows.Count + " of " + all.Count + " messages";
             OnPropertyChanged(nameof(Count));
             UpdateCounts();

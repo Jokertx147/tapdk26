@@ -95,6 +95,33 @@ namespace TheAirline.Presentation
             }
         }
 
+        /// <summary>Shows "My routes" with the player's route on that airport pair selected (from a rival alert in the news). False when the player no longer flies it.</summary>
+        public bool ShowRoute(string a, string b, bool cargo)
+        {
+            if (_show != ByRoute)
+            {
+                _show = ByRoute;
+                OnPropertyChanged(nameof(Show));
+                LoadFilters();
+            }
+            else if (_filter != FilterChoices[0])
+            {
+                _filter = FilterChoices[0];
+                OnPropertyChanged(nameof(Filter));
+            }
+            Reload();
+            CompetitorRow row = Rows.FirstOrDefault(r => r.MyRoute != null && (r.MyRoute.Type == Route.RouteType.Cargo) == cargo && OnPair(r.MyRoute, a, b))
+                                ?? Rows.FirstOrDefault(r => r.MyRoute != null && OnPair(r.MyRoute, a, b));
+            Selected = row;
+            return row != null;
+        }
+
+        private static bool OnPair(Route r, string a, string b)
+        {
+            string x = r.Destination1?.Profile.IATACode, y = r.Destination2?.Profile.IATACode;
+            return (x == a && y == b) || (x == b && y == a);
+        }
+
         private void LoadFilters()
         {
             FilterChoices.Clear();
