@@ -1626,6 +1626,97 @@ static class VmTest
         }
     }
 
+    // a smaller save shows the same: past months' daily amounts put together, the empty airport facilities left out,
+    // and the old share objects gone
+    static void SaveSizeTest()
+    {
+        Console.WriteLine("SAVE SIZE TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        for (int i = 0; i < 40; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        // to the last day of a month: the figures before the month update puts the past days together
+        while (g.GameTime.AddDays(1).Month == g.GameTime.Month) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var now = g.GameTime;
+        var types = (TheAirline.Models.General.Finances.Invoice.InvoiceType[]) Enum.GetValues(typeof(TheAirline.Models.General.Finances.Invoice.InvoiceType));
+        Func<string> money = () =>
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().OrderBy(a => a.Profile.IATACode))
+            {
+                for (int m = 0; m < 4; m++)
+                {
+                    var d = now.AddMonths(-m);
+                    foreach (var t in types) sb.Append(a.GetInvoicesAmountMonth(d.Year, d.Month, t).ToString("0.00")).Append(',');
+                }
+                sb.Append(a.GetInvoicesAmount(now.AddDays(-60), now, TheAirline.Models.General.Finances.Invoice.InvoiceType.Tickets).ToString("0.00")).Append('|');
+                foreach (var r in a.Routes.ToList().OrderBy(r => r.Id))
+                {
+                    sb.Append(r.GetBalance(now.AddDays(-60), now).ToString("0.00")).Append(',');
+                    sb.Append(TheAirline.Helpers.RouteProfitService.Month(r, now.AddMonths(-1).Year, now.AddMonths(-1).Month).ToString("0.00")).Append(',');
+                    sb.Append(r.GetRouteInvoiceAmount(TheAirline.Models.General.Finances.Invoice.InvoiceType.Total).ToString("0.00")).Append(';');
+                }
+            }
+            return sb.ToString();
+        };
+        int before = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Sum(a => a.Invoices.MonthlyInvoices.Count + a.Routes.ToList().Sum(r => r.GetInvoices().MonthlyInvoices.Count));
+        string m0 = money();
+        // put together as on the first of the next month (this month too), without playing the day
+        int removed = 0;
+        var next = now.AddDays(1);
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            removed += a.Invoices.CompactBefore(next.Year, next.Month);
+            foreach (var r in a.Routes.ToList()) removed += r.GetInvoices().CompactBefore(next.Year, next.Month);
+        }
+        int after = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Sum(a => a.Invoices.MonthlyInvoices.Count + a.Routes.ToList().Sum(r => r.GetInvoices().MonthlyInvoices.Count));
+        Console.WriteLine("  daily amounts: " + before + " -> " + after + " (" + removed + " put together)");
+        if (removed == 0) fail("nothing was put together");
+        if (money() != m0) fail("a figure changed when the past months were put together");
+        // a payment after it goes to today's amount as before
+        var aa = TheAirline.Models.Airlines.Airlines.GetAllAirlines().First();
+        double cash = aa.Money;
+        TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(aa, now, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees, 123);
+        if (Math.Abs(aa.GetInvoicesAmountMonth(now.Year, now.Month, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees) - aa.GetInvoicesAmountMonth(now.Year, now.Month, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees)) > 0 || Math.Abs(aa.Money - cash - 123) > 0.001) fail("a payment after it");
+        TheAirline.Helpers.AirlineHelpers.AddAirlineInvoice(aa, now, TheAirline.Models.General.Finances.Invoice.InvoiceType.Fees, -123);
+
+        // the empty facilities: the same reputation and the same facility everywhere
+        var airports = TheAirline.Models.Airports.Airports.GetAllAirports();
+        var airlines = TheAirline.Models.Airlines.Airlines.GetAllAirlines();
+        var ftypes = (TheAirline.Models.Airports.AirportFacility.FacilityType[]) Enum.GetValues(typeof(TheAirline.Models.Airports.AirportFacility.FacilityType));
+        Func<string> facilities = () => string.Join(";", airports.Select(ap => ap.Profile.IATACode + ":" + string.Join(",", airlines.Select(a => ap.GetAirlineReputation(a).ToString("0.000") + "/" + string.Join(".", ftypes.Select(t => { var f = ap.GetAirlineAirportFacility(a, t); return f?.Facility == null ? "-" : f.Facility.TypeLevel.ToString(); }))))));
+        string f0 = facilities(); // (asking makes the missing ones, so ask once first)
+        f0 = facilities();
+        int pruned = airports.Sum(ap => ap.PruneNoneFacilities());
+        string f1 = facilities();
+        Console.WriteLine("  empty facilities left out: " + pruned);
+        if (pruned == 0) fail("no empty facility to leave out");
+        if (f1 != f0)
+        {
+            var x0 = f0.Split(';'); var x1 = f1.Split(';');
+            for (int k = 0; k < x0.Length; k++) if (x0[k] != x1[k]) { Console.WriteLine("    before " + x0[k].Substring(0, Math.Min(200, x0[k].Length))); Console.WriteLine("    after  " + x1[k].Substring(0, Math.Min(200, x1[k].Length))); break; }
+            var none0 = TheAirline.Models.Airports.AirportFacilities.GetFacilities().Where(f => f.TypeLevel == 0).Select(f => f.Type + " service " + f.ServiceLevel);
+            Console.WriteLine("    level 0 facilities: " + string.Join(", ", none0));
+            fail("a reputation or facility changed without the empty facilities");
+        }
+
+        // save and load: the shares' owners, the figures
+        var holdings = string.Join(";", airlines.OrderBy(a => a.Profile.IATACode).Select(a => a.Profile.IATACode + ":" + string.Join(",", a.Holdings.Select(h => (h.Holder == null ? "public" : h.Holder.Profile.IATACode) + "=" + h.Count))));
+        string mBefore = money();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("savesizetest");
+        long ms = sw.ElapsedMilliseconds;
+        long size = new System.IO.FileInfo(TheAirline.Infrastructure.AppSettings.GetCommonApplicationDataPath() + "/saves/savesizetest.sav").Length;
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("savesizetest");
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        airlines = TheAirline.Models.Airlines.Airlines.GetAllAirlines();
+        var holdings2 = string.Join(";", airlines.OrderBy(a => a.Profile.IATACode).Select(a => a.Profile.IATACode + ":" + string.Join(",", a.Holdings.Select(h => (h.Holder == null ? "public" : h.Holder.Profile.IATACode) + "=" + h.Count))));
+        Console.WriteLine("  saved in " + ms + " ms, " + (size / 1024) + " KB; old share objects after loading: " + airlines.Sum(a => a.Shares.Count));
+        if (holdings2 != holdings) fail("who owns the shares changed");
+        if (airlines.Sum(a => a.Shares.Count) != 0) fail("old share objects are back");
+        if (money() != mBefore) fail("a figure changed with the save and load");
+        Console.WriteLine("SAVE SIZE TEST OK");
+    }
+
     // the computer airlines plan with the route forecast: destinations, and losing routes given up
     static void AiPlanTest()
     {
@@ -3135,6 +3226,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("follow")) { FollowTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("board")) { BoardTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("history")) { HistoryTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("savesize")) { SaveSizeTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("demandaudit")) { DemandAudit(av); return; }
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }

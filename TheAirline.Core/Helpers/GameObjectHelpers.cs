@@ -2035,8 +2035,31 @@ namespace TheAirline.Helpers
                               $"{airline.Profile.Name} has ceased operations."));
         }
 
+        /// <summary>
+        ///     Each airline's and route's past months into one amount per type (see Invoices.CompactBefore): the
+        ///     current month keeps its days. Monthly, and when a game is loaded.
+        /// </summary>
+        public static int CompactInvoices()
+        {
+            var now = GameObject.GetInstance().GameTime;
+            int removed = 0;
+            foreach (Airline airline in Airlines.GetAllAirlines().ToList())
+            {
+                lock (airline.Invoices) removed += airline.Invoices.CompactBefore(now.Year, now.Month);
+                foreach (Route route in airline.Routes.ToList())
+                {
+                    removed += route.GetInvoices().CompactBefore(now.Year, now.Month);
+                    foreach (var stop in route.Stopovers.ToList())
+                        foreach (var leg in stop.Legs.ToList())
+                            removed += leg.GetInvoices().CompactBefore(now.Year, now.Month);
+                }
+            }
+            return removed;
+        }
+
         private static void DoMonthlyUpdate()
         {
+            CompactInvoices();
             RemovePrintedMedia();
 
             CloseDefunctAirlines();

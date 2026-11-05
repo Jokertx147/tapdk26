@@ -295,7 +295,16 @@ namespace TheAirline.Models.Airlines
         [Versioning("scores")]
         public AirlineScores Scores { get; set; }
 
-        public List<AirlineShare> Shares { get; set; }
+        // the old share list (10,000 objects an airline), no longer used: Holdings has who owns what. Not saved (older
+        // saves have it: it is skipped on loading), and no longer filled when a game starts.
+        [NonSerialized]
+        private List<AirlineShare> _shares;
+
+        public List<AirlineShare> Shares
+        {
+            get { return _shares ?? (_shares = new List<AirlineShare>()); }
+            set { _shares = value; }
+        }
 
         /// <summary>Who owns the airline's shares (see SharesService). Unlike Shares this is kept in the save.</summary>
         [Versioning("holdings")]

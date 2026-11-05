@@ -359,6 +359,26 @@ namespace TheAirline.Models.Airports
             lock (_facilities) { _facilities.RemoveAll(f => f.Airline == airline); }
         }
 
+        /// <summary>
+        ///     Removes the "none" facilities (level 0) that are an airline's only entry for that type here: asking for the
+        ///     facility makes one again (as for any airport the airline never used), and a new game made them for every
+        ///     airline at every airport, a seventh of a saved game. A level 0 entry after a real facility (one taken
+        ///     away) stays. Returns how many went.
+        /// </summary>
+        public int PruneNoneFacilities()
+        {
+            DateTime now = GameObject.GetInstance().GameTime;
+            lock (_facilities)
+            {
+                // (only those that count for nothing: the data's "no cargo terminal" adds to the reputation)
+                var lone = _facilities.Where(f => f.Facility != null && f.Facility.TypeLevel == 0 && f.Facility.ServiceLevel == 0 && f.FinishedDate <= now)
+                                      .Where(f => _facilities.Count(o => o.Airline == f.Airline && o.Facility != null && o.Facility.Type == f.Facility.Type) == 1)
+                                      .ToList();
+                foreach (var f in lone) _facilities.Remove(f);
+                return lone.Count;
+            }
+        }
+
         //returns if an airline is building a facility
         public bool IsBuildingFacility(Airline airline, AirportFacility.FacilityType type)
         {

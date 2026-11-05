@@ -138,6 +138,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm demandaudit 2>&1 | tee demandaudittest.log
           grep -q "DEMAND AUDIT TEST OK" demandaudittest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " demandaudittest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Save size test (a smaller save shows the same figures, facilities and shares)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm savesize 2>&1 | tee savesizetest.log
+          grep -q "SAVE SIZE TEST OK" savesizetest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " savesizetest.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Fast-forward test (a day, a week, next month, stopped by Pause and by low cash)
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log

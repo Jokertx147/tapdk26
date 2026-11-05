@@ -101,7 +101,32 @@ namespace TheAirline.Models.General.Finances
             }
         }
 
-        public Boolean Contains(Invoice.InvoiceType type, int year, int month)
+        /// <summary>
+        ///     Puts each month before the given one into one amount per type (on its first day): nothing asks for the
+        ///     days of past months (the game's sums are by month; the daily balance is today's), and the days made most
+        ///     of a saved game. Returns how many amounts went.
+        /// </summary>
+        public int CompactBefore(int year, int month)
+        {
+            lock (MonthlyInvoices)
+            {
+                int key = year*12 + month;
+                var old = MonthlyInvoices.Where(m => m.Year*12 + m.Month < key).ToList();
+                if (old.Count == 0) return 0;
+                var merged = old.GroupBy(m => new {m.Type, m.Year, m.Month})
+                                .Select(g => new MonthlyInvoice(g.Key.Type, g.Key.Year, g.Key.Month, 1, g.Sum(m => m.Amount)))
+                                .ToList();
+                if (merged.Count == old.Count) return 0; // already one a month
+                var keep = MonthlyInvoices.Where(m => m.Year*12 + m.Month >= key).ToList();
+                MonthlyInvoices.Clear();
+                MonthlyInvoices.AddRange(merged.OrderBy(m => m.Year).ThenBy(m => m.Month).ThenBy(m => (int) m.Type));
+                MonthlyInvoices.AddRange(keep);
+                _index = null; // made again on the next amount
+                return old.Count - merged.Count;
+            }
+        }
+
+                public Boolean Contains(Invoice.InvoiceType type, int year, int month)
         {
             Boolean contains;
             lock (MonthlyInvoices)

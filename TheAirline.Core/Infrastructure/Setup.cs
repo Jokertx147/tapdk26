@@ -4556,7 +4556,7 @@ namespace TheAirline.Infrastructure
                 airline.Fees = new AirlineFees();
                 airline.AddAirlinePolicy(new AirlinePolicy("Cancellation Minutes", 150));
 
-                AirlineHelpers.CreateStandardAirlineShares(airline);
+                // (the old 10,000 share objects aren't made any more: SharesService's Holdings say who owns the airline)
 
                 if (!airline.IsHuman)
                 {

@@ -279,6 +279,8 @@ namespace TheAirline.Helpers
             AirlinerHelpers.CreateStartUpAirliners();
 
             RouteIndex.Invalidate();
+            int compacted = GameObjectHelpers.CompactInvoices();
+            StartupLog.Write("LoadGame: " + compacted + " daily amounts of past months put together");
             int moves = CompetitorService.Restore(deserializedSaveObject.RivalMovesList);
             int flights = FlightRecords.Restore(deserializedSaveObject.FlownFlightsList);
             StartupLog.Write("LoadGame: " + moves + " rival moves and " + flights + " recorded flights restored");
@@ -345,6 +347,9 @@ namespace TheAirline.Helpers
             var so = new SaveObject();
             so.DemandOverridesList = DemandOverrides.ToStrings();
             so.DataAirportsList = Setup.DataAirportCodes?.ToList();
+            // the airlines' empty ("none") facilities at airports they don't use: made again when asked for
+            int pruned = Airports.GetAllAirports().Sum(a => a.PruneNoneFacilities());
+            StartupLog.Write("SaveGame: " + pruned + " empty airport facilities left out");
             so.RivalMovesList = CompetitorService.ToSave();
             so.FlownFlightsList = FlightRecords.ToSave(Airlines.GetAllAirlines());
             Parallel.Invoke(
