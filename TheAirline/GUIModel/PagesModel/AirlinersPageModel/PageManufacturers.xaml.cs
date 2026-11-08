@@ -22,8 +22,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             this.AllManufacturers = (from a in airlinerTypes
                 where
                     a != null && a.Manufacturer != null
-                    && a.Produced.From <= GameObject.GetInstance().GameTime
-                    && a.Produced.To >= GameObject.GetInstance().GameTime
+                    && TheAirline.Helpers.AircraftOrderRules.CanOrderNew(a)
                 orderby a.Manufacturer.Name
                 select a.Manufacturer).Distinct().ToList();
             this.Loaded += this.PageManufacturers_Loaded;

@@ -26,7 +26,7 @@ namespace TheAirline.Presentation
                 DistanceFormatter.Km(type.Range),
                 Convert.ToString(new ValueCurrencyFormatter().Convert((double) type.Price)));
             // a type not delivered yet can be ordered ahead, as airlines do (the 777 was ordered from 1990, delivered from 1995)
-            if (type.Produced.From > GameObject.GetInstance().GameTime)
+            if (AircraftOrderRules.NotDeliveredYet(type))
             {
                 Details += "  |  first deliveries " + type.Produced.From.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
             }
@@ -238,7 +238,7 @@ namespace TheAirline.Presentation
         {
             DateTime now = GameObject.GetInstance().GameTime;
             _all = AirlinerTypes.GetTypes(
-                                    t => t.Produced.From <= now.AddMonths(OrderAheadMonths) && t.Produced.To > now
+                                    t => AircraftOrderRules.CanOrderNew(t)
                                          && (t.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
                                              || t.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed
                                              || t.TypeAirliner == AirlinerType.TypeOfAirliner.Cargo)
@@ -323,35 +323,11 @@ namespace TheAirline.Presentation
         }
 
         /// <summary>How far ahead of its first deliveries a new type can be ordered.</summary>
-        public const int OrderAheadMonths = 24;
+        public const int OrderAheadMonths = AircraftOrderRules.OrderAheadMonths;
 
-        /// <summary>The year whose engines an order of the type gets: its first deliveries' for a type not delivered yet.</summary>
-        public static int EngineYear(AirlinerType type)
-        {
-            DateTime now = GameObject.GetInstance().GameTime;
-            return type.Produced.From > now ? type.Produced.From.Year : now.Year;
-        }
+        public static int EngineYear(AirlinerType type) => AircraftOrderRules.EngineYear(type);
 
-        //the delivery date from the production rate, as in the Windows version (a type not delivered yet: from its first deliveries)
-        public static DateTime GetDeliveryDate(AirlinerType type, int amount)
-        {
-            DateTime now = GameObject.GetInstance().GameTime;
-            var date = new DateTime(now.Year, now.Month, now.Day);
-            if (type.Produced.From.Date > date) date = type.Produced.From.Date;
-            int rate = Math.Max(1, type.ProductionRate);
-            if (amount <= rate / 4)
-            {
-                DateTime soonest = new DateTime(now.Year, now.Month, now.Day).AddMonths(3);
-                return soonest > date ? soonest : date;
-            }
-
-            for (int i = (rate / 4) + 1; i <= amount; i++)
-            {
-                date = date.AddDays(Math.Round((double) (365 / rate), 0, MidpointRounding.AwayFromZero));
-            }
-
-            return date;
-        }
+        public static DateTime GetDeliveryDate(AirlinerType type, int amount) => AircraftOrderRules.DeliveryDate(type, amount);
 
         private double UnitPrice()
         {

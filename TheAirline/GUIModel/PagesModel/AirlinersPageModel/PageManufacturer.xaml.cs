@@ -38,8 +38,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
             this.Airliners = new ObservableCollection<AirlinerType>();
             AirlinerTypes.GetTypes(
                 a =>
-                    a.Manufacturer == manufacturer && a.Produced.From <= GameObject.GetInstance().GameTime
-                    && a.Produced.To >= GameObject.GetInstance().GameTime).ForEach(t => this.Airliners.Add(t));
+                    a.Manufacturer == manufacturer && TheAirline.Helpers.AircraftOrderRules.CanOrderNew(a)).ForEach(t => this.Airliners.Add(t));
             this.DataContext = this.Airliners;
 
             this.Contract = new ManufacturerContractMVVM(

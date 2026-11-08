@@ -45,7 +45,7 @@ namespace TheAirline.GraphicsModel.UserControlModel.PopUpWindowsModel
             this.Type = type;
             this.Engines = new List<EngineType>();
 
-            foreach (EngineType e in EngineTypes.GetEngineTypes(type, GameObject.GetInstance().GameTime.Year).OrderBy(t => t.Price))
+            foreach (EngineType e in EngineTypes.GetEngineTypes(type, TheAirline.Helpers.AircraftOrderRules.EngineYear(type)).OrderBy(t => t.Price))
                 this.Engines.Add(e);
 
             if (this.Engines.Count > 0)

@@ -294,23 +294,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
             foreach (AirlinerOrderMVVM order in this.Orders)
             {
-                var date = new DateTime(
-                    GameObject.GetInstance().GameTime.Year,
-                    GameObject.GetInstance().GameTime.Month,
-                    GameObject.GetInstance().GameTime.Day);
-                int rate = order.Type.ProductionRate;
-                if (order.Amount <= (rate / 4))
-                {
-                    date = date.AddMonths(3);
-                }
-                else
-                {
-                    for (int i = (rate / 4) + 1; i <= order.Amount; i++)
-                    {
-                        double iRate = 365 / rate;
-                        date = date.AddDays(Math.Round(iRate, 0, MidpointRounding.AwayFromZero));
-                    }
-                }
+                // (a type not delivered yet is delivered from its first deliveries)
+                DateTime date = TheAirline.Helpers.AircraftOrderRules.DeliveryDate(order.Type, order.Amount);
 
                 if (date > latestDate)
                 {
@@ -374,9 +359,9 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                 this.Homebases.Add(homebase);
             }
 
-            this.Engine = EngineTypes.GetStandardEngineType(this.Type, GameObject.GetInstance().GameTime.Year);
+            this.Engine = EngineTypes.GetStandardEngineType(this.Type, TheAirline.Helpers.AircraftOrderRules.EngineYear(this.Type));
 
-            this.ForConfig = this.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger || this.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed || EngineTypes.GetEngineTypes(type,GameObject.GetInstance().GameTime.Year).Count > 0;
+            this.ForConfig = this.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger || this.Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed || EngineTypes.GetEngineTypes(type, TheAirline.Helpers.AircraftOrderRules.EngineYear(type)).Count > 0;
         }
 
         #endregion

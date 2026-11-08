@@ -61,9 +61,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
             this.AllTypes = new List<AirlinerTypeMVVM>();
             AirlinerTypes.GetTypes(
-                t =>
-                    t.Produced.From <= GameObject.GetInstance().GameTime
-                    && t.Produced.To > GameObject.GetInstance().GameTime)
+                t => TheAirline.Helpers.AircraftOrderRules.CanOrderNew(t))
                 .ForEach(t => this.AllTypes.Add(new AirlinerTypeMVVM(t)));
 
             this.InitializeComponent();
@@ -227,23 +225,8 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
 
             foreach (AirlinerTypeMVVM type in this.SelectedAirliners)
             {
-                var date = new DateTime(
-                    GameObject.GetInstance().GameTime.Year,
-                    GameObject.GetInstance().GameTime.Month,
-                    GameObject.GetInstance().GameTime.Day);
-                int rate = type.Type.ProductionRate;
-                if (1 <= (rate / 4))
-                {
-                    date = date.AddMonths(3);
-                }
-                else
-                {
-                    for (int i = (rate / 4) + 1; i <= 1; i++)
-                    {
-                        double iRate = 365 / rate;
-                        date = date.AddDays(Math.Round(iRate, 0, MidpointRounding.AwayFromZero));
-                    }
-                }
+                // (a type not delivered yet is delivered from its first deliveries)
+                DateTime date = TheAirline.Helpers.AircraftOrderRules.DeliveryDate(type.Type, 1);
 
                 if (date > latestDate)
                 {
@@ -268,7 +251,7 @@ namespace TheAirline.GUIModel.PagesModel.AirlinersPageModel
                     GameObject.GetInstance().HumanAirline.Profile.Country.TailNumbers.GetNextTailNumber(GameObject.GetInstance().HumanAirline),
                     deliveryDate);
 
-                EngineType engine = EngineTypes.GetStandardEngineType(type.Type,GameObject.GetInstance().GameTime.Year);
+                EngineType engine = EngineTypes.GetStandardEngineType(type.Type, TheAirline.Helpers.AircraftOrderRules.EngineYear(type.Type));
 
                 if (engine != null)
                     airliner.EngineType = engine;
