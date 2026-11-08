@@ -876,6 +876,97 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    static async Task SuggestTest(AirlineViewModel av)
+    {
+        Console.WriteLine("SUGGEST TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var mk = av.Market;
+        // three idle aircraft of different sizes
+        var bought = new System.Collections.Generic.List<string>();
+        foreach (int skip in new[] {0, 40, 120})
+        {
+            foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(skip).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+            mk.BuyCommand.Execute(null);
+        }
+        av.Refresh();
+        foreach (var f in h.Fleet) if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+        var idle = TheAirline.Helpers.RouteSuggestionService.IdleAircraft(h);
+        Console.WriteLine("  idle: " + string.Join(", ", idle.Select(f => f.Name + " " + f.Airliner.Type.Name + " (" + f.Airliner.GetTotalSeatCapacity() + " seats, " + f.Airliner.Range + " km)")));
+        if (idle.Count < 2) fail("no idle aircraft to suggest for");
+
+        var sv = av.Suggestions;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await sv.Reload();
+        Console.WriteLine("  worked out in " + sw.ElapsedMilliseconds + " ms: " + sv.Summary);
+        if (sv.Aircraft.Count != idle.Count) fail("not every idle aircraft is listed");
+        foreach (var row in sv.Aircraft)
+        {
+            Console.WriteLine("  " + row.Title + " | " + row.Line + " | " + row.Best);
+            var list = row.Suggestions;
+            for (int i = 1; i < list.Count; i++) if (list[i].GainPerDay > list[i - 1].GainPerDay + 0.01) fail("not ranked by what they add");
+            foreach (var x in list)
+            {
+                Console.WriteLine("    " + x.Name + " " + x.Forecast.RoundTrips + " trips, " + (x.Forecast.Load * 100).ToString("0") + "% full, flights " + x.Forecast.ProfitPerDay.ToString("0") + "/day, gates " + x.GatesPerDay.ToString("0") + ", own " + x.OwnershipPerDay.ToString("0"));
+                if (x.Km > row.Airliner.Airliner.Range) fail("a route beyond the aircraft's range");
+                if (h.Routes.Any(r => (r.Destination1 == x.From && r.Destination2 == x.To) || (r.Destination1 == x.To && r.Destination2 == x.From))) fail("a route the player already flies");
+            }
+        }
+        var first = sv.Aircraft.First(a => a.Suggestions.Count > 0);
+        if (first.Suggestions.Count < 3) fail("too few suggestions for " + first.Title);
+
+        // the same forecast the route planner shows
+        sv.Selected = first;
+        var top = sv.Suggestions[0].Suggestion;
+        var planner = new TheAirline.Presentation.CreateRouteViewModel(top.From, top.To, m => { });
+        planner.SelectedAircraft = planner.Aircraft.First(a => a.Airliner == top.Airliner);
+        if (planner.SuggestedForecast == null || planner.SuggestedForecast.RoundTrips != top.Forecast.RoundTrips || Math.Abs(planner.SuggestedForecast.ProfitPerDay - top.Forecast.ProfitPerDay) > 1)
+            fail("the planner forecasts " + planner.SuggestedForecast?.RoundTrips + " trips " + planner.SuggestedForecast?.ProfitPerDay + ", the suggestion " + top.Forecast.RoundTrips + " " + top.Forecast.ProfitPerDay);
+
+        // "Adjust first": the planner with the airports and the aircraft
+        sv.Suggestions[1].AdjustCommand.Execute(null);
+        var adj = sv.Suggestions[1].Suggestion;
+        if (av.Pages[av.Page] != "Routes" || av.RoutesTab != 1 || av.Airports.Create == null || av.Airports.Create.SelectedAircraft?.Airliner != adj.Airliner || !av.Airports.Create.Title.Contains(adj.From.Profile.IATACode))
+            fail("Adjust first didn't open the planner");
+        av.Airports.Create.CancelCommand.Execute(null);
+
+        // "Open route": one click, gates and all
+        int routes = h.Routes.Count;
+        av.RoutesTab = TheAirline.Presentation.AirlineViewModel.SuggestionsTabIndex;
+        sv.Selected = sv.Aircraft.First(a => a.Airliner == top.Airliner);
+        sv.Suggestions[0].OpenCommand.Execute(null);
+        Console.WriteLine("  opened: " + sv.Status);
+        var opened = h.Routes.FirstOrDefault(r => (r.Destination1 == top.From && r.Destination2 == top.To) || (r.Destination1 == top.To && r.Destination2 == top.From));
+        if (h.Routes.Count != routes + 1 || opened == null) fail("the route wasn't opened");
+        if (!opened.GetAirliners().Contains(top.Airliner)) fail("the aircraft isn't on the route");
+        int monday = opened.TimeTable.Entries.Count(e => e.Day == DayOfWeek.Monday);
+        if (monday != top.Forecast.RoundTrips * 2) fail("the schedule has " + monday + " Monday flights, the suggestion " + top.Forecast.RoundTrips + " round trips");
+        await Wait(() => !sv.IsBusy, "suggestions");
+        if (sv.Aircraft.Any(a => a.Airliner == top.Airliner)) fail("the aircraft is still listed as idle");
+        if (sv.Aircraft.SelectMany(a => a.Suggestions).Any(x => (x.From == top.From && x.To == top.To) || (x.From == top.To && x.To == top.From))) fail("the opened route is still suggested");
+
+        // the monthly report's idle aircraft lead here
+        av.Report.Reload();
+        av.Report.Month = av.Report.MonthChoices[0];
+        var idleLine = av.Report.Attention.FirstOrDefault(x => x.Text.Contains("had no route"));
+        if (idleLine == null || idleLine.LinkText != "Suggest routes") fail("the report's idle aircraft line");
+        av.RoutesTab = 0;
+        idleLine.Command.Execute(null);
+        if (av.Pages[av.Page] != "Routes" || av.RoutesTab != TheAirline.Presentation.AirlineViewModel.SuggestionsTabIndex) fail("the report line didn't open the suggestions");
+
+        // how the opened route did against its forecast over a month
+        var f0 = top.Airliner;
+        if (f0.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) f0.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        var start = g.GameTime;
+        for (int i = 0; i < 35; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        double days = (g.GameTime - start).TotalDays - 5;
+        double real = opened.GetBalance(start.AddDays(5), g.GameTime) / days;
+        Console.WriteLine("  " + top.Name + ": forecast " + top.Forecast.ProfitPerDay.ToString("0") + " a day, flew " + real.ToString("0") + " a day over " + days.ToString("0") + " days (" + (opened.FillingDegree * 100).ToString("0") + "% full, forecast " + (top.Forecast.Load * 100).ToString("0") + "%)");
+        if (Math.Abs(real - top.Forecast.ProfitPerDay) > Math.Max(1500, Math.Abs(top.Forecast.ProfitPerDay) * 0.5)) fail("the route earned far from its forecast");
+        Console.WriteLine("SUGGEST TEST OK");
+    }
+
     static async Task ReportTest(AirlineViewModel av)
     {
         Console.WriteLine("REPORT TEST");
@@ -3504,6 +3595,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalalerts")) { RivalAlertsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("report")) { await ReportTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("suggest")) { await SuggestTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

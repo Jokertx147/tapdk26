@@ -311,6 +311,9 @@
           <TabItem Header="Route profits">
             <v:RouteProfitView DataContext="{Binding RouteProfits}" />
           </TabItem>
+          <TabItem Header="Suggestions">
+            <v:RouteSuggestionsView DataContext="{Binding Suggestions}" />
+          </TabItem>
         </TabControl>
         </TabItem>
 

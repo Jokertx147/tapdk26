@@ -242,7 +242,7 @@ namespace TheAirline.Presentation
                 Attention.Add(new ReportLinkRow
                 {
                     Text = item.Text, IsWarning = true,
-                    LinkText = item.Kind == ReportItemKind.Route ? "Open the route" : item.Kind == ReportItemKind.Competitors ? "Show in Competitors" : item.Kind == ReportItemKind.Fleet ? "Fleet" : item.Kind == ReportItemKind.Finances ? "Finances" : null,
+                    LinkText = item.Kind == ReportItemKind.Route ? "Open the route" : item.Kind == ReportItemKind.Competitors ? "Show in Competitors" : item.Kind == ReportItemKind.Fleet ? "Fleet" : item.Kind == ReportItemKind.IdleAircraft ? "Suggest routes" : item.Kind == ReportItemKind.Finances ? "Finances" : null,
                     Command = item.Kind == ReportItemKind.None ? null : new RelayCommand(() => _open?.Invoke(it))
                 });
             }

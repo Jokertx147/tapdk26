@@ -91,7 +91,10 @@ namespace TheAirline.Helpers
         Competitors,
         Fleet,
         Finances,
-        None
+        None,
+
+        /// <summary>Aircraft without a route: Routes > Suggestions.</summary>
+        IdleAircraft
     }
 
     /// <summary>Something the report says needs looking at, and where to go for it.</summary>
@@ -557,7 +560,7 @@ namespace TheAirline.Helpers
             if (idle > 0)
                 items.Add(new ReportItem
                 {
-                    Kind = ReportItemKind.Fleet, Weight = 300*idle,
+                    Kind = ReportItemKind.IdleAircraft, Weight = 300*idle,
                     Text = idle == 1 ? "1 aircraft had no route" + (r.SoFar ? "." : " at the month's end.") : idle + " aircraft had no route" + (r.SoFar ? "." : " at the month's end.")
                 });
 

@@ -145,6 +145,15 @@ namespace TheAirline.Presentation
                     AirlinersTab = 2;
                 };
             Scenario = new ScenarioViewModel();
+            Suggestions = new RouteSuggestionsViewModel(OnGameChanged, (a, b, f) =>
+                {
+                    // the planner with the suggestion's airports and aircraft, to change the schedule first
+                    Airports.PlanRoute(a, b);
+                    var pick = Airports.Create?.Aircraft.FirstOrDefault(x => x.Airliner == f);
+                    if (pick != null) Airports.Create.SelectedAircraft = pick;
+                    Page = Array.IndexOf(PageNames, "Routes");
+                    RoutesTab = 1;
+                });
             Connections = new ConnectionsViewModel((a, b) =>
                 {
                     Airports.PlanRoute(a, b);
@@ -284,7 +293,7 @@ namespace TheAirline.Presentation
             {
                 case "My Airline": FleetPerformance.Reload(); if (MyAirlineTab == ReportTabIndex) Report.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
-                case "Routes": Connections.Reload(); RouteProfits.Reload(); break;
+                case "Routes": Connections.Reload(); RouteProfits.Reload(); if (RoutesTab == SuggestionsTabIndex) { var _ = Suggestions.Reload(); } break;
                 case "Alliances": Alliances.Reload(); break;
                 case "Airlines": AirlineList.Reload(); Codeshares.Reload(); Shares.Reload(); Subsidiaries.Reload(); Competitors.Reload(); break;
                 case "News": News.Reload(); break;
@@ -360,6 +369,10 @@ namespace TheAirline.Presentation
                 case ReportItemKind.Fleet:
                     MyAirlineTab = FleetTabIndex;
                     break;
+                case ReportItemKind.IdleAircraft:
+                    Page = Array.IndexOf(PageNames, "Routes");
+                    RoutesTab = SuggestionsTabIndex;
+                    break;
                 case ReportItemKind.Finances:
                     MyAirlineTab = FinancesTabIndex;
                     break;
@@ -379,8 +392,17 @@ namespace TheAirline.Presentation
         public int RoutesTab
         {
             get { return _routesTab; }
-            set { SetProperty(ref _routesTab, value); }
+            set
+            {
+                if (SetProperty(ref _routesTab, value) && value == SuggestionsTabIndex) { var _ = Suggestions?.Reload(); }
+            }
         }
+
+        /// <summary>The Routes sub tab with the suggestions for idle aircraft.</summary>
+        public const int SuggestionsTabIndex = 4;
+
+        /// <summary>Routes > Suggestions: routes for the idle aircraft.</summary>
+        public RouteSuggestionsViewModel Suggestions { get; }
 
         public ConnectionsViewModel Connections { get; }
 
