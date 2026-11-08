@@ -876,6 +876,63 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    /// <summary>"vm orderahead" (TAP_YEAR=1994): a type can be ordered before its first deliveries, for delivery from then.</summary>
+    static void OrderAheadTest(AirlineViewModel av)
+    {
+        Console.WriteLine("ORDER AHEAD TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        DateTime now = g.GameTime;
+        var na = av.NewAircraft;
+        na.Reload();
+        na.Manufacturer = na.Manufacturers.First(m => m.Name == "The Boeing Company");
+        Console.WriteLine("  " + now.ToString("yyyy-MM-dd") + ", Boeing: " + string.Join(", ", na.Types.Select(t => t.Name)));
+        // every type listed is in production now or within the order-ahead window, and every such type is listed
+        foreach (var t in TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().Where(t => t.Manufacturer?.Name == "The Boeing Company" && TheAirline.Helpers.AirlineTypeRules.CanUseType(h, t)))
+        {
+            bool should = t.Produced.From <= now.AddMonths(TheAirline.Presentation.NewAircraftViewModel.OrderAheadMonths) && t.Produced.To > now;
+            if (should != na.Types.Any(x => x.Type == t)) fail(t.Name + (should ? " is missing" : " shouldn't be listed"));
+        }
+        // the 777-200 (first deliveries 1995); in later games the first 777 on sale
+        var item = na.Types.FirstOrDefault(t => t.Name == "Boeing 777-200") ?? na.Types.FirstOrDefault(t => t.Name.StartsWith("Boeing 777"));
+        if (item == null) fail("no 777 is listed");
+        Console.WriteLine("  " + item.Name + " | " + item.Details);
+        bool ahead = item.Type.Produced.From > now;
+        if (ahead != item.Details.Contains("first deliveries")) fail("the first deliveries note");
+        na.Selected = item;
+        // (only some makers have engine choices in the data; a type ordered ahead gets those of its first deliveries' year)
+        if (TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(item.Type, TheAirline.Presentation.NewAircraftViewModel.EngineYear(item.Type)).Count != na.Engines.Count) fail("the engine choices");
+        Console.WriteLine("  engines: " + string.Join(", ", na.Engines.Select(e => e.Text)) + " | " + na.Summary);
+        na.Amount = 1;
+        h.Money = Math.Max(h.Money, 500000000);
+        int fleet = h.Fleet.Count;
+        na.OrderCommand.Execute(null);
+        var ordered = h.Fleet.Skip(fleet).ToList();
+        if (ordered.Count != 1) fail("not ordered: " + na.Status);
+        var built = ordered[0].Airliner.BuiltDate;
+        Console.WriteLine("  ordered: " + na.Status + " (delivery " + built.ToString("yyyy-MM-dd") + ")");
+        if (built < item.Type.Produced.From.Date || built < now.Date.AddMonths(3)) fail("delivered before its first deliveries or sooner than 3 months");
+        if (ahead && built > item.Type.Produced.From.Date.AddMonths(3)) fail("delivered much later than its first deliveries");
+        if (h.DeliveredFleet.Contains(ordered[0])) fail("counted as delivered already");
+        // a type further off isn't offered yet
+        var far = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().FirstOrDefault(t => t.Manufacturer?.Name == "The Boeing Company" && t.Produced.From > now.AddMonths(TheAirline.Presentation.NewAircraftViewModel.OrderAheadMonths));
+        if (far != null && na.Types.Any(x => x.Type == far)) fail(far.Name + " is offered " + (far.Produced.From.Year - now.Year) + " years ahead");
+        Console.WriteLine("ORDER AHEAD TEST OK");
+    }
+
+    /// <summary>"vm typecheck": the loaded aircraft types whose name has TAP_TYPE in it, with their maker, years and whether the player may buy them.</summary>
+    static void TypeCheck(AirlineViewModel av)
+    {
+        string q = Environment.GetEnvironmentVariable("TAP_TYPE") ?? "777";
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
+        foreach (var t in TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().Where(t => t.Name.Contains(q)))
+            Console.WriteLine("  " + t.Name + " | maker " + t.Manufacturer?.Name + " | " + t.Produced.From.ToString("yyyy-MM-dd") + " to " + t.Produced.To.ToString("yyyy-MM-dd") + " | " + t.TypeAirliner + " | can use " + TheAirline.Helpers.AirlineTypeRules.CanUseType(h, t));
+        av.NewAircraft.Reload();
+        Console.WriteLine("  game date " + TheAirline.Models.General.GameObject.GetInstance().GameTime.ToString("yyyy-MM-dd") + "; makers: " + string.Join(", ", av.NewAircraft.Manufacturers.Select(m => m.Text)));
+        Console.WriteLine("TYPECHECK DONE");
+    }
+
     static async Task SuggestTest(AirlineViewModel av)
     {
         Console.WriteLine("SUGGEST TEST");
@@ -3551,6 +3608,8 @@ static class VmTest
             menu.NewGameCommand.Execute(null);
             var ng = (NewGameViewModel)shell.Current;
             await Wait(() => !ng.IsBusy, "new game screen loads");
+            // TAP_YEAR starts the game in another year (the probes)
+            int startYear; if (int.TryParse(Environment.GetEnvironmentVariable("TAP_YEAR"), out startYear)) { ng.StartYear = startYear; await Wait(() => !ng.IsBusy, "airlines for the year"); }
             Console.WriteLine("airlines for " + ng.StartYear + ": " + ng.Airlines.Count);
             Console.WriteLine("continents: " + string.Join(", ", ng.Continents.Select(c => c.Name)));
             ng.SelectedContinent = ng.Continents.First(c => c.Name == "North America");
@@ -3596,6 +3655,8 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("rivalalerts")) { RivalAlertsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("report")) { await ReportTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("suggest")) { await SuggestTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("typecheck")) { TypeCheck(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }
