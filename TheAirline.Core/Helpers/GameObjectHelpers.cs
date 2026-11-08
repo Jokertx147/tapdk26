@@ -2059,6 +2059,8 @@ namespace TheAirline.Helpers
 
         private static void DoMonthlyUpdate()
         {
+            // the month just ended: month-end figures and the player's report (before its invoices are put together)
+            AirlineReportService.MonthEnded();
             CompactInvoices();
             RemovePrintedMedia();
 

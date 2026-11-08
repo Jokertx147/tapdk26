@@ -344,6 +344,13 @@ namespace TheAirline.Presentation
             set { TheAirline.Infrastructure.Settings.GetInstance().NoRivalAlerts = !value; OnPropertyChanged(nameof(RivalAlerts)); }
         }
 
+        /// <summary>The report in the news at each new month (kept with the game).</summary>
+        public bool MonthlyReport
+        {
+            get { return !TheAirline.Infrastructure.Settings.GetInstance().NoMonthlyReport; }
+            set { TheAirline.Infrastructure.Settings.GetInstance().NoMonthlyReport = !value; OnPropertyChanged(nameof(MonthlyReport)); }
+        }
+
         public bool AutoSave
         {
             get { return GameSession.AutoSaveOnExit; }

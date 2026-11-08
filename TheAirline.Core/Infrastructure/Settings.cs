@@ -75,6 +75,10 @@ namespace TheAirline.Infrastructure
         [Versioning("norivalalerts")]
         public bool NoRivalAlerts { get; set; }
 
+        /// <summary>No news with the airline report at each new month (off: the news comes).</summary>
+        [Versioning("nomonthlyreport")]
+        public bool NoMonthlyReport { get; set; }
+
         [Versioning("minutes")]
         public int MinutesPerTurn { get; set; }
 

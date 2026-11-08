@@ -116,6 +116,26 @@ namespace TheAirline.Presentation
             return row != null;
         }
 
+        /// <summary>Shows "Rival airlines" with that airline selected (from the monthly report).</summary>
+        public bool ShowAirline(Airline airline)
+        {
+            if (_show != ByAirline)
+            {
+                _show = ByAirline;
+                OnPropertyChanged(nameof(Show));
+                LoadFilters();
+            }
+            else if (_filter != FilterChoices[0])
+            {
+                _filter = FilterChoices[0];
+                OnPropertyChanged(nameof(Filter));
+            }
+            Reload();
+            CompetitorRow row = Rows.FirstOrDefault(r => r.Title == Name(airline));
+            Selected = row;
+            return row != null;
+        }
+
         private static bool OnPair(Route r, string a, string b)
         {
             string x = r.Destination1?.Profile.IATACode, y = r.Destination2?.Profile.IATACode;

@@ -62,6 +62,7 @@
 
       <TextBlock Text="News" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <CheckBox Content="Rival alerts: tell me when a rival opens, undercuts or gives up one of my routes" IsChecked="{Binding RivalAlerts}" />
+      <CheckBox Content="Monthly report: bring my airline's report in the news at each new month" IsChecked="{Binding MonthlyReport}" />
 
       <TextBlock Text="Game area" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
       <TextBlock Text="{Binding AreaText}" Opacity="0.7" TextWrapping="Wrap" MaxWidth="700" HorizontalAlignment="Left" />

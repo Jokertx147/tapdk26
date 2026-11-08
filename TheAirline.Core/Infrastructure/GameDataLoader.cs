@@ -41,6 +41,7 @@ namespace TheAirline.Infrastructure
                 Helpers.AIPricingService.ForgetReviews();
                 Helpers.CompetitorService.Clear();
                 Helpers.FlightRecords.Clear();
+                Helpers.AirlineReportService.Clear();
                 if (Setup.SetupError != null)
                 {
                     throw new System.InvalidOperationException("Loading the game data failed: " + Setup.SetupError.Message,

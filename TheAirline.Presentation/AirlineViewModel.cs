@@ -183,8 +183,17 @@ namespace TheAirline.Presentation
                     if (me != null) Money = Convert.ToString(new ValueCurrencyFormatter().Convert(me.Money));
                     OnGameChanged();
                 };
+            Report = new AirlineReportViewModel(OpenReportItem);
             News = new NewsViewModel(link =>
             {
+                // the monthly report: My Airline > Monthly report, that month
+                if (link is ReportLink rp)
+                {
+                    Report.ShowMonth(rp.Year, rp.Month);
+                    Page = Array.IndexOf(PageNames, "My Airline");
+                    MyAirlineTab = ReportTabIndex;
+                    return true;
+                }
                 // a rival alert: Airlines > Competitors, "My routes", that airport pair
                 if (!(link is RivalLink rl)) return false;
                 bool found = Competitors.ShowRoute(rl.A, rl.B, rl.IsCargo);
@@ -273,7 +282,7 @@ namespace TheAirline.Presentation
         {
             switch (PageNames[page])
             {
-                case "My Airline": FleetPerformance.Reload(); break;
+                case "My Airline": FleetPerformance.Reload(); if (MyAirlineTab == ReportTabIndex) Report.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
                 case "Routes": Connections.Reload(); RouteProfits.Reload(); break;
                 case "Alliances": Alliances.Reload(); break;
@@ -310,6 +319,52 @@ namespace TheAirline.Presentation
         public CompareTypesViewModel CompareTypes { get; }
 
         private int _airlinersTab, _routesTab;
+
+        // the My Airline sub tabs (the Scenario tab counts while hidden)
+        public const int ReportTabIndex = 1, FleetTabIndex = 3, FinancesTabIndex = 5;
+
+        private int _myAirlineTab;
+
+        /// <summary>The open sub tab under My Airline: 0 overview, 1 monthly report, 2 scenario, 3 fleet, 4 fleet performance, 5 finances, ...</summary>
+        public int MyAirlineTab
+        {
+            get { return _myAirlineTab; }
+            set
+            {
+                if (SetProperty(ref _myAirlineTab, value) && value == ReportTabIndex) Report?.Reload();
+            }
+        }
+
+        /// <summary>My Airline > Monthly report.</summary>
+        public AirlineReportViewModel Report { get; }
+
+        // where a line of the monthly report leads
+        private void OpenReportItem(ReportItem item)
+        {
+            if (item == null) return;
+            switch (item.Kind)
+            {
+                case ReportItemKind.Route:
+                    var row = Routes.FirstOrDefault(r => r.Route.Id == item.RouteId);
+                    if (row == null) return;
+                    Page = Array.IndexOf(PageNames, "Routes");
+                    RoutesTab = 0;
+                    SelectedRoute = row;
+                    break;
+                case ReportItemKind.Competitors:
+                    if (item.A != null) Competitors.ShowRoute(item.A, item.B, item.IsCargo);
+                    else if (item.Airline != null) Competitors.ShowAirline(item.Airline);
+                    Page = Array.IndexOf(PageNames, "Airlines");
+                    AirlinesTab = 1;
+                    break;
+                case ReportItemKind.Fleet:
+                    MyAirlineTab = FleetTabIndex;
+                    break;
+                case ReportItemKind.Finances:
+                    MyAirlineTab = FinancesTabIndex;
+                    break;
+            }
+        }
 
         private int _airlinesTab;
 

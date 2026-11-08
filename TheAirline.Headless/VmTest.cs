@@ -876,6 +876,152 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    static async Task ReportTest(AirlineViewModel av)
+    {
+        Console.WriteLine("REPORT TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var mk = av.Market;
+        var ap = av.Airports;
+        // two routes of the player's, flying
+        for (int n = 0; n < 2; n++)
+        {
+            foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(n).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+            mk.BuyCommand.Execute(null);
+            av.Refresh();
+            ap.ReloadAdvice();
+            await Wait(() => !ap.IsBusy, "advice");
+            var advice = ap.Advice.Where(x => x.Advice.FleetCanFly).FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination))
+                         ?? ap.Advice.FirstOrDefault(x => !h.Routes.Any(r => r.Destination1 == x.Advice.Destination || r.Destination2 == x.Advice.Destination));
+            if (advice == null) break;
+            ap.SelectedAdvice = advice;
+            foreach (var o in ap.Create.Offers.ToList()) o.LeaseCommand.Execute(null);
+            ap.Create.CreateCommand.Execute(null);
+            foreach (var o in (ap.Create?.Offers.ToList() ?? new System.Collections.Generic.List<TheAirline.Presentation.GateOffer>())) o.LeaseCommand.Execute(null);
+            if (ap.Create != null) ap.Create.CreateCommand.Execute(null);
+        }
+        foreach (var f in h.Fleet)
+        {
+            if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+            if (f.Routes.Count > 0 && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        }
+        if (h.Routes.Count < 2) fail("could not make two routes");
+        Console.WriteLine("  routes: " + string.Join(", ", h.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode)) + ", start " + g.GameTime.ToString("yyyy-MM-dd"));
+
+        // play into the second month: the first month's report comes in the news
+        int sent = TheAirline.Helpers.AirlineReportService.ReportsSent;
+        var startMonth = g.GameTime.Month;
+        while (g.GameTime.Month == startMonth) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        for (int i = 0; i < 5; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+        if (TheAirline.Helpers.AirlineReportService.ReportsSent != sent + 1) fail("no report news at the new month");
+        TheAirline.Models.General.News news;
+        lock (g.NewsBox) news = g.NewsBox.GetNews().LastOrDefault(n => n.ActionObject is TheAirline.Helpers.ReportLink);
+        if (news == null || !news.Subject.Contains(TheAirline.Helpers.AirlineReportService.MonthName(last.Year, last.Month))) fail("the report news");
+        Console.WriteLine("  news: " + news.Subject + " | " + news.Body);
+
+        // the month's figures
+        var rv = av.Report;
+        rv.Reload();
+        var r = rv.Report;
+        if (r == null || r.SoFar || r.Year != last.Year || r.Month != last.Month) fail("the report opens on the month that ended");
+        if (!rv.MonthChoices[0].Contains("so far")) fail("this month so far isn't offered");
+        Console.WriteLine("  " + rv.Summary);
+        foreach (var t in rv.Tiles) Console.WriteLine("    " + t.Label + ": " + t.Value + (t.Change != null ? " (" + t.Change + ")" : ""));
+        foreach (var m in rv.Money) Console.WriteLine("    " + m.Name + " " + m.Amount + " | " + m.Previous);
+        foreach (var x in rv.Best.Concat(rv.Worst)) Console.WriteLine("    route " + x.Title + " | " + x.Text);
+        foreach (var x in rv.Rivals) Console.WriteLine("    rival " + x.Title + " | " + x.Text);
+        foreach (var x in rv.Attention) Console.WriteLine("    attention: " + x.Text + " [" + x.LinkText + "]");
+        if (r.Ops.Flights == 0 || r.Ops.Passengers == 0 || r.Ops.Seats == 0) fail("no flying recorded");
+        if (!r.Ops.Closed || Math.Abs(r.Cash) < 1) fail("no month-end cash");
+        double res, inc;
+        TheAirline.Helpers.CompetitorService.LastMonth(h, out res, out inc);
+        if (Math.Abs(res - r.Result) > 1 || Math.Abs(inc - r.Income) > 1) fail("the result against the invoices: " + r.Result + " vs " + res);
+        if (Math.Abs(r.Money.Sum(m => m.Amount) - r.Result) > 1) fail("the money lines don't add up to the result");
+        var routeOps = TheAirline.Helpers.AirlineReportService.RouteOps(h, last.Year, last.Month);
+        if (routeOps.Sum(x => x.Flights) != r.Ops.Flights || routeOps.Sum(x => x.Passengers) != r.Ops.Passengers) fail("the routes' flights don't add up to the airline's");
+        foreach (var route in h.Routes)
+        {
+            var row = r.Best.Concat(r.Worst).FirstOrDefault(x => x.RouteId == route.Id);
+            double p = TheAirline.Helpers.RouteProfitService.Month(route, last.Year, last.Month);
+            if (row != null && Math.Abs(row.Profit - p) > 1) fail("a route's profit");
+        }
+        // the flights against the timetables: each route flies its week's flights every week (a day or two lost to positioning at the start)
+        double expected = h.Routes.Sum(x => x.TimeTable.Entries.Count/7.0*DateTime.DaysInMonth(last.Year, last.Month));
+        Console.WriteLine("  flights recorded " + r.Ops.Flights + ", the timetables call for " + expected.ToString("0"));
+        if (r.Ops.Flights > expected + 2 || r.Ops.Flights < expected*0.85) fail("flights against the timetables");
+        if (rv.Tiles.Count < 8) fail("tiles");
+        if (!rv.Money.Any(m => m.Name == "Operating result")) fail("the result line");
+        if (rv.Best.Count + rv.Worst.Count == 0) fail("no routes in the report");
+
+        // the news link opens the report on that month
+        av.Page = av.Pages.ToList().IndexOf("News");
+        av.MyAirlineTab = 0;
+        rv.Month = rv.MonthChoices[0];
+        var nv = av.News;
+        nv.Filter = "All";
+        nv.Reload();
+        nv.Selected = nv.Rows.First(x => x.News == news);
+        if (!nv.HasLink || nv.LinkText != "Open the report") fail("the report news has no link");
+        nv.OpenLinkCommand.Execute(null);
+        if (av.Pages[av.Page] != "My Airline" || av.MyAirlineTab != TheAirline.Presentation.AirlineViewModel.ReportTabIndex || rv.Report.SoFar || rv.Report.Month != last.Month)
+            fail("the news link didn't open the report");
+
+        // a route line opens the route
+        var routeLine = rv.Best.Concat(rv.Worst).First();
+        routeLine.Command.Execute(null);
+        if (av.Pages[av.Page] != "Routes" || av.SelectedRoute == null || !routeLine.Title.StartsWith(av.SelectedRoute.Route.Destination1.Profile.IATACode)) fail("a route line didn't open the route");
+
+        // what needs attention: an idle aircraft, and too little cash
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        mk.BuyCommand.Execute(null);
+        double money = h.Money;
+        h.Money = 1000;
+        rv.Month = rv.MonthChoices[0];
+        var now = rv.Report;
+        Console.WriteLine("  so far: " + rv.Summary);
+        foreach (var x in rv.Attention) Console.WriteLine("    attention: " + x.Text + " [" + x.LinkText + "]");
+        if (!now.SoFar || now.Ops.Idle < 1) fail("the idle aircraft isn't counted");
+        var cash = rv.Attention.FirstOrDefault(x => x.Text.StartsWith("Cash of"));
+        if (cash == null || !rv.Attention.Any(x => x.Text.Contains("had no route"))) fail("cash and idle aircraft aren't flagged");
+        if (rv.Attention.First() != cash) fail("cash isn't first");
+        av.Page = av.Pages.ToList().IndexOf("My Airline");
+        av.MyAirlineTab = TheAirline.Presentation.AirlineViewModel.ReportTabIndex;
+        cash.Command.Execute(null);
+        if (av.MyAirlineTab != TheAirline.Presentation.AirlineViewModel.FinancesTabIndex) fail("the cash line didn't open Finances");
+        h.Money = money;
+
+        // a rival line opens the competitor screen on that airline
+        if (rv.Rivals.Count > 0)
+        {
+            rv.Rivals[0].Command.Execute(null);
+            if (av.Pages[av.Page] != "Airlines" || av.AirlinesTab != 1 || av.Competitors.Show != TheAirline.Presentation.CompetitorsViewModel.ByAirline || av.Competitors.Selected == null || !av.Competitors.Selected.Title.EndsWith(rv.Rivals[0].Title))
+                fail("a rival line didn't open the competitor screen");
+        }
+
+        // saved with the game
+        var before = TheAirline.Helpers.AirlineReportService.Ops(h, last.Year, last.Month);
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("reporttest");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("reporttest");
+        g = TheAirline.Models.General.GameObject.GetInstance();
+        h = g.HumanAirline;
+        var after = TheAirline.Helpers.AirlineReportService.Ops(h, last.Year, last.Month);
+        if (after.Flights != before.Flights || after.Passengers != before.Passengers || Math.Abs(after.Cash - before.Cash) > 0.01 || !after.Closed) fail("the month after loading");
+        if (TheAirline.Helpers.AirlineReportService.RouteOps(h, last.Year, last.Month).Sum(x => x.Flights) != before.Flights) fail("the routes' months after loading");
+        Console.WriteLine("  after loading: " + after.Flights + " flights, " + after.Passengers + " passengers, cash " + after.Cash.ToString("0"));
+
+        // switched off in Options: no news at the next month
+        av.Options.MonthlyReport = false;
+        sent = TheAirline.Helpers.AirlineReportService.ReportsSent;
+        int month = g.GameTime.Month;
+        while (g.GameTime.Month == month) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        if (TheAirline.Helpers.AirlineReportService.ReportsSent != sent) fail("report news with the report switched off");
+        if (!TheAirline.Helpers.AirlineReportService.Ops(h, g.GameTime.AddMonths(-1).Year, g.GameTime.AddMonths(-1).Month).Closed) fail("the month wasn't closed with the news off");
+        av.Options.MonthlyReport = true;
+        Console.WriteLine("REPORT TEST OK");
+    }
+
     static void RivalAlertsTest(AirlineViewModel av)
     {
         Console.WriteLine("RIVAL ALERTS TEST");
@@ -3357,6 +3503,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalalerts")) { RivalAlertsTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("report")) { await ReportTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

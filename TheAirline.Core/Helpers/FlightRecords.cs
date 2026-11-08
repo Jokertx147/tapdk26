@@ -84,6 +84,7 @@ namespace TheAirline.Helpers
                     f.Cargo = flight.Cargo;
                 }
                 Add(airliner, f);
+                AirlineReportService.Flown(airliner, f, flight.Entry.TimeTable?.Route);
             }
             catch (Exception)
             {
@@ -96,6 +97,7 @@ namespace TheAirline.Helpers
         {
             try
             {
+                AirlineReportService.Cancelled(airliner);
                 if (flight?.Entry == null) return;
                 Add(airliner, new FlownFlight
                 {

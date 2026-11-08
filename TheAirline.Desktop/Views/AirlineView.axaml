@@ -58,7 +58,7 @@
 
         <!-- MY AIRLINE -->
         <TabItem Header="My Airline">
-          <TabControl Classes="sub">
+          <TabControl Classes="sub" SelectedIndex="{Binding MyAirlineTab}">
             <TabItem Header="Overview">
               <Grid RowDefinitions="Auto,*" Margin="0,14,0,0">
                 <StackPanel Spacing="4" Margin="0,0,0,10">
@@ -68,6 +68,9 @@
                 </StackPanel>
                 <v:WorldMapView Grid.Row="1" DataContext="{Binding Map}" />
               </Grid>
+            </TabItem>
+            <TabItem Header="Monthly report">
+              <v:AirlineReportView DataContext="{Binding Report}" />
             </TabItem>
             <TabItem Header="Scenario" IsVisible="{Binding Scenario.HasScenario}">
               <v:ScenarioView DataContext="{Binding Scenario}" />

@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:TheAirline.Desktop.Views"
+             x:Class="TheAirline.Desktop.Views.AirlineReportView">
+  <UserControl.Resources>
+    <!-- a route or rival line: title, text and a button that leads to it -->
+    <DataTemplate x:Key="LinkRow">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+        <StackPanel Spacing="1">
+          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"
+                     Foreground="{Binding IsWarning, Converter={x:Static v:ReportWarningBrush.Instance}}" />
+          <TextBlock Text="{Binding Text}" Opacity="0.75" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="{Binding LinkText}" Command="{Binding Command}" IsVisible="{Binding HasLink}" Margin="8,0,0,0" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+  <ScrollViewer Margin="0,10,0,0">
+    <StackPanel Spacing="10" Margin="0,0,12,12">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="Report for" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding MonthChoices}" SelectedItem="{Binding Month}" MinWidth="200" />
+        <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+      </StackPanel>
+      <TextBlock Text="{Binding Summary}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+      <!-- the figures, each with its change on the month before -->
+      <ItemsControl ItemsSource="{Binding Tiles}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="#262626" CornerRadius="6" Padding="12,8" Margin="0,0,8,8" Width="190">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Label}" Opacity="0.65" FontSize="12" />
+                <TextBlock Text="{Binding Value}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Change}" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{Binding Trend, Converter={x:Static v:ReportTrendBrush.Instance}}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Grid ColumnDefinitions="*,16,*">
+        <!-- left: what needs attention, and the money -->
+        <StackPanel Spacing="6">
+          <TextBlock Text="Needs attention" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="Nothing needs your attention." Opacity="0.7" IsVisible="{Binding NothingToDo}" />
+          <ItemsControl ItemsSource="{Binding Attention}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                  <Border Width="4" Background="#C8873A" CornerRadius="2" Margin="0,0,8,0" />
+                  <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Content="{Binding LinkText}" Command="{Binding Command}" IsVisible="{Binding HasLink}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Text="Money" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+          <Grid ColumnDefinitions="*,140,140">
+            <TextBlock Text="" />
+            <TextBlock Grid.Column="1" Text="This month" Opacity="0.65" HorizontalAlignment="Right" />
+            <TextBlock Grid.Column="2" Text="{Binding PreviousHeader}" Opacity="0.65" HorizontalAlignment="Right" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Money}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,140,140" Margin="0,1">
+                  <TextBlock Text="{Binding Name}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Amount}" HorizontalAlignment="Right"
+                             Foreground="{Binding IsIncome, Converter={x:Static v:ReportMoneyBrush.Instance}}" />
+                  <TextBlock Grid.Column="2" Text="{Binding Previous}" HorizontalAlignment="Right" Opacity="0.65" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding CapitalLine}" IsVisible="{Binding HasCapital}" Opacity="0.7" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding CashLine}" Opacity="0.7" TextWrapping="Wrap" />
+          <TextBlock Text="The operating result is income less the costs of running the airline. Aircraft bought or sold and loans are left out of it." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- right: routes and rivals -->
+        <StackPanel Grid.Column="2" Spacing="6">
+          <TextBlock Text="Best routes" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="No route made money." Opacity="0.7" IsVisible="{Binding !HasBest}" />
+          <ItemsControl ItemsSource="{Binding Best}" ItemTemplate="{StaticResource LinkRow}" />
+          <TextBlock Text="Worst routes" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+          <TextBlock Text="No route lost money." Opacity="0.7" IsVisible="{Binding !HasWorst}" />
+          <ItemsControl ItemsSource="{Binding Worst}" ItemTemplate="{StaticResource LinkRow}" />
+          <TextBlock Text="Closest rivals" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+          <TextBlock Text="No airline flies your routes or from your airports." Opacity="0.7" IsVisible="{Binding !HasRivals}" />
+          <ItemsControl ItemsSource="{Binding Rivals}" ItemTemplate="{StaticResource LinkRow}" />
+          <TextBlock Text="Route figures are each route's own income and costs, before what its aircraft cost to own or lease." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

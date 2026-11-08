@@ -96,9 +96,9 @@ namespace TheAirline.Presentation
         public ICommand OpenLinkCommand { get; }
 
         /// <summary>The selected message points somewhere (a rival alert: the route on the competitor screen).</summary>
-        public bool HasLink => _openLink != null && _selected?.News.ActionObject is TheAirline.Helpers.RivalLink;
+        public bool HasLink => _openLink != null && (_selected?.News.ActionObject is TheAirline.Helpers.RivalLink || _selected?.News.ActionObject is TheAirline.Helpers.ReportLink);
 
-        public string LinkText => "Show in Competitors";
+        public string LinkText => _selected?.News.ActionObject is TheAirline.Helpers.ReportLink ? "Open the report" : "Show in Competitors";
 
         /// <summary>Said under the message when its link no longer leads anywhere.</summary>
         public string LinkNote { get; private set; } = "";
@@ -139,6 +139,7 @@ namespace TheAirline.Presentation
                     OnPropertyChanged(nameof(BodyTitle));
                     OnPropertyChanged(nameof(HasSelection));
                     OnPropertyChanged(nameof(HasLink));
+                    OnPropertyChanged(nameof(LinkText));
                     LinkNote = "";
                     OnPropertyChanged(nameof(LinkNote));
                 }

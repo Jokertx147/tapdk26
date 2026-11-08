@@ -283,6 +283,8 @@ namespace TheAirline.Helpers
             StartupLog.Write("LoadGame: " + compacted + " daily amounts of past months put together");
             int moves = CompetitorService.Restore(deserializedSaveObject.RivalMovesList);
             int flights = FlightRecords.Restore(deserializedSaveObject.FlownFlightsList);
+            int opsMonths = AirlineReportService.Restore(deserializedSaveObject.MonthlyOpsList);
+            StartupLog.Write("LoadGame: " + opsMonths + " airline months for the reports restored");
             StartupLog.Write("LoadGame: " + moves + " rival moves and " + flights + " recorded flights restored");
             StartupLog.Write("LoadGame: starting the game paused");
             //Start the game paused
@@ -352,6 +354,7 @@ namespace TheAirline.Helpers
             StartupLog.Write("SaveGame: " + pruned + " empty airport facilities left out");
             so.RivalMovesList = CompetitorService.ToSave();
             so.FlownFlightsList = FlightRecords.ToSave(Airlines.GetAllAirlines());
+            so.MonthlyOpsList = AirlineReportService.ToSave(Airlines.GetAllAirlines());
             Parallel.Invoke(
                 () =>
                     {
@@ -598,6 +601,10 @@ namespace TheAirline.Helpers
 
         [Versioning("flownflights")]
         public List<SavedFlights> FlownFlightsList { get; set; }
+
+        // each airline's flights by month for the monthly report
+        [Versioning("monthlyops")]
+        public List<SavedMonthOps> MonthlyOpsList { get; set; }
 
         public string SaveType { get; set; }
 
