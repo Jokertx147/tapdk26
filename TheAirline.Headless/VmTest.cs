@@ -1049,10 +1049,16 @@ static class VmTest
         if (!sv.Open(top)) fail("couldn't open " + top.Name + ": " + sv.Status);
         var route = h.Routes.First(r => (r.Destination1 == top.From && r.Destination2 == top.To) || (r.Destination1 == top.To && r.Destination2 == top.From));
         double service = ((TheAirline.Models.Routes.PassengerRoute)route).GetServiceLevel(TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
-        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
-        var after = ends.Select(ap => TheAirline.Helpers.PassengerHelpers.ReputationShare(ap, h)).ToArray();
+        // every airline ranked again straight after opening (no game day played: in a day the computer airlines can open
+        // routes there too, which no forecast can know)
+        Func<TheAirline.Models.Airports.Airport, double> rankedNow = ap =>
+        {
+            var scores = TheAirline.Models.Airlines.Airlines.GetAllAirlines().ToDictionary(a => a, a => ap.GetAirlineReputation(a));
+            return Math.Max(75, TheAirline.Helpers.StatisticsHelpers.GetRatingScale(scores)[h]) / 100;
+        };
+        var after = ends.Select(rankedNow).ToArray();
         for (int i = 0; i < 2; i++)
-            Console.WriteLine("  " + ends[i].Profile.IATACode + ": before " + before[i].ToString("0.000") + ", forecast with the route " + predicted[i].ToString("0.000") + ", the day after opening " + after[i].ToString("0.000"));
+            Console.WriteLine("  " + ends[i].Profile.IATACode + ": before " + before[i].ToString("0.000") + ", forecast with the route " + predicted[i].ToString("0.000") + ", once opened " + after[i].ToString("0.000"));
         Console.WriteLine("  the route's service " + service + ", the forecast assumed " + TheAirline.Helpers.RouteForecastService.NewRouteService(h) + "; forecast " + (top.Forecast.Load * 100).ToString("0.0") + "% full");
         for (int i = 0; i < 2; i++) if (Math.Abs(after[i] - predicted[i]) > 0.03) fail(ends[i].Profile.IATACode + " reputation: forecast " + predicted[i] + ", got " + after[i]);
         // an airline's own route on the pair is counted once: a forecast for the flying route doesn't add it again
