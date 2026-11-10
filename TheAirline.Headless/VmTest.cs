@@ -893,9 +893,7 @@ static class VmTest
             var mine = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(t);
             if (mine.Count == 0) { Console.WriteLine("  no engines: " + t.Name); gaps++; continue; }
             if (mine.Count > 1) choices++;
-            // (the original Airbus and Aerospatiale engines give some aircraft their own, lower speeds: left as they are)
-            bool original = t.Manufacturer.ShortName == "Airbus" || t.Manufacturer.ShortName == "Aerospatiale";
-            foreach (var e in mine) if (e.MaxSpeed < t.CruisingSpeed && !original) { slower++; Console.WriteLine("  slows the aircraft: " + e.Model + " on " + t.Name + " (" + e.MaxSpeed + " < " + t.CruisingSpeed + ")"); }
+            foreach (var e in mine) if (e.MaxSpeed < t.CruisingSpeed) { slower++; Console.WriteLine("  slows the aircraft: " + e.Model + " on " + t.Name + " (" + e.MaxSpeed + " < " + t.CruisingSpeed + ")"); }
             for (int y = t.Produced.From.Year; y <= Math.Min(t.Produced.To.Year, 2040); y++)
             {
                 var std = TheAirline.Models.Airliners.EngineTypes.GetStandardEngineType(t, y);
