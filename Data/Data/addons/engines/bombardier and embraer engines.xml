@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the bombardier and embraer' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="GE" model="CF34-3A1" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="410000" />
+    <performance maxspeed="809" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier CRJ100" />
+    <produced from="1992" to="2008" />
+  </engine>
+  <engine manufacturer="GE" model="CF34-3B1" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="431000" />
+    <performance maxspeed="809" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier CRJ200" />
+    <produced from="1994" to="2008" />
+  </engine>
+  <engine manufacturer="GE" model="CF34-8C5" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="498000" />
+    <performance maxspeed="881" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier CRJ700, Bombardier CRJ900, Bombardier CRJ900LR, Bombardier CRJ1000" />
+    <produced from="1997" to="2021" />
+  </engine>
+  <engine manufacturer="PWC" model="PW120A" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="256000" />
+    <performance maxspeed="500" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-100" />
+    <produced from="1984" to="2005" />
+  </engine>
+  <engine manufacturer="PWC" model="PW121" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.01" price="288000" />
+    <performance maxspeed="500" ceiling="7600" runwaylengthrequiredModifier="0.95" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-100" />
+    <produced from="1987" to="2005" />
+  </engine>
+  <engine manufacturer="PWC" model="PW123C" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="268000" />
+    <performance maxspeed="537" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-200" />
+    <produced from="1995" to="2009" />
+  </engine>
+  <engine manufacturer="PWC" model="PW123" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="349000" />
+    <performance maxspeed="528" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-300" />
+    <produced from="1989" to="2009" />
+  </engine>
+  <engine manufacturer="PWC" model="PW123B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.01" price="379000" />
+    <performance maxspeed="528" ceiling="7600" runwaylengthrequiredModifier="0.96" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-300" />
+    <produced from="1989" to="2009" />
+  </engine>
+  <engine manufacturer="PWC" model="PW150A" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="557000" />
+    <performance maxspeed="667" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier Dash 8-400" />
+    <produced from="2000" to="2021" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="BR710" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="660000" />
+    <performance maxspeed="904" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier Global 5000" />
+    <produced from="1996" to="2016" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW1500G" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="891000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bombardier CS-100, Bombardier CS-100ER, Bombardier CS-300, Bombardier CS-300ER" />
+    <produced from="2013" to="2018" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-34" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="40000" />
+    <performance maxspeed="341" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="EMB 110 Bandeirante" />
+    <produced from="1973" to="1990" />
+  </engine>
+  <engine manufacturer="PWC" model="PW118" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="71000" />
+    <performance maxspeed="552" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="EMB 120 Brasilia" />
+    <produced from="1983" to="2001" />
+  </engine>
+  <engine manufacturer="PWC" model="PW118A" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.01" price="77000" />
+    <performance maxspeed="552" ceiling="7600" runwaylengthrequiredModifier="0.96" rangeModifier="1.0" />
+    <aircraft models="EMB 120 Brasilia" />
+    <produced from="1987" to="2001" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="AE 3007A" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="341000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Embraer ERJ135 ER, Embraer ERJ140 ER, Embraer ERJ145 LR" />
+    <produced from="1989" to="2020" />
+  </engine>
+  <engine manufacturer="GE" model="CF34-8E" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="563000" />
+    <performance maxspeed="890" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Embraer E-170, Embraer E-175" />
+    <produced from="2002" to="2027" />
+  </engine>
+  <engine manufacturer="GE" model="CF34-10E" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="854000" />
+    <performance maxspeed="890" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Embraer E-190, Embraer E-195" />
+    <produced from="2005" to="2020" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW1900G" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="720000" />
+    <performance maxspeed="870" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Embraer E175-E2, Embraer E190-E2, Embraer E195-E2" />
+    <produced from="2018" to="2199" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-34" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="36000" />
+    <performance maxspeed="278" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="DHC-6 Twin Otter 400" />
+    <produced from="2008" to="2199" />
+  </engine>
+</engines>

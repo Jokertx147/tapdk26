@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the mcdonnell douglas' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Wright" model="R-1820 Cyclone" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="372000" />
+    <performance maxspeed="333" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-3" />
+    <produced from="1937" to="1942" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="R-1830 Twin Wasp" >
+    <specs type="Piston" noise="High" consumptionModifier="0.98" price="434000" />
+    <performance maxspeed="333" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.02" />
+    <aircraft models="Douglas DC-3" />
+    <produced from="1937" to="1942" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="R-2000 Twin Wasp" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="420000" />
+    <performance maxspeed="365" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-4-1009" />
+    <produced from="1945" to="1947" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="R-2800 Double Wasp" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="456000" />
+    <performance maxspeed="507" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-6, Douglas DC-6B" />
+    <produced from="1946" to="1958" />
+  </engine>
+  <engine manufacturer="Wright" model="R-3350 Turbo-Compound" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="540000" />
+    <performance maxspeed="578" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-7, Douglas DC-7C" />
+    <produced from="1953" to="1958" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3C-6" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="552000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-8-10" />
+    <produced from="1959" to="1965" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT4A-9" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="612000" />
+    <performance maxspeed="946" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-8-20, Douglas DC-8-32" />
+    <produced from="1959" to="1970" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Conway 509" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="713000" />
+    <performance maxspeed="952" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-8-40" />
+    <produced from="1961" to="1965" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-1" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="903000" />
+    <performance maxspeed="946" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-8-51" />
+    <produced from="1961" to="1970" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-3B" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="899000" />
+    <performance maxspeed="959" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-8-54CF, Douglas DC-8-61, Douglas DC-8-62F, Douglas DC-8-63" />
+    <produced from="1962" to="1978" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.01" price="1011000" />
+    <performance maxspeed="959" ceiling="12000" runwaylengthrequiredModifier="0.95" rangeModifier="1.01" />
+    <aircraft models="Douglas DC-8-61, Douglas DC-8-62F, Douglas DC-8-63" />
+    <produced from="1966" to="1978" />
+  </engine>
+  <engine manufacturer="CFM" model="CFM56-2C1" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="477000" />
+    <performance maxspeed="959" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD DC-8-71, MD DC-8-73" />
+    <produced from="1981" to="1991" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="460000" />
+    <performance maxspeed="903" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-9-10, Douglas DC-9-15, MD DC-9-20" />
+    <produced from="1966" to="1981" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-9" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="528000" />
+    <performance maxspeed="917" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-9-30, MD DC-9-40, MD DC-9-50" />
+    <produced from="1967" to="1982" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-17" >
+    <specs type="Jet" noise="High" consumptionModifier="1.02" price="616000" />
+    <performance maxspeed="917" ceiling="12000" runwaylengthrequiredModifier="0.94" rangeModifier="1.0" />
+    <aircraft models="Douglas DC-9-30, MD DC-9-40, MD DC-9-50" />
+    <produced from="1974" to="1982" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-209" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="676000" />
+    <performance maxspeed="811" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD-81 (DC-9-81)" />
+    <produced from="1981" to="1992" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-217C" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="681000" />
+    <performance maxspeed="811" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD-82 (DC-9-82), MD-83 (DC-9-83), MD-87 (DC-9-87), MD-88 (DC-9-88)" />
+    <produced from="1982" to="1999" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-219" >
+    <specs type="Jet" noise="High" consumptionModifier="0.99" price="794000" />
+    <performance maxspeed="811" ceiling="12000" runwaylengthrequiredModifier="0.96" rangeModifier="1.01" />
+    <aircraft models="MD-82 (DC-9-82), MD-83 (DC-9-83), MD-87 (DC-9-87), MD-88 (DC-9-88)" />
+    <produced from="1985" to="1999" />
+  </engine>
+  <engine manufacturer="IAE-Engines" model="V2525-D5" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="995000" />
+    <performance maxspeed="811" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD-90-30" />
+    <produced from="1994" to="2000" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-6D" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1877000" />
+    <performance maxspeed="908" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD DC-10-10, MD DC-10-10F" />
+    <produced from="1971" to="1981" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-50C2F" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1101000" />
+    <performance maxspeed="908" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD DC-10-15" />
+    <produced from="1979" to="1983" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-50C" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2023000" />
+    <performance maxspeed="908" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD DC-10-30, MD DC-10-30F" />
+    <produced from="1972" to="1988" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-59A" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1920000" />
+    <performance maxspeed="908" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD DC-10-40" />
+    <produced from="1973" to="1985" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2D1F" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="1534000" />
+    <performance maxspeed="945" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="MD-11, MD-11ER, MD-11F" />
+    <produced from="1986" to="2000" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4460" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.99" price="1726000" />
+    <performance maxspeed="945" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="MD-11, MD-11ER, MD-11F" />
+    <produced from="1986" to="2000" />
+  </engine>
+</engines>

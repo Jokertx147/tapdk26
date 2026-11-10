@@ -200,7 +200,7 @@
 	  <specs type="Jet" noise="Medium" consumptionModifier=".95" price="6250000" />
 	  <performance maxspeed="835" ceiling="12000" runwaylengthrequiredModifier=".95" rangeModifier="1" />
 	  <aircraft models="Airbus A350-800, Airbus A350-900, Airbus A350-1000" />
-	  <produced from="2013" to="2033" />
+	  <produced from="2013" to="2199" />
   </engine>
 <!--A380--> <!--Complete-->
   <engine manufacturer="Rolls-Royce" model="Trent 900" >

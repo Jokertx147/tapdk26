@@ -1,0 +1,190 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the european makers' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Rolls-Royce" model="Dart 532" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="114000" />
+    <performance maxspeed="518" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fokker F27" />
+    <produced from="1955" to="1975" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Spey 555-15" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="349000" />
+    <performance maxspeed="849" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fokker F28-1000, Fokker F28-2000, Fokker F28-3000, Fokker F28-4000, Fokker F28-6000" />
+    <produced from="1967" to="1987" />
+  </engine>
+  <engine manufacturer="PWC" model="PW125B" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="285000" />
+    <performance maxspeed="453" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fokker 50" />
+    <produced from="1987" to="1997" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Tay 620" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="407000" />
+    <performance maxspeed="845" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fokker 70, Fokker 100" />
+    <produced from="1988" to="1997" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Tay 650" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="475000" />
+    <performance maxspeed="845" ceiling="12000" runwaylengthrequiredModifier="0.94" rangeModifier="1.02" />
+    <aircraft models="Fokker 100" />
+    <produced from="1989" to="1997" />
+  </engine>
+  <engine manufacturer="PWC" model="PW120" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="224000" />
+    <performance maxspeed="450" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 42-300" />
+    <produced from="1986" to="1995" />
+  </engine>
+  <engine manufacturer="PWC" model="PW127E" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="233000" />
+    <performance maxspeed="515" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 42-500" />
+    <produced from="1995" to="2013" />
+  </engine>
+  <engine manufacturer="PWC" model="PW124B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="299000" />
+    <performance maxspeed="460" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 72-200" />
+    <produced from="1990" to="2015" />
+  </engine>
+  <engine manufacturer="PWC" model="PW127" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="316000" />
+    <performance maxspeed="460" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 72-210" />
+    <produced from="1992" to="2015" />
+  </engine>
+  <engine manufacturer="PWC" model="PW127F" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="334000" />
+    <performance maxspeed="505" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 72-500" />
+    <produced from="1997" to="2015" />
+  </engine>
+  <engine manufacturer="PWC" model="PW127M" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="288000" />
+    <performance maxspeed="556" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="ATR 42-600, ATR 72-600" />
+    <produced from="2011" to="2199" />
+  </engine>
+  <engine manufacturer="GE" model="CT7-9B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="263000" />
+    <performance maxspeed="467" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Saab 340B" />
+    <produced from="1984" to="1998" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="AE 2100A" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="1103000" />
+    <performance maxspeed="665" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Saab 2000" />
+    <produced from="1992" to="1999" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="R-2180 Twin Hornet" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="167000" />
+    <performance maxspeed="340" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Saab 90A Scandia" />
+    <produced from="1946" to="1954" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-5" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="37000" />
+    <performance maxspeed="315" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Dornier 228-212" />
+    <produced from="1982" to="1998" />
+  </engine>
+  <engine manufacturer="PWC" model="PW119B" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="104000" />
+    <performance maxspeed="620" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Dornier 328-110" />
+    <produced from="1991" to="2000" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Avon 522" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="264000" />
+    <performance maxspeed="805" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Sud Aviation Caravelle I" />
+    <produced from="1959" to="1967" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="300000" />
+    <performance maxspeed="805" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Sud Aviation Caravelle 10B" />
+    <produced from="1964" to="1967" />
+  </engine>
+  <engine manufacturer="Garrett" model="TFE731-2" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="959000" />
+    <performance maxspeed="912" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Dassault Falcon 10" />
+    <produced from="1970" to="1989" />
+  </engine>
+  <engine manufacturer="GE" model="CF700" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1189000" />
+    <performance maxspeed="862" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Dassault Falcon 20" />
+    <produced from="1963" to="1988" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-15" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1504000" />
+    <performance maxspeed="926" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Dassault Mercure" />
+    <produced from="1971" to="1975" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-10R" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="84000" />
+    <performance maxspeed="370" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="CASA C212 Aviocar, C212 Aviocar" />
+    <produced from="1971" to="2199" />
+  </engine>
+  <engine manufacturer="GE" model="CT7-9C" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="108000" />
+    <performance maxspeed="450" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="IPTN CN235" />
+    <produced from="1983" to="2199" />
+  </engine>
+  <engine manufacturer="Europrop" model="TP400-D6" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="3185000" />
+    <performance maxspeed="780" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="A400M Atlas" />
+    <produced from="2011" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="AE 2100C" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="96000" />
+    <performance maxspeed="556" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="N250-50, N250-100" />
+    <produced from="1995" to="2199" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-42" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="328000" />
+    <performance maxspeed="395" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="N219" />
+    <produced from="2014" to="2199" />
+  </engine>
+  <engine manufacturer="Walter" model="M601E" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="215000" />
+    <performance maxspeed="310" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Let L-410" />
+    <produced from="1988" to="1999" />
+  </engine>
+  <engine manufacturer="Walter" model="M602B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="1014000" />
+    <performance maxspeed="438" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Let L-610" />
+    <produced from="1988" to="1999" />
+  </engine>
+  <engine manufacturer="GE" model="CT7-9D" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="0.95" price="1437000" />
+    <performance maxspeed="438" ceiling="7600" runwaylengthrequiredModifier="0.97" rangeModifier="1.05" />
+    <aircraft models="Let L-610" />
+    <produced from="1992" to="1999" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6C-67C" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="186000" />
+    <performance maxspeed="306" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="AgustaWestland AW139" />
+    <produced from="2003" to="2024" />
+  </engine>
+  <engine manufacturer="GE" model="CT7-2E1" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="207000" />
+    <performance maxspeed="278" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="AgustaWestland AW189" />
+    <produced from="2013" to="2030" />
+  </engine>
+</engines>

@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the russian and ukrainian makers' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Progress" model="AI-20" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="204000" />
+    <performance maxspeed="625" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-10, Il-18V, Il-18D, Il-18E" />
+    <produced from="1959" to="1978" />
+  </engine>
+  <engine manufacturer="Progress" model="AI-24" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="228000" />
+    <performance maxspeed="450" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-24" />
+    <produced from="1960" to="1979" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-14GR" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="1026000" />
+    <performance maxspeed="380" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-38" />
+    <produced from="2000" to="2008" />
+  </engine>
+  <engine manufacturer="Progress" model="D-36" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="480000" />
+    <performance maxspeed="740" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-74, Yak-42, Yak-42D" />
+    <produced from="1977" to="2016" />
+  </engine>
+  <engine manufacturer="Klimov" model="TV3-117VMA-SBM1" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="199000" />
+    <performance maxspeed="460" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-140" />
+    <produced from="1997" to="2014" />
+  </engine>
+  <engine manufacturer="Progress" model="D-436-148" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="327000" />
+    <performance maxspeed="860" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-148 100A, Antonov An-148 100B, Antonov An-148 100E, Antonov An-158" />
+    <produced from="2005" to="2016" />
+  </engine>
+  <engine manufacturer="Progress" model="D-18T" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="4502000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Antonov An-124, Antonov An-225" />
+    <produced from="1982" to="2199" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="D-20P" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="192000" />
+    <performance maxspeed="800" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-124" />
+    <produced from="1960" to="1965" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="D-30" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="216000" />
+    <performance maxspeed="880" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-134, Tupolev Tu-134A, Tupolev Tu-134B" />
+    <produced from="1966" to="1980" />
+  </engine>
+  <engine manufacturer="Kuznetsov" model="NK-8-2U" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="357000" />
+    <performance maxspeed="900" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-154, Tupolev Tu-154B" />
+    <produced from="1972" to="1986" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="D-30KU-154" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="420000" />
+    <performance maxspeed="900" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-154M" />
+    <produced from="1984" to="2013" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="PS-90A" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="1063000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-204-100, Tupolev Tu-204-300" />
+    <produced from="1996" to="2025" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-535E4" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="121000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Tupolev Tu-204-120" />
+    <produced from="1998" to="2025" />
+  </engine>
+  <engine manufacturer="Kuznetsov" model="NK-8-4" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="540000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-62" />
+    <produced from="1966" to="1973" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="D-30KU" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="576000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-62M" />
+    <produced from="1967" to="2004" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="D-30KP" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="3069000" />
+    <performance maxspeed="900" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-76, Il-76TD" />
+    <produced from="1971" to="2199" />
+  </engine>
+  <engine manufacturer="Kuznetsov" model="NK-86" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="399000" />
+    <performance maxspeed="875" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-86" />
+    <produced from="1980" to="2011" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="PS-90A" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="372000" />
+    <performance maxspeed="875" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-96-300" />
+    <produced from="1992" to="2199" />
+  </engine>
+  <engine manufacturer="Klimov" model="TV7-117S" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="2069000" />
+    <performance maxspeed="500" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Il-114" />
+    <produced from="1992" to="2011" />
+  </engine>
+  <engine manufacturer="Progress" model="AI-25" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="600000" />
+    <performance maxspeed="470" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Yak-40" />
+    <produced from="1967" to="1981" />
+  </engine>
+  <engine manufacturer="PowerJet" model="SaM146-1S17" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="553000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Sukhoi 100-75, Sukhoi 100-75LR, Sukhoi 100-95, Sukhoi 100-95LR" />
+    <produced from="2011" to="2020" />
+  </engine>
+  <engine manufacturer="PowerJet" model="SaM146-1S18" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.01" price="622000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="0.96" rangeModifier="1.0" />
+    <aircraft models="Sukhoi 100-75, Sukhoi 100-75LR, Sukhoi 100-95, Sukhoi 100-95LR" />
+    <produced from="2011" to="2020" />
+  </engine>
+  <engine manufacturer="Aviadvigatel" model="PD-14" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="936000" />
+    <performance maxspeed="870" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Irkut MC-21-300" />
+    <produced from="2026" to="2199" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW1400G" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="0.98" price="1170000" />
+    <performance maxspeed="870" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.02" />
+    <aircraft models="Irkut MC-21-300" />
+    <produced from="2026" to="2199" />
+  </engine>
+</engines>

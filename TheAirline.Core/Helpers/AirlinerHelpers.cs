@@ -72,7 +72,9 @@ namespace TheAirline.Helpers
 
             airliner.Flown = km;
 
-            List<EngineType> engines = EngineTypes.GetEngineTypes(airliner.Type, GameObject.GetInstance().GameTime.Year);
+            // the engines offered when the aircraft was built (any of the type's, for a year without one)
+            List<EngineType> engines = EngineTypes.GetEngineTypes(airliner.Type, airliner.BuiltDate.Year);
+            if (engines.Count == 0) engines = EngineTypes.GetEngineTypes(airliner.Type);
 
             if (engines.Count > 0)
             {
@@ -409,7 +411,9 @@ namespace TheAirline.Helpers
 
             CreateAirlinerClasses(airliner);
 
-            List<EngineType> engines = EngineTypes.GetEngineTypes(airliner.Type, GameObject.GetInstance().GameTime.Year);
+            // the engines offered when the aircraft was built (any of the type's, for a year without one)
+            List<EngineType> engines = EngineTypes.GetEngineTypes(airliner.Type, airliner.BuiltDate.Year);
+            if (engines.Count == 0) engines = EngineTypes.GetEngineTypes(airliner.Type);
 
             if (engines.Count > 0)
             {

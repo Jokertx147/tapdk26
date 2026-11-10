@@ -876,6 +876,84 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    /// <summary>"vm engines" (TAP_YEAR=1996): every aircraft type has its engines, and an order can take another one.</summary>
+    static void EnginesTest(AirlineViewModel av)
+    {
+        Console.WriteLine("ENGINES TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var engines = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes();
+        var types = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes();
+        Console.WriteLine("  " + engines.Count + " engines for " + types.Count + " aircraft types, from " + engines.Where(e => e.Manufacturer != null).Select(e => e.Manufacturer.ShortName).Distinct().Count() + " makers");
+        if (engines.Any(e => e.Manufacturer == null)) fail("an engine without its maker: " + string.Join(", ", engines.Where(e => e.Manufacturer == null).Select(e => e.Model)));
+        int gaps = 0, choices = 0, slower = 0, changed = 0;
+        foreach (var t in types)
+        {
+            var mine = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(t);
+            if (mine.Count == 0) { Console.WriteLine("  no engines: " + t.Name); gaps++; continue; }
+            if (mine.Count > 1) choices++;
+            // (the original Airbus and Aerospatiale engines give some aircraft their own, lower speeds: left as they are)
+            bool original = t.Manufacturer.ShortName == "Airbus" || t.Manufacturer.ShortName == "Aerospatiale";
+            foreach (var e in mine) if (e.MaxSpeed < t.CruisingSpeed && !original) { slower++; Console.WriteLine("  slows the aircraft: " + e.Model + " on " + t.Name + " (" + e.MaxSpeed + " < " + t.CruisingSpeed + ")"); }
+            for (int y = t.Produced.From.Year; y <= Math.Min(t.Produced.To.Year, 2040); y++)
+            {
+                var std = TheAirline.Models.Airliners.EngineTypes.GetStandardEngineType(t, y);
+                if (std == null) { Console.WriteLine("  no engine for " + t.Name + " in " + y); gaps++; break; }
+                if ((std.ConsumptationModifier != 1 || std.RangeModifier != 1 || std.RunwayModifier != 1) && !t.Name.StartsWith("Boeing 767") && t.Manufacturer.ShortName != "Airbus" && t.Manufacturer.ShortName != "Aerospatiale")
+                { Console.WriteLine("  the standard engine changes " + t.Name + " in " + y + ": " + std.Model); changed++; break; }
+            }
+        }
+        Console.WriteLine("  " + choices + " types with a choice of engines");
+        if (gaps > 0 || slower > 0 || changed > 0) fail(gaps + " gaps, " + slower + " engines slowing their aircraft, " + changed + " standard engines changing their type");
+        if (choices < 40) fail("too few choices");
+
+        // the 777-200 in 1996: three makers' engines, the GE90 ordered
+        var na = av.NewAircraft;
+        na.Reload();
+        na.Manufacturer = na.Manufacturers.First(m => m.Name == "The Boeing Company");
+        var item = na.Types.FirstOrDefault(t => t.Name == "Boeing 777-200");
+        if (item == null) fail("no 777-200 in " + g.GameTime.Year);
+        na.Selected = item;
+        Console.WriteLine("  777-200 engines: " + string.Join(" | ", na.Engines.Select(e => e.Text)));
+        if (na.Engines.Count != 3 || !na.Engine.Text.Contains("(standard)")) fail("the 777's engine choices");
+        var ge = na.Engines.First(e => e.Engine.Model.StartsWith("GE90"));
+        if (!ge.Text.Contains("3% less fuel") || !ge.Text.Contains("2% more range")) fail("the GE90's description");
+        long standardPrice = na.Engine.Engine.Price;
+        na.Engine = ge;
+        na.Amount = 1;
+        h.Money = Math.Max(h.Money, 500000000);
+        int fleet = h.Fleet.Count;
+        na.OrderCommand.Execute(null);
+        var a = h.Fleet.Skip(fleet).Select(f => f.Airliner).FirstOrDefault();
+        if (a == null) fail("not ordered: " + na.Status);
+        if (a.EngineType != ge.Engine) fail("the order hasn't the GE90");
+        if (a.Range != (long) (item.Type.Range * 1.02) || Math.Abs(a.FuelConsumption - item.Type.FuelConsumption * 0.97) > 1e-9) fail("the GE90's range and fuel on the aircraft");
+        Console.WriteLine("  ordered with " + a.EngineType.Model + ": range " + a.Range + " km (type " + item.Type.Range + "), fuel " + a.FuelConsumption + " (type " + item.Type.FuelConsumption + "), engine premium " + (ge.Engine.Price - standardPrice));
+
+        // used aircraft carry an engine of their build year
+        int used = 0, wrong = 0;
+        foreach (var u in TheAirline.Models.Airliners.Airliners.GetAirlinersForSale())
+        {
+            used++;
+            var all = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(u.Type);
+            if (all.Count == 0) continue;
+            if (u.EngineType == null) { wrong++; Console.WriteLine("  used without an engine: " + u.Type.Name + " built " + u.BuiltDate.Year); continue; }
+            var then = TheAirline.Models.Airliners.EngineTypes.GetEngineTypes(u.Type, u.BuiltDate.Year);
+            if (then.Count > 0 && !then.Contains(u.EngineType)) { wrong++; Console.WriteLine("  used " + u.Type.Name + " built " + u.BuiltDate.Year + " has " + u.EngineType.Model); }
+        }
+        Console.WriteLine("  used aircraft for sale: " + used + ", with a wrong or missing engine: " + wrong);
+        if (wrong > 0) fail("used aircraft engines");
+
+        // saved with the game
+        string model = a.EngineType.Model, tail = a.TailNumber;
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("enginestest");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("enginestest");
+        var back = TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Fleet.FirstOrDefault(f => f.Airliner.TailNumber == tail);
+        if (back?.Airliner.EngineType?.Model != model || back.Airliner.Range != a.Range) fail("the engine after loading");
+        Console.WriteLine("ENGINES TEST OK");
+    }
+
     /// <summary>"vm orderahead" (TAP_YEAR=1994): a type can be ordered before its first deliveries, for delivery from then.</summary>
     static void OrderAheadTest(AirlineViewModel av)
     {
@@ -3657,6 +3735,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("suggest")) { await SuggestTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("typecheck")) { TypeCheck(av); return; }
             if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

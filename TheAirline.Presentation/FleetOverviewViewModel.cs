@@ -426,7 +426,7 @@ namespace TheAirline.Presentation
                 Details.Add("Condition: " + r.Condition + ", flown " + DistanceFormatter.Km(a.Flown) + ", " + DistanceFormatter.Km(a.Flown - a.LastServiceCheck) + " since the last service");
                 Details.Add("Range: " + DistanceFormatter.Km(a.Range) + ", cruising speed " + DistanceFormatter.Speed(a.CruisingSpeed)
                             + ", runway " + DistanceFormatter.Metres(a.MinRunwaylength));
-                if (a.EngineType != null) Details.Add("Engine: " + a.EngineType.Model);
+                if (a.EngineType != null) Details.Add("Engine: " + EngineTypes.FullName(a.EngineType) + (EngineTypes.Describe(a.EngineType) == "" ? "" : " (" + EngineTypes.Describe(a.EngineType) + ")"));
                 Details.Add("Pilots: " + r.Crew);
                 Details.Add("Value: " + r.Value);
 

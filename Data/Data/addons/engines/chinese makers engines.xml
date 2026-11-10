@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the chinese makers' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="388000" />
+    <performance maxspeed="639" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Shanghai Y-10" />
+    <produced from="1980" to="1984" />
+  </engine>
+  <engine manufacturer="CFM" model="LEAP-1C" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="783000" />
+    <performance maxspeed="834" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Comac C919" />
+    <produced from="2016" to="2199" />
+  </engine>
+  <engine manufacturer="GE" model="CF34-10A" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="576000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Comac ARJ21" />
+    <produced from="2016" to="2199" />
+  </engine>
+  <engine manufacturer="Dongan" model="WJ5A" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="56000" />
+    <performance maxspeed="423" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Xi'an Y-7" />
+    <produced from="1970" to="2006" />
+  </engine>
+  <engine manufacturer="PWC" model="PW127J" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="128000" />
+    <performance maxspeed="514" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Xi'an MA60, Xi'an MA600" />
+    <produced from="2000" to="2199" />
+  </engine>
+</engines>

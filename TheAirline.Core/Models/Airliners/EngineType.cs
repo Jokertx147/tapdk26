@@ -65,7 +65,10 @@ namespace TheAirline.Models.Airliners
         {
             Jet,
 
-            Turboprop
+            Turboprop,
+
+            /// <summary>The propeller airliners before the turboprops (the DC-3, the DC-6...).</summary>
+            Piston
         }
 
         #endregion
@@ -169,6 +172,37 @@ namespace TheAirline.Models.Airliners
         public static List<EngineType> GetEngineTypes(AirlinerType type)
         {
             return (from t in _types from at in t.Types where at.Name == type.Name select t).ToList();
+        }
+
+        /// <summary>The engine's maker and model as players know it, e.g. "Pratt & Whitney PW4090", "GE90-94B".</summary>
+        public static string FullName(EngineType e)
+        {
+            if (e == null) return "";
+            string maker = e.Manufacturer?.ShortName ?? "";
+            switch (maker)
+            {
+                case "Pratt": maker = "Pratt & Whitney"; break;
+                case "PWC": maker = "Pratt & Whitney Canada"; break;
+                case "IAE-Engines": maker = "IAE"; break;
+                case "EA": maker = "Engine Alliance"; break;
+            }
+            return maker == "" || e.Model.StartsWith(maker) ? e.Model : maker + " " + e.Model;
+        }
+
+        /// <summary>What an engine changes on its aircraft, e.g. "3% less fuel, 2% more range" ("" when nothing).</summary>
+        public static string Describe(EngineType e)
+        {
+            if (e == null) return "";
+            var parts = new List<string>();
+            Func<double, string, string, string> part = (m, less, more) =>
+            {
+                int pct = (int) Math.Round(Math.Abs(1 - m)*100);
+                return pct == 0 ? null : pct + "% " + (m < 1 ? less : more);
+            };
+            parts.Add(part(e.ConsumptationModifier, "less fuel", "more fuel"));
+            parts.Add(part(e.RangeModifier, "less range", "more range"));
+            parts.Add(part(e.RunwayModifier, "shorter runway", "longer runway"));
+            return string.Join(", ", parts.Where(p => p != null));
         }
 
         //returns the standard engine for an airliner type

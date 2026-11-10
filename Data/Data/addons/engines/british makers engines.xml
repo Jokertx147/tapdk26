@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the british makers' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Lycoming" model="ALF502R-5" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="456000" />
+    <performance maxspeed="801" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAe 146-200" />
+    <produced from="1983" to="1999" />
+  </engine>
+  <engine manufacturer="Honeywell" model="LF507" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="456000" />
+    <performance maxspeed="801" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Avro RJ 85, Avro RJ100 Avroliner" />
+    <produced from="1983" to="2003" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-10" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="207000" />
+    <performance maxspeed="433" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAe Jetstream 31" />
+    <produced from="1967" to="1975" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-14" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="942000" />
+    <performance maxspeed="482" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAe Jetstream 41" />
+    <produced from="1992" to="1997" />
+  </engine>
+  <engine manufacturer="PWC" model="PW126A" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="1066000" />
+    <performance maxspeed="437" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAe ATP" />
+    <produced from="1988" to="1996" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Spey 506" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="417000" />
+    <performance maxspeed="882" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAC One-Eleven 200" />
+    <produced from="1965" to="1969" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Spey 511" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="438000" />
+    <performance maxspeed="882" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAC One-Eleven 300, BAC One-Eleven 400" />
+    <produced from="1965" to="1979" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Spey 512" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="439000" />
+    <performance maxspeed="871" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BAC One-Eleven 475, BAC One-Eleven 500" />
+    <produced from="1967" to="1982" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Spey 512" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="453000" />
+    <performance maxspeed="950" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="BEA Trident 2E, BEA Trident 3B" />
+    <produced from="1964" to="1978" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Dart 534" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="327000" />
+    <performance maxspeed="452" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="HS.748" />
+    <produced from="1988" to="1996" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Conway 540" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="718000" />
+    <performance maxspeed="933" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Vickers VC10" />
+    <produced from="1962" to="1970" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Dart 510" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="332000" />
+    <performance maxspeed="530" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Vickers Viscount 800" />
+    <produced from="1950" to="1963" />
+  </engine>
+  <engine manufacturer="DH" model="Ghost 50" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="41000" />
+    <performance maxspeed="725" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="DH 106 Comet 1A" />
+    <produced from="1952" to="1971" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Avon 525B" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="46000" />
+    <performance maxspeed="805" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="DH 106 Comet 4C" />
+    <produced from="1958" to="1991" />
+  </engine>
+  <engine manufacturer="DH" model="Gipsy Queen 30" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="9000" />
+    <performance maxspeed="370" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="DH 114 Heron, DH 104 Dove" />
+    <produced from="1946" to="1967" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-50" >
+    <specs type="Turboprop" noise="Low" consumptionModifier="1.0" price="720000" />
+    <performance maxspeed="436" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="DHC-7-100" />
+    <produced from="1975" to="1988" />
+  </engine>
+  <engine manufacturer="Bristol" model="Centaurus 661" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="108000" />
+    <performance maxspeed="260" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Ambassador" />
+    <produced from="1947" to="1953" />
+  </engine>
+  <engine manufacturer="Bristol" model="Proteus 765" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="120000" />
+    <performance maxspeed="575" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Bristol Britannia 310" />
+    <produced from="1958" to="1960" />
+  </engine>
+  <engine manufacturer="Lycoming" model="O-540-E4C5" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="60000" />
+    <performance maxspeed="257" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Islander" />
+    <produced from="1965" to="2199" />
+  </engine>
+  <engine manufacturer="Allison" model="250-B17C" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.03" price="111000" />
+    <performance maxspeed="257" ceiling="7600" runwaylengthrequiredModifier="0.92" rangeModifier="1.0" />
+    <aircraft models="Islander" />
+    <produced from="1981" to="2199" />
+  </engine>
+  <engine manufacturer="Lycoming" model="O-540-E4C5" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="84000" />
+    <performance maxspeed="249" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Trislander" />
+    <produced from="1970" to="1980" />
+  </engine>
+</engines>

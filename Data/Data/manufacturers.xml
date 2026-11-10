@@ -50,5 +50,20 @@
   <manufacturer name="Pratt &amp; Whitney" shortname="Pratt" country="140" />
   <manufacturer name="Rolls-Royce" shortname="Rolls-Royce" country="140" />
   <manufacturer name="TurboMeca" shortname="TurboMeca" country="140" />
+  <manufacturer name="Pratt &amp; Whitney Canada" shortname="PWC" country="113" />
+  <manufacturer name="Allison Engine Company" shortname="Allison" country="122" />
+  <manufacturer name="Garrett AiResearch" shortname="Garrett" country="122" />
+  <manufacturer name="Lycoming Engines" shortname="Lycoming" country="122" />
+  <manufacturer name="Honeywell Aerospace" shortname="Honeywell" country="122" />
+  <manufacturer name="Continental Motors" shortname="Continental" country="122" />
+  <manufacturer name="Wright Aeronautical" shortname="Wright" country="122" />
+  <manufacturer name="Ivchenko-Progress" shortname="Progress" country="134" />
+  <manufacturer name="Aviadvigatel" shortname="Aviadvigatel" country="149" />
+  <manufacturer name="Kuznetsov Design Bureau" shortname="Kuznetsov" country="149" />
+  <manufacturer name="Klimov" shortname="Klimov" country="149" />
+  <manufacturer name="PowerJet" shortname="PowerJet" country="149" />
+  <manufacturer name="AECC Xi'an Engine (Dongan)" shortname="Dongan" country="148" />
+  <manufacturer name="Walter Engines" shortname="Walter" country="106" />
+  <manufacturer name="Europrop International" shortname="Europrop" country="140" />
   </manufacturers>
 

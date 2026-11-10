@@ -1,0 +1,322 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the boeing' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3C-6" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="504000" />
+    <performance maxspeed="930" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 707-120" />
+    <produced from="1958" to="1962" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3C-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="456000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 720 (707-020)" />
+    <produced from="1958" to="1962" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-1" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="606000" />
+    <performance maxspeed="975" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 707-120B, Boeing 720B (707-020B)" />
+    <produced from="1961" to="1969" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT4A" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="648000" />
+    <performance maxspeed="975" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 707-220, Boeing 707-320" />
+    <produced from="1959" to="1962" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Conway 508" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="0.96" price="810000" />
+    <performance maxspeed="972" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.03" />
+    <aircraft models="Boeing 707-320" />
+    <produced from="1960" to="1962" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-3B" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="844000" />
+    <performance maxspeed="974" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 707-320B, Boeing 707-320C" />
+    <produced from="1961" to="1979" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT3D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.01" price="949000" />
+    <performance maxspeed="974" ceiling="12000" runwaylengthrequiredModifier="0.95" rangeModifier="1.01" />
+    <aircraft models="Boeing 707-320B, Boeing 707-320C" />
+    <produced from="1965" to="1979" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="487000" />
+    <performance maxspeed="1042" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 727-100, Boeing 727-100C, Boeing 727-200" />
+    <produced from="1963" to="1972" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-9A" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="816000" />
+    <performance maxspeed="1042" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 727-200 Adv." />
+    <produced from="1973" to="1984" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-17R" >
+    <specs type="Jet" noise="High" consumptionModifier="1.02" price="952000" />
+    <performance maxspeed="1042" ceiling="12000" runwaylengthrequiredModifier="0.93" rangeModifier="1.01" />
+    <aircraft models="Boeing 727-200 Adv." />
+    <produced from="1976" to="1984" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="723000" />
+    <performance maxspeed="780" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 737-100, Boeing 737-200" />
+    <produced from="1967" to="1975" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-9A" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="789000" />
+    <performance maxspeed="780" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 737-200 Adv., Boeing 737-200C" />
+    <produced from="1971" to="1986" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT8D-17" >
+    <specs type="Jet" noise="High" consumptionModifier="1.02" price="921000" />
+    <performance maxspeed="780" ceiling="12000" runwaylengthrequiredModifier="0.93" rangeModifier="1.0" />
+    <aircraft models="Boeing 737-200 Adv., Boeing 737-200C" />
+    <produced from="1974" to="1986" />
+  </engine>
+  <engine manufacturer="CFM" model="CFM56-3" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="838000" />
+    <performance maxspeed="780" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 737-300, Boeing 737-400, Boeing 737-400M, Boeing 737-500" />
+    <produced from="1984" to="2000" />
+  </engine>
+  <engine manufacturer="CFM" model="CFM56-7B" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="909000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 737-600, Boeing 737-700, Boeing 737-700C, Boeing 737-800, Boeing 737-900, Boeing 737-900ER" />
+    <produced from="1995" to="2020" />
+  </engine>
+  <engine manufacturer="CFM" model="LEAP-1B" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="1048000" />
+    <performance maxspeed="842" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 737 MAX 7, Boeing 737 MAX 8, Boeing 737 MAX 9, Boeing 737 MAX 10" />
+    <produced from="2016" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="BR715" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="702000" />
+    <performance maxspeed="825" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 717-200" />
+    <produced from="1998" to="2006" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-7" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="2347000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-100" />
+    <produced from="1968" to="1980" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-7Q" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2465000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-200B, Boeing 747-200F" />
+    <produced from="1971" to="1991" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-50E2" >
+    <specs type="Jet" noise="High" consumptionModifier="0.98" price="3081000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 747-200B, Boeing 747-200F" />
+    <produced from="1973" to="1991" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524D4" >
+    <specs type="Jet" noise="High" consumptionModifier="0.97" price="3287000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="0.98" rangeModifier="1.02" />
+    <aircraft models="Boeing 747-200B, Boeing 747-200F" />
+    <produced from="1977" to="1991" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-7R4G2" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="3055000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-300" />
+    <produced from="1982" to="1990" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-50E2" >
+    <specs type="Jet" noise="High" consumptionModifier="0.98" price="3819000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 747-300" />
+    <produced from="1982" to="1990" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524D4" >
+    <specs type="Jet" noise="High" consumptionModifier="0.97" price="4074000" />
+    <performance maxspeed="893" ceiling="12000" runwaylengthrequiredModifier="0.98" rangeModifier="1.02" />
+    <aircraft models="Boeing 747-300" />
+    <produced from="1982" to="1990" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-7A" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2963000" />
+    <performance maxspeed="990" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747SP" />
+    <produced from="1976" to="1989" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524C" >
+    <specs type="Jet" noise="High" consumptionModifier="0.97" price="3950000" />
+    <performance maxspeed="990" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.02" />
+    <aircraft models="Boeing 747SP" />
+    <produced from="1979" to="1989" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4056" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="3894000" />
+    <performance maxspeed="913" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-400, Boeing 747-400D, Boeing 747-400F, Boeing 747-400M" />
+    <produced from="1989" to="2009" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2B1F" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.99" price="4543000" />
+    <performance maxspeed="913" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 747-400, Boeing 747-400D, Boeing 747-400F, Boeing 747-400M" />
+    <produced from="1989" to="2009" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524H" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="4868000" />
+    <performance maxspeed="913" ceiling="12000" runwaylengthrequiredModifier="0.97" rangeModifier="1.02" />
+    <aircraft models="Boeing 747-400, Boeing 747-400F, Boeing 747-400M" />
+    <produced from="1989" to="2009" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2B5F" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="4214000" />
+    <performance maxspeed="917" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-400ER, Boeing 747-400ERF" />
+    <produced from="2000" to="2009" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4062" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.99" price="4741000" />
+    <performance maxspeed="917" ceiling="12000" runwaylengthrequiredModifier="1.01" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-400ER, Boeing 747-400ERF" />
+    <produced from="2000" to="2009" />
+  </engine>
+  <engine manufacturer="GE" model="GEnx-2B67" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="5273000" />
+    <performance maxspeed="917" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 747-8F, Boeing 747-8I" />
+    <produced from="2011" to="2023" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-535E4" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="1284000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 757-200, Boeing 757-200PF" />
+    <produced from="1983" to="2005" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW2037" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.97" price="1605000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.02" rangeModifier="1.02" />
+    <aircraft models="Boeing 757-200, Boeing 757-200PF" />
+    <produced from="1984" to="2005" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW2040" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.98" price="1765000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="0.94" rangeModifier="1.02" />
+    <aircraft models="Boeing 757-200, Boeing 757-200PF" />
+    <produced from="1987" to="2005" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-535E4B" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="1580000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 757-300" />
+    <produced from="1999" to="2004" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW2043" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.97" price="1975000" />
+    <performance maxspeed="850" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.02" />
+    <aircraft models="Boeing 757-300" />
+    <produced from="1999" to="2004" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="JT9D-7R4D" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2448000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 767-200, Boeing 767-200ER, Boeing 767-300" />
+    <produced from="1982" to="1990" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80A" >
+    <specs type="Jet" noise="High" consumptionModifier="0.99" price="2652000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 767-200, Boeing 767-200ER, Boeing 767-300" />
+    <produced from="1982" to="1990" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4060" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.96" price="3162000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.03" />
+    <aircraft models="Boeing 767-200ER, Boeing 767-300, Boeing 767-300ER" />
+    <produced from="1986" to="2014" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2B6" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.96" price="3264000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="0.97" rangeModifier="1.03" />
+    <aircraft models="Boeing 767-200ER, Boeing 767-300, Boeing 767-300ER" />
+    <produced from="1986" to="2014" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524H" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.97" price="3366000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="0.98" rangeModifier="1.03" />
+    <aircraft models="Boeing 767-300ER" />
+    <produced from="1990" to="2014" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2B7F" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="2834000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 767-300F" />
+    <produced from="1995" to="2027" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4062" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.99" price="3070000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 767-300F" />
+    <produced from="1995" to="2027" />
+  </engine>
+  <engine manufacturer="GE" model="CF6-80C2B8F" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="3069000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 767-400ER" />
+    <produced from="2000" to="2020" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4062" >
+    <specs type="Jet" noise="Medium" consumptionModifier="0.99" price="3325000" />
+    <performance maxspeed="851" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 767-400ER" />
+    <produced from="2000" to="2020" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW4090" >
+    <specs type="Jet" noise="Medium" consumptionModifier="1.0" price="3850000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 777-200, Boeing 777-200ER, Boeing 777-300" />
+    <produced from="1995" to="2019" />
+  </engine>
+  <engine manufacturer="GE" model="GE90-94B" >
+    <specs type="Jet" noise="Low" consumptionModifier="0.97" price="5133000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.02" />
+    <aircraft models="Boeing 777-200, Boeing 777-200ER, Boeing 777-300" />
+    <produced from="1995" to="2019" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Trent 892" >
+    <specs type="Jet" noise="Low" consumptionModifier="0.98" price="4813000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="0.97" rangeModifier="1.02" />
+    <aircraft models="Boeing 777-200, Boeing 777-200ER, Boeing 777-300" />
+    <produced from="1996" to="2019" />
+  </engine>
+  <engine manufacturer="GE" model="GE90-115B" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="4451000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 777-200LR, Boeing 777F, Boeing 777-300ER" />
+    <produced from="2004" to="2027" />
+  </engine>
+  <engine manufacturer="GE" model="GE9X" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="5294000" />
+    <performance maxspeed="905" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 777-8X, Boeing 777-9X" />
+    <produced from="2030" to="2199" />
+  </engine>
+  <engine manufacturer="GE" model="GEnx-1B" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="3159000" />
+    <performance maxspeed="913" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Boeing 787-8, Boeing 787-9, Boeing 787-10" />
+    <produced from="2011" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Trent 1000" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="0.99" price="3554000" />
+    <performance maxspeed="913" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Boeing 787-8, Boeing 787-9, Boeing 787-10" />
+    <produced from="2011" to="2199" />
+  </engine>
+</engines>

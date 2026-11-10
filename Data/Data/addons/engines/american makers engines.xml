@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the american makers' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="Rolls-Royce" model="RB211-22B" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="1995000" />
+    <performance maxspeed="963" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Lockeed L-1011-1" />
+    <produced from="1970" to="1983" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524B" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2680000" />
+    <performance maxspeed="954" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Lockeed L-1011-200" />
+    <produced from="1973" to="1983" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="RB211-524B4" >
+    <specs type="Jet" noise="High" consumptionModifier="1.0" price="2226000" />
+    <performance maxspeed="972" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Lockeed L-1011-500" />
+    <produced from="1979" to="1983" />
+  </engine>
+  <engine manufacturer="Allison" model="501-D13" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="240000" />
+    <performance maxspeed="721" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Lockeed L-188A" />
+    <produced from="1959" to="1961" />
+  </engine>
+  <engine manufacturer="Allison" model="501-D22A" >
+    <specs type="Turboprop" noise="High" consumptionModifier="1.0" price="2102000" />
+    <performance maxspeed="570" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Lockheed L‑100‑30" />
+    <produced from="1964" to="1992" />
+  </engine>
+  <engine manufacturer="GE" model="CJ805-3" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="480000" />
+    <performance maxspeed="990" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Convair 880" />
+    <produced from="1959" to="1962" />
+  </engine>
+  <engine manufacturer="GE" model="CJ805-23B" >
+    <specs type="Jet" noise="VeryHigh" consumptionModifier="1.0" price="647000" />
+    <performance maxspeed="1015" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Convair 990, Convair 990A" />
+    <produced from="1961" to="1963" />
+  </engine>
+  <engine manufacturer="Garrett" model="TPE331-10" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="30000" />
+    <performance maxspeed="556" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fairchild Swearingen Merlin, Fairchild Swearingen Merlin IV C, Fairchild Swearingen Metroliner" />
+    <produced from="1965" to="2001" />
+  </engine>
+  <engine manufacturer="PWC" model="PW306B" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="235000" />
+    <performance maxspeed="750" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Fairchild-Dornier 328JET" />
+    <produced from="1999" to="2015" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-65B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="21000" />
+    <performance maxspeed="495" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Beechcraft 1900C" />
+    <produced from="1984" to="1992" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-67D" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="26000" />
+    <performance maxspeed="530" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Beechcraft 1900D, Raytheon 1900D" />
+    <produced from="1991" to="2002" />
+  </engine>
+  <engine manufacturer="Lycoming" model="IGSO-540" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="73000" />
+    <performance maxspeed="294" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Beechcraft Queen Air B80" />
+    <produced from="1960" to="1978" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-42" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="85000" />
+    <performance maxspeed="536" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Beechcraft King Air B200" />
+    <produced from="1972" to="2025" />
+  </engine>
+  <engine manufacturer="Continental" model="TSIO-520-VB" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="26000" />
+    <performance maxspeed="230" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna 402C" />
+    <produced from="1978" to="1985" />
+  </engine>
+  <engine manufacturer="Continental" model="IO-520-F" >
+    <specs type="Piston" noise="High" consumptionModifier="1.0" price="9000" />
+    <performance maxspeed="263" ceiling="6000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna 206" />
+    <produced from="1962" to="2099" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6A-114A" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="31000" />
+    <performance maxspeed="317" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna 208B, Cessna 208B Super Cargomaster" />
+    <produced from="1984" to="2099" />
+  </engine>
+  <engine manufacturer="PWC" model="PW545A" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="225000" />
+    <performance maxspeed="815" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna 560XL" />
+    <produced from="2005" to="2023" />
+  </engine>
+  <engine manufacturer="PWC" model="PW306D" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="305000" />
+    <performance maxspeed="848" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna 680" />
+    <produced from="2004" to="2038" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="AE 3007C" >
+    <specs type="Jet" noise="Low" consumptionModifier="1.0" price="386000" />
+    <performance maxspeed="972" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Cessna Citation X" />
+    <produced from="1993" to="2019" />
+  </engine>
+  <engine manufacturer="GE" model="CT7-8A" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="495000" />
+    <performance maxspeed="280" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Sikorsky S-92" />
+    <produced from="1998" to="2028" />
+  </engine>
+  <engine manufacturer="TurboMeca" model="Arriel 2S1" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="1.0" price="207000" />
+    <performance maxspeed="287" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Sikorsky S-76" />
+    <produced from="1977" to="2018" />
+  </engine>
+  <engine manufacturer="PWC" model="PT6B-36B" >
+    <specs type="Turboprop" noise="Medium" consumptionModifier="0.99" price="224000" />
+    <performance maxspeed="287" ceiling="7600" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Sikorsky S-76" />
+    <produced from="1977" to="2018" />
+  </engine>
+</engines>

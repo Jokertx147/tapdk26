@@ -311,8 +311,10 @@ namespace TheAirline.Presentation
                                       e => new EngineChoice
                                       {
                                           Engine = e,
-                                          Text = e.Model + (e == standard ? " (standard)" : " (+" + Convert.ToString(
+                                          Text = EngineTypes.FullName(e)
+                                                 + (e == standard ? " (standard)" : " (+" + Convert.ToString(
                                                      new ValueCurrencyFormatter().Convert((double) (e.Price - (standard?.Price ?? 0)))) + ")")
+                                                 + (EngineTypes.Describe(e) == "" ? "" : ": " + EngineTypes.Describe(e))
                                       })
                                   .ToList();
             Engines = list;

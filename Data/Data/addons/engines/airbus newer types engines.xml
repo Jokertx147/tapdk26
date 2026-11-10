@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<engines>
+<!-- generated: the engines of the airbus newer types' aircraft; the cheapest engine of a type keeps its own figures -->
+  <engine manufacturer="CFM" model="LEAP-1A" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="1704000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Airbus A321XLR" />
+    <produced from="2024" to="2199" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW1100G" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="0.99" price="1988000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.01" />
+    <aircraft models="Airbus A321XLR" />
+    <produced from="2024" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Trent 7000" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="3840000" />
+    <performance maxspeed="871" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Airbus A330-800neo, Airbus A330-900neo" />
+    <produced from="2018" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Trent XWB-84" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="4267000" />
+    <performance maxspeed="903" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Airbus A350-900R" />
+    <produced from="2016" to="2199" />
+  </engine>
+  <engine manufacturer="Rolls-Royce" model="Trent XWB-97" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="4380000" />
+    <performance maxspeed="903" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Airbus A350F" />
+    <produced from="2027" to="2199" />
+  </engine>
+  <engine manufacturer="Pratt &amp; Whitney" model="PW1500G" >
+    <specs type="Jet" noise="VeryLow" consumptionModifier="1.0" price="972000" />
+    <performance maxspeed="828" ceiling="12000" runwaylengthrequiredModifier="1.0" rangeModifier="1.0" />
+    <aircraft models="Airbus A220-100, Airbus A220-300" />
+    <produced from="2018" to="2199" />
+  </engine>
+</engines>
