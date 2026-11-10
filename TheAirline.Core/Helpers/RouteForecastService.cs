@@ -82,13 +82,44 @@ namespace TheAirline.Helpers
             return score;
         }
 
-        // the airline's reputation share at an airport as its flights will get it: where it flies already, today's; at
-        // an airport it doesn't serve yet (its reputation there rises once it flies there), its average where it does
-        private static double ReputationFor(Airline airline, Airport airport)
+        // the airline's reputation share at an airport as the route's flights will get it: for a route it flies already,
+        // today's; for a new route, with that route counted (a route adds 7 to the airline's score there and 6 for each
+        // point of its service, and the score is ranked against the other airlines'). Today's alone, or the airline's
+        // average elsewhere, left a new route's forecast at the 75% floor where the flights soon got 100%.
+        private static double ReputationFor(Airline airline, Airport airport, bool newRoute)
         {
-            double here = PassengerHelpers.ReputationShare(airport, airline);
-            if (RouteIndex.At(airport).Any(r => r.Airline == airline && r.HasAirliner)) return here;
-            return Math.Max(here, UsualReputationOf(airline));
+            if (!newRoute) return PassengerHelpers.ReputationShare(airport, airline);
+            return PassengerHelpers.ReputationShareWith(airport, airline, 7 + 6*NewRouteService(airline));
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Tuple<DateTime, double>> ServiceCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Tuple<DateTime, double>>();
+
+        /// <summary>
+        ///     The economy service level a new route of the airline gets: its routes' usual, or for an airline without
+        ///     routes the planner's standard facilities (once a game day).
+        /// </summary>
+        public static double NewRouteService(Airline airline)
+        {
+            DateTime today = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, double> cached;
+            if (ServiceCache.TryGetValue(airline, out cached) && cached.Item1 == today) return cached.Item2;
+            var levels = airline.Routes.ToArray().OfType<PassengerRoute>().Where(r => r.HasAirliner && r.GetRouteAirlinerClass(AirlinerClass.ClassType.EconomyClass) != null)
+                                .Select(r => r.GetServiceLevel(AirlinerClass.ClassType.EconomyClass)).ToList();
+            double v;
+            if (levels.Count > 0) v = levels.Average();
+            else
+            {
+                int year = today.Year;
+                v = 0;
+                foreach (RouteFacility.FacilityType t in Enum.GetValues(typeof(RouteFacility.FacilityType)))
+                {
+                    if (year < (int) t || RouteFacilities.IsDiscontinued(t, year)) continue;
+                    v += RouteCreator.PickFacility(airline, t, ServiceTier.Standard)?.ServiceLevel ?? 0;
+                }
+            }
+            ServiceCache.AddOrUpdate(airline, Tuple.Create(today, v));
+            return v;
         }
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airline, Tuple<DateTime, double>> ReputationCache =
@@ -208,13 +239,15 @@ namespace TheAirline.Helpers
             List<Route> pairRoutes = null;
             if (flown != null) pairRoutes = others.Concat(new[] {(Route) flown}).ToList();
             p.Extras = ExtrasPerPassenger(flown);
+            bool newRoute = exclude == null && !Others(a, b).Any(r => r.Airline == airline);
 
             foreach (var dir in new[] {Tuple.Create(a, b), Tuple.Create(b, a)})
             {
                 Airport from = dir.Item1, to = dir.Item2;
                 double factors = PassengerHelpers.SeasonFactorFor(to)*PassengerHelpers.HolidayFactorFor(to)*PassengerHelpers.HolidayFactorFor(from)
                                  *game.Difficulty.PassengersLevel*score/5*FocusAndHub(airline, from, to, p.Km);
-                double reputation = ReputationFor(airline, from);
+                // (a new route: one of the airline's own on the pair counts in its reputation already)
+                double reputation = ReputationFor(airline, from, newRoute);
                 foreach (AirlinerClass c in f.Airliner.Classes)
                 {
                     // as for a flight: the direct demand, passengers connecting to and from the airline's other routes

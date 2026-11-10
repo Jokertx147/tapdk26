@@ -957,6 +957,93 @@ static class VmTest
         Console.WriteLine("STATS TEST OK");
     }
 
+    /// <summary>"vm reputation": a new route's forecast counts the reputation the route itself brings at both ends.</summary>
+    static async Task ReputationTest(AirlineViewModel av)
+    {
+        Console.WriteLine("REPUTATION TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var mk = av.Market;
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(40).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        mk.BuyCommand.Execute(null);
+        av.Refresh();
+        foreach (var f in h.Fleet) if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+        var sv = av.Suggestions;
+        await sv.Reload();
+        var top = sv.Aircraft.First(a => a.Suggestions.Count > 0).Suggestions[0];
+        double add = 7 + 6 * TheAirline.Helpers.RouteForecastService.NewRouteService(h);
+        var ends = new[] { top.From, top.To };
+        var before = ends.Select(ap => TheAirline.Helpers.PassengerHelpers.ReputationShare(ap, h)).ToArray();
+        var predicted = ends.Select(ap => TheAirline.Helpers.PassengerHelpers.ReputationShareWith(ap, h, add)).ToArray();
+        // the forecast against one that leaves the route's own reputation out (as the forecast did before)
+        var reference = top.Airliner;
+        if (!sv.Open(top)) fail("couldn't open " + top.Name + ": " + sv.Status);
+        var route = h.Routes.First(r => (r.Destination1 == top.From && r.Destination2 == top.To) || (r.Destination1 == top.To && r.Destination2 == top.From));
+        double service = ((TheAirline.Models.Routes.PassengerRoute)route).GetServiceLevel(TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+        TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var after = ends.Select(ap => TheAirline.Helpers.PassengerHelpers.ReputationShare(ap, h)).ToArray();
+        for (int i = 0; i < 2; i++)
+            Console.WriteLine("  " + ends[i].Profile.IATACode + ": before " + before[i].ToString("0.000") + ", forecast with the route " + predicted[i].ToString("0.000") + ", the day after opening " + after[i].ToString("0.000"));
+        Console.WriteLine("  the route's service " + service + ", the forecast assumed " + TheAirline.Helpers.RouteForecastService.NewRouteService(h) + "; forecast " + (top.Forecast.Load * 100).ToString("0.0") + "% full");
+        for (int i = 0; i < 2; i++) if (Math.Abs(after[i] - predicted[i]) > 0.03) fail(ends[i].Profile.IATACode + " reputation: forecast " + predicted[i] + ", got " + after[i]);
+        // an airline's own route on the pair is counted once: a forecast for the flying route doesn't add it again
+        var again = TheAirline.Helpers.RouteForecastService.ForecastEach(h, route.Destination1, route.Destination2, top.Airliner, new[] { top.Forecast.RoundTrips }, null)[0];
+        var flying = TheAirline.Helpers.RouteForecastService.ForecastEach(h, route.Destination1, route.Destination2, top.Airliner, new[] { top.Forecast.RoundTrips }, route)[0];
+        Console.WriteLine("  forecast now, as a new route " + (again.Load * 100).ToString("0.0") + "%, as the flying route " + (flying.Load * 100).ToString("0.0") + "%");
+        if (again.Load > flying.Load + 0.03) fail("the airline's own route counted twice");
+        Console.WriteLine("REPUTATION TEST OK");
+    }
+
+    /// <summary>"vm gapprobe": a suggested route's forecast against its flights, direction by direction (what the forecast assumed, what the flights got).</summary>
+    static async Task GapProbe(AirlineViewModel av)
+    {
+        Console.WriteLine("GAP PROBE");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var mk = av.Market;
+        int skip = int.TryParse(Environment.GetEnvironmentVariable("TAP_SKIP"), out var sk) ? sk : 0;
+        foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(skip).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
+        mk.BuyCommand.Execute(null);
+        av.Refresh();
+        foreach (var f in h.Fleet) if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+        var sv = av.Suggestions;
+        await sv.Reload();
+        var top = sv.Aircraft.First(a => a.Suggestions.Count > 0).Suggestions[0];
+        Console.WriteLine("  " + top.Airliner.Airliner.Type.Name + " (" + top.Airliner.Airliner.GetTotalSeatCapacity() + " seats) on " + top.Name + ": forecast " + top.Forecast.RoundTrips + " trips, " + (top.Forecast.Load * 100).ToString("0.0") + "% full, " + top.Forecast.PassengersPerFlight.ToString("0.0") + " pax a flight");
+        foreach (var ap in new[] { top.From, top.To })
+            Console.WriteLine("  before: reputation share at " + ap.Profile.IATACode + " " + TheAirline.Helpers.PassengerHelpers.ReputationShare(ap, h).ToString("0.000") + ", usual " + TheAirline.Helpers.RouteForecastService.UsualReputationOf(h).ToString("0.000"));
+        foreach (var ap in new[] { top.From, top.To })
+        {
+            var sc = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Select(a => ap.GetAirlineReputation(a)).ToList();
+            Console.WriteLine("  before, at " + ap.Profile.IATACode + ": " + sc.Count + " airlines, mine " + ap.GetAirlineReputation(h).ToString("0") + ", best " + sc.Max().ToString("0") + ", lowest " + sc.Min().ToString("0")
+                + "; share with the route " + TheAirline.Helpers.PassengerHelpers.ReputationShareWith(ap, h, 7 + 6 * TheAirline.Helpers.RouteForecastService.NewRouteService(h)).ToString("0.000"));
+        }
+        sv.Open(top);
+        var route = h.Routes.First(r => (r.Destination1 == top.From && r.Destination2 == top.To) || (r.Destination1 == top.To && r.Destination2 == top.From));
+        var traces = new System.Collections.Concurrent.ConcurrentBag<TheAirline.Helpers.PassengerHelpers.FlightPaxTrace>();
+        TheAirline.Helpers.PassengerHelpers.FlightTrace = t => { if (t.Route == route) traces.Add(t); };
+        for (int i = 0; i < 30; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        TheAirline.Helpers.PassengerHelpers.FlightTrace = null;
+        foreach (var ap in new[] { top.From, top.To })
+        {
+            var ts = traces.Where(t => t.From == ap).ToList();
+            if (ts.Count == 0) continue;
+            Console.WriteLine("  from " + ap.Profile.IATACode + ": " + ts.Count + " class-flights, seats " + ts.Average(t => t.Seats).ToString("0") + ", pax " + ts.Average(t => t.Passengers).ToString("0.0")
+                + " | demand a day " + ts.Average(t => t.DailyDemand).ToString("0") + " (direct " + ts.Average(t => t.Direct).ToString("0") + ", connecting " + ts.Average(t => t.Connecting).ToString("0") + ", nearby " + ts.Average(t => t.Nearby).ToString("0") + ")"
+                + ", flights a day " + ts.Average(t => t.FlightsPerDay).ToString("0.0") + ", per flight " + ts.Average(t => t.PerFlight).ToString("0") + ", capacity " + ts.Average(t => t.TotalCapacity).ToString("0")
+                + " | capacity% " + ts.Average(t => t.CapacityPercent).ToString("0.000") + ", competition " + ts.Average(t => t.Competition).ToString("0.000") + ", reputation " + ts.Average(t => t.Reputation).ToString("0.000"));
+            Console.WriteLine("    reputation share now at " + ap.Profile.IATACode + ": " + TheAirline.Helpers.PassengerHelpers.ReputationShare(ap, h).ToString("0.000"));
+        }
+        Console.WriteLine("  the route's economy service " + ((TheAirline.Models.Routes.PassengerRoute)route).GetServiceLevel(TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass) + ": " + string.Join(", ", ((TheAirline.Models.Routes.PassengerRoute)route).GetRouteAirlinerClass(TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass).GetFacilities().Select(f => f.Type + " " + f.Name + " " + f.ServiceLevel)) + "; the forecast assumed " + TheAirline.Helpers.RouteForecastService.NewRouteService(h));
+        foreach (var ap in new[] { top.From, top.To })
+            Console.WriteLine("  reputation score at " + ap.Profile.IATACode + ": mine " + ap.GetAirlineReputation(h).ToString("0") + ", the best " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a != h).Max(a => ap.GetAirlineReputation(a)).ToString("0") + ", the lowest " + TheAirline.Models.Airlines.Airlines.GetAllAirlines().Min(a => ap.GetAirlineReputation(a)).ToString("0"));
+        // the forecast made now, for the route as it flies
+        var again = TheAirline.Helpers.RouteForecastService.Best(h, route.Destination1, route.Destination2, top.Airliner, 8, out var all, route);
+        Console.WriteLine("  flew " + (route.FillingDegree * 100).ToString("0.0") + "% full; a forecast made now for the flying route: " + (again.Load * 100).ToString("0.0") + "% at " + again.RoundTrips + " trips");
+        Console.WriteLine("GAP PROBE DONE");
+    }
+
     /// <summary>"vm statsprobe": the game's yearly statistics against the flights the monthly report recorded (TAP_DAYS, default 20).</summary>
     static async Task StatsProbe(AirlineViewModel av)
     {
@@ -1814,7 +1901,10 @@ static class VmTest
             double fares = TheAirline.Helpers.AIRouteChoice.FareFactor(a);
             var fc = TheAirline.Helpers.RouteForecastService.ForecastEach(a, r.Destination1, r.Destination2, f, new[] { n, Math.Max(1, n - 1) }, null, fares);
             // the parts: reputation share at both ends, the usual score, rivals
-            made[r] = Tuple.Create(fc[0], fc[1], n, new double[] { TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination1, a), TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination2, a), TheAirline.Helpers.RouteForecastService.UsualScoreOf(a), fares });
+            // (the reputation the forecast now predicts for a new route: today's scores, cached before the route was made, with it added)
+            double add = 7 + 6 * TheAirline.Helpers.RouteForecastService.NewRouteService(a);
+            made[r] = Tuple.Create(fc[0], fc[1], n, new double[] { TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination1, a), TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination2, a), TheAirline.Helpers.RouteForecastService.UsualScoreOf(a), fares,
+                (TheAirline.Helpers.PassengerHelpers.ReputationShareWith(r.Destination1, a, add) + TheAirline.Helpers.PassengerHelpers.ReputationShareWith(r.Destination2, a, add)) / 2 });
         };
         int days = int.Parse(Environment.GetEnvironmentVariable("TAP_DAYS") ?? "20");
         for (int i = 0; i < days; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
@@ -1827,7 +1917,7 @@ static class VmTest
         var last = g.GameTime.AddMonths(-1);
         int dim = DateTime.DaysInMonth(last.Year, last.Month);
         double fl = 0, rl = 0, fp = 0, rp = 0, ft = 0, rt = 0; int n2 = 0;
-        double sScore = 0, sRep = 0, sRealScore = 0, sRealRep = 0, sFare = 0, sRealFare = 0;
+        double sScore = 0, sRep = 0, sRealScore = 0, sRealRep = 0, sFare = 0, sRealFare = 0, sPred = 0;
         foreach (var kv in made)
         {
             var r = kv.Key as TheAirline.Models.Routes.PassengerRoute;
@@ -1841,6 +1931,7 @@ static class VmTest
             fl += fc.Load; rl += realLoad; fp += fc.ProfitPerDay + own; rp += realProfit; ft += fc.RevenuePerFlight * fc.RoundTrips * 2; rt += realTickets; n2++;
             sScore += kv.Value.Item4[2]; sRealScore += TheAirline.Helpers.PassengerHelpers.RouteScoreFor(r);
             sRep += (kv.Value.Item4[0] + kv.Value.Item4[1]) / 2;
+            sPred += kv.Value.Item4[4];
             sRealRep += (TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination1, r.Airline) + TheAirline.Helpers.PassengerHelpers.ReputationShare(r.Destination2, r.Airline)) / 2;
             double market = TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
             sFare += kv.Value.Item4[3]; sRealFare += market > 0 ? TheAirline.Helpers.AIPricingService.EconomyFare(r) / market : 1;
@@ -1849,8 +1940,8 @@ static class VmTest
                 r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode, kv.Value.Item3, fc.Load * 100, realLoad * 100, now.Load * 100, fc.ProfitPerDay + own, realProfit, now.ProfitPerDay + own, kv.Value.Item2.ProfitPerDay + own));
         }
         int k = Math.Max(1, n2);
-        Console.WriteLine(string.Format("NEWPROBE {0} new routes, {1:MMM yyyy}: load at creation {2:0}% real {3:0}% | tickets a day at creation {4:N0} real {5:N0} | profit a day (before ownership) at creation {6:N0} real {7:N0} | score at creation {8:0.00} real {9:0.00} | reputation share {10:0.00} real {11:0.00} | fare level {12:0.00} real {13:0.00}",
-            n2, last, 100 * fl / k, 100 * rl / k, ft / k, rt / k, fp / k, rp / k, sScore / k, sRealScore / k, sRep / k, sRealRep / k, sFare / k, sRealFare / k));
+        Console.WriteLine(string.Format("NEWPROBE {0} new routes, {1:MMM yyyy}: load at creation {2:0}% real {3:0}% | tickets a day at creation {4:N0} real {5:N0} | profit a day (before ownership) at creation {6:N0} real {7:N0} | score at creation {8:0.00} real {9:0.00} | reputation share {10:0.00} (predicted with the route {14:0.00}) real {11:0.00} | fare level {12:0.00} real {13:0.00}",
+            n2, last, 100 * fl / k, 100 * rl / k, ft / k, rt / k, fp / k, rp / k, sScore / k, sRealScore / k, sRep / k, sRealRep / k, sFare / k, sRealFare / k, sPred / k));
     }
 
     // the world map follows one aircraft: picked in the list or clicked, kept through refreshes, stopped when it goes
@@ -3874,6 +3965,8 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("statsprobe")) { await StatsProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("gapprobe")) { await GapProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("reputation")) { await ReputationTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("stats")) { await StatsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }

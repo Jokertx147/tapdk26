@@ -3228,7 +3228,7 @@ namespace TheAirline.Helpers
 
             FlightTrace?.Invoke(new FlightPaxTrace
             {
-                Airline = airliner.Airliner.Airline, Route = currentRoute, Type = type, BaseDemand = traceBase, Direct = demand, Connecting = connecting, Nearby = nearby, DailyDemand = traceDaily,
+                Airline = airliner.Airliner.Airline, Route = currentRoute, From = airportCurrent, Type = type, BaseDemand = traceBase, Direct = demand, Connecting = connecting, Nearby = nearby, DailyDemand = traceDaily,
                 FlightsPerDay = flightsPerDay, PerFlight = passengerDemand, TotalCapacity = totalCapacity, CapacityPercent = capacityPercent,
                 Competition = routeRatioPercent, Reputation = reputationPercent, Score = routeScoreFactor,
                 Seats = airliner.Airliner.GetAirlinerClass(type).SeatingCapacity, Passengers = pax
@@ -3242,6 +3242,7 @@ namespace TheAirline.Helpers
         {
             public Airline Airline;
             public Route Route;
+            public Airport From;
             public AirlinerClass.ClassType Type;
             public double BaseDemand, Direct, Connecting, Nearby, DailyDemand, FlightsPerDay, PerFlight, TotalCapacity, CapacityPercent, Competition, Reputation, Score;
             public int Seats, Passengers;
@@ -3604,6 +3605,36 @@ namespace TheAirline.Helpers
         public static double ReputationShare(Airport airport, Airline airline)
         {
             return Math.Max(75, ReputationScale(airport, airline))/100;
+        }
+
+        // every airline's reputation score at an airport (before scaling), worked out once a game day per airport
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, Dictionary<Airline, double>>> ReputationScoreCache =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Airport, Tuple<DateTime, Dictionary<Airline, double>>>();
+
+        /// <summary>
+        ///     The share the airline's reputation at the airport would give with `added` more to its score (a new route there
+        ///     adds 7 and 6 for each point of its service), against every airline's reputation there today (0.75 to 1).
+        /// </summary>
+        public static double ReputationShareWith(Airport airport, Airline airline, double added)
+        {
+            DateTime day = GameObject.GetInstance().GameTime.Date;
+            Tuple<DateTime, Dictionary<Airline, double>> cached;
+            Dictionary<Airline, double> scores;
+            if (ReputationScoreCache.TryGetValue(airport, out cached) && cached.Item1 == day) scores = cached.Item2;
+            else
+            {
+                scores = new Dictionary<Airline, double>();
+                foreach (Airline a in Airlines.GetAllAirlines())
+                {
+                    if (!scores.ContainsKey(a)) scores.Add(a, airport.GetAirlineReputation(a));
+                }
+                ReputationScoreCache.AddOrUpdate(airport, Tuple.Create(day, scores));
+            }
+            var with = new Dictionary<Airline, double>(scores);
+            double mine;
+            if (!with.TryGetValue(airline, out mine)) mine = airport.GetAirlineReputation(airline);
+            with[airline] = mine + added;
+            return Math.Max(75, StatisticsHelpers.GetRatingScale(with)[airline])/100;
         }
 
         // a route's service score (aircraft age, meals, seats, fare and so on), worked out once a game day per route
