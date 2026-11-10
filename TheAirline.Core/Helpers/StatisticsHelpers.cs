@@ -84,7 +84,7 @@ namespace TheAirline.Helpers
             var aiOnTime = new Dictionary<Airline, double>();
             foreach (Airline airline in Airlines.GetAirlines(a => !a.IsHuman))
             {
-                double otp = airline.Statistics.GetStatisticsValue(StatisticsTypes.GetStatisticsType("On-Time%"));
+                double otp = FlightStatistics.OnTimePercent(airline);
                 aiOnTime.Add(airline, otp);
             }
             return aiOnTime;
@@ -235,9 +235,7 @@ namespace TheAirline.Helpers
 
         public static double GetHumanOnTime()
         {
-            return
-                GameObject.GetInstance()
-                          .HumanAirline.Statistics.GetStatisticsValue(StatisticsTypes.GetStatisticsType("On-Time%"));
+            return FlightStatistics.OnTimePercent(GameObject.GetInstance().HumanAirline);
         }
 
         public static double GetHumanOnTimeYear(int year)
@@ -248,7 +246,7 @@ namespace TheAirline.Helpers
 
         public static double GetOnTimePercent(Airline airline)
         {
-            return airline.Statistics.GetStatisticsValue(StatisticsTypes.GetStatisticsType("On-Time%"));
+            return FlightStatistics.OnTimePercent(airline);
         }
 
         public static Dictionary<Airline, double> GetPPDdifference()
@@ -333,7 +331,7 @@ namespace TheAirline.Helpers
             var totalOnTime = new Dictionary<Airline, double>();
             foreach (Airline airline in Airlines.GetAllAirlines())
             {
-                double otp = airline.Statistics.GetStatisticsValue(StatisticsTypes.GetStatisticsType("On-Time%"));
+                double otp = FlightStatistics.OnTimePercent(airline);
                 totalOnTime.Add(airline, otp);
             }
             return totalOnTime;

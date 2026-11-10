@@ -301,14 +301,17 @@ namespace TheAirline.Helpers
                                           airliner.Airliner.Airline.Statistics.GetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cancellations")));
             airliner.Airliner.Airline.Statistics.SetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cancellation%"), cancellationPercent*100);
 
-            bool isOnTime = landingTime.Subtract(airliner.CurrentFlight.GetScheduledLandingTime()).Minutes < 15;
+            // (the whole delay: .Minutes alone counted a flight an hour and five minutes late as on time)
+            bool isOnTime = landingTime.Subtract(airliner.CurrentFlight.GetScheduledLandingTime()).TotalMinutes <= FlightStatistics.OnTimeMinutes;
 
             if (isOnTime)
                 airliner.Airliner.Airline.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("On-Time"), 1);
 
             airliner.Airliner.Airline.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Arrivals"), 1);
             dest.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, airliner.Airliner.Airline, StatisticsTypes.GetStatisticsType("Arrivals"), 1);
-            airliner.CurrentFlight.Entry.TimeTable.Route.Statistics.AddStatisticsValue(StatisticsTypes.GetStatisticsType("Cargo"), 1);
+            // the route's arrivals (each landing used to be added to its cargo instead): by cabin class for passengers, below
+            if (airliner.CurrentFlight.IsCargoFlight())
+                airliner.CurrentFlight.Entry.TimeTable.Route.Statistics.AddStatisticsValue(StatisticsTypes.GetStatisticsType("Arrivals"), 1);
             airliner.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Arrivals"), 1);
 
             double onTimePercent = airliner.Airliner.Airline.Statistics.GetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("On-Time"))/
@@ -341,6 +344,9 @@ namespace TheAirline.Helpers
 
                 airliner.Airliner.Airline.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cargo"), airliner.CurrentFlight.Cargo);
                 airliner.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cargo"), airliner.CurrentFlight.Cargo);
+                // the aircraft's cargo per flight with this flight in it
+                airliner.Statistics.SetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cargo%"),
+                                                       (int) (airliner.Statistics.GetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Cargo"))/airlinerDepartures));
                 dest.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, airliner.Airliner.Airline, StatisticsTypes.GetStatisticsType("Cargo"), (int) airliner.CurrentFlight.Cargo);
 
                 double destCargo = dest.Statistics.GetStatisticsValue(GameObject.GetInstance().GameTime.Year, airliner.Airliner.Airline, StatisticsTypes.GetStatisticsType("Cargo"));
@@ -358,6 +364,7 @@ namespace TheAirline.Helpers
                 foreach (FlightAirlinerClass fac in airliner.CurrentFlight.Classes)
                 {
                     RouteAirlinerClass raClass = ((PassengerRoute) airliner.CurrentFlight.Entry.TimeTable.Route).GetRouteAirlinerClass(fac.AirlinerClass.Type);
+                    airliner.CurrentFlight.Entry.TimeTable.Route.Statistics.AddStatisticsValue(raClass, StatisticsTypes.GetStatisticsType("Arrivals"), 1);
 
                     airliner.CurrentFlight.Entry.TimeTable.Route.Statistics.AddStatisticsValue(raClass, StatisticsTypes.GetStatisticsType("Passengers"),
                                                                                                airliner.CurrentFlight.GetFlightAirlinerClass(raClass.Type).Passengers);
@@ -377,6 +384,11 @@ namespace TheAirline.Helpers
                 airliner.Airliner.Airline.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Passengers"),
                                                                         airliner.CurrentFlight.GetTotalPassengers());
                 airliner.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Passengers"), airliner.CurrentFlight.GetTotalPassengers());
+                // the aircraft's passengers per flight with this flight in it
+                airliner.Statistics.SetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Passengers%"),
+                                                       (int) (airliner.Statistics.GetStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Passengers"))/airlinerDepartures));
+                // the seats flown, for the share of them filled
+                airliner.Airliner.Airline.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, StatisticsTypes.GetStatisticsType("Capacity"), airliner.Airliner.GetTotalSeatCapacity());
                 dest.Statistics.AddStatisticsValue(GameObject.GetInstance().GameTime.Year, airliner.Airliner.Airline, StatisticsTypes.GetStatisticsType("Passengers"),
                                                    airliner.CurrentFlight.GetTotalPassengers());
 

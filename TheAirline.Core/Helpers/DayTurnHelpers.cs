@@ -237,7 +237,8 @@ namespace TheAirline.Helpers
                         airliner.CurrentFlight.Cargo = PassengerHelpers.GetFlightCargo(airliner);
                     }
                 }
-                //SetTakeoffStatistics(airliner);
+                // departures: the airline, the aircraft, the airport it leaves and the route
+                FlightStatistics.TakeOff(airliner);
 
                 if (airliner.CurrentFlight.ExpectedLanding.ToShortDateString()
                     == GameObject.GetInstance().GameTime.ToShortDateString())

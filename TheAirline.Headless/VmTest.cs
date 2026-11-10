@@ -876,6 +876,131 @@ static class VmTest
     }
 
     // Airlines > Competitors: the player's routes and airports against the rivals, and the rivals' moves
+    /// <summary>"vm stats": the game's statistics against the flights the monthly report recorded, across a month's end.</summary>
+    static async Task StatsTest(AirlineViewModel av)
+    {
+        Console.WriteLine("STATS TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        await GivePlayerRoutes(av, 2);
+        var start = g.GameTime;
+        int year = start.Year;
+        int month = start.Month;
+        while (g.GameTime.Month == month) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        for (int i = 0; i < 8; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        if (g.GameTime.Year != year) fail("the test crossed a year");
+        Func<string, TheAirline.Models.General.Statistics.StatisticsType> T = TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType;
+        var airports = TheAirline.Models.Airports.Airports.GetAllActiveAirports();
+        int checkedAirlines = 0;
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(x => x.Fleet.Count > 0).OrderByDescending(x => x.IsHuman).ThenByDescending(x => x.Fleet.Count).Take(8))
+        {
+            var ops = new TheAirline.Helpers.MonthOps();
+            for (var m = new DateTime(start.Year, start.Month, 1); m <= g.GameTime; m = m.AddMonths(1))
+            {
+                var o = TheAirline.Helpers.AirlineReportService.Ops(a, m.Year, m.Month);
+                ops.Flights += o.Flights; ops.OnTime += o.OnTime; ops.Passengers += o.Passengers; ops.Seats += o.Seats; ops.Cargo += o.Cargo; ops.Cancelled += o.Cancelled;
+            }
+            if (ops.Flights == 0) continue;
+            var st = a.Statistics;
+            double arr = st.GetStatisticsValue(year, T("Arrivals")), dep = st.GetStatisticsValue(year, T("Departures")), pax = st.GetStatisticsValue(year, T("Passengers"));
+            double ontime = st.GetStatisticsValue(year, T("On-Time")), cap = st.GetStatisticsValue(year, T("Capacity")), cargo = st.GetStatisticsValue(year, T("Cargo"));
+            double cancelled = st.GetStatisticsValue(year, T("Cancellations"));
+            Console.WriteLine("  " + a.Profile.IATACode + ": " + arr + " arrivals (" + ops.Flights + " flown), " + dep + " departures, " + pax + " passengers (" + ops.Passengers + "), " + ontime + " on time (" + ops.OnTime + "), seats " + cap + ", cargo " + cargo.ToString("0") + ", cancelled " + cancelled + " (" + ops.Cancelled + ")");
+            if (arr != ops.Flights) fail(a.Profile.IATACode + " arrivals: the month's end cleared them?");
+            if (pax != ops.Passengers || Math.Abs(cargo - ops.Cargo) > 1) fail(a.Profile.IATACode + " passengers or cargo");
+            if (ontime != ops.OnTime) fail(a.Profile.IATACode + " on time: " + ontime + " against " + ops.OnTime);
+            if (cancelled != ops.Cancelled) fail(a.Profile.IATACode + " cancellations");
+            if (dep < arr || dep > arr + a.Fleet.Count) fail(a.Profile.IATACode + " departures");
+            if (ops.Seats > 0 && (cap != ops.Seats)) fail(a.Profile.IATACode + " seats flown: " + cap + " against " + ops.Seats);
+            double airportArr = airports.Sum(ap => ap.Statistics.GetStatisticsValue(year, a, T("Arrivals")));
+            double airportDep = airports.Sum(ap => ap.Statistics.GetStatisticsValue(year, a, T("Departures")));
+            if (airportArr != arr || airportDep != dep) fail(a.Profile.IATACode + " airports: " + airportArr + "/" + airportDep);
+            double fleetArr = a.Fleet.ToList().Sum(f => f.Statistics.GetStatisticsValue(year, T("Arrivals")));
+            if (fleetArr > arr) fail(a.Profile.IATACode + " aircraft arrivals above the airline's");
+            double otp = TheAirline.Helpers.FlightStatistics.OnTimePercent(a);
+            if (otp < 0 || otp > 100 || Math.Abs(otp - 100 * ontime / arr) > 1e-6) fail(a.Profile.IATACode + " on-time share " + otp);
+            // the routes' recent figures (since the month's start): averages within the seats and the cargo space
+            foreach (var r in a.Routes.ToList())
+            {
+                if (r is TheAirline.Models.Routes.PassengerRoute pr)
+                    foreach (var rc in pr.Classes)
+                    {
+                        long n = r.Statistics.GetStatisticsValue(rc, T("Arrivals"));
+                        long avg = r.Statistics.GetStatisticsValue(rc, T("Passengers%"));
+                        if (n > 0 && (avg < 0 || avg > 1000)) fail("route " + r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode + " " + rc.Type + " passengers per flight " + avg);
+                    }
+                if (r.Type == TheAirline.Models.Routes.Route.RouteType.Cargo)
+                {
+                    long n = r.Statistics.GetStatisticsValue(T("Arrivals"));
+                    if (n > 0 && (r.Statistics.GetStatisticsValue(T("Cargo%")) < 0 || r.Statistics.GetStatisticsValue(T("Cargo")) > n * 1000)) fail("cargo route figures");
+                }
+                if (r.HasAirliner && r.Statistics.GetTotalValue(T("Capacity")) > 0 && (r.FillingDegree < 0 || r.FillingDegree > 1.0001)) fail("route filling degree " + r.FillingDegree);
+            }
+            checkedAirlines++;
+        }
+        if (checkedAirlines < 3) fail("too few airlines flew");
+
+        // the airports keep this year and the two before
+        var someAirport = airports.First(ap => ap.Statistics.Stats.Count > 0);
+        var someAirline = someAirport.Statistics.Stats.First().Airline;
+        someAirport.Statistics.AddStatisticsValue(year - 5, someAirline, T("Arrivals"), 7);
+        someAirport.Statistics.AddStatisticsValue(year - 2, someAirline, T("Arrivals"), 3);
+        TheAirline.Helpers.FlightStatistics.PruneAirportStatistics();
+        if (someAirport.Statistics.GetStatisticsValue(year - 5, someAirline, T("Arrivals")) != 0 || someAirport.Statistics.GetStatisticsValue(year - 2, someAirline, T("Arrivals")) != 3) fail("airport years kept");
+
+        // saved with the game
+        var h = g.HumanAirline;
+        double before = h.Statistics.GetStatisticsValue(year, T("Departures"));
+        TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("statstest");
+        TheAirline.Helpers.SerializedLoadSaveHelpers.LoadGame("statstest");
+        if (TheAirline.Models.General.GameObject.GetInstance().HumanAirline.Statistics.GetStatisticsValue(year, T("Departures")) != before) fail("departures after loading");
+        Console.WriteLine("STATS TEST OK");
+    }
+
+    /// <summary>"vm statsprobe": the game's yearly statistics against the flights the monthly report recorded (TAP_DAYS, default 20).</summary>
+    static async Task StatsProbe(AirlineViewModel av)
+    {
+        Console.WriteLine("STATS PROBE");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        await GivePlayerRoutes(av, 3);
+        int days = int.TryParse(Environment.GetEnvironmentVariable("TAP_DAYS"), out var d) ? d : 20;
+        int year = g.GameTime.Year;
+        var start = g.GameTime;
+        for (int i = 0; i < days; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        Func<string, TheAirline.Models.General.Statistics.StatisticsType> T = TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType;
+        Console.WriteLine("  " + days + " days from " + start.ToString("yyyy-MM-dd") + "; types: " + string.Join(", ", TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsTypes().Select(t => t.Shortname)));
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().OrderByDescending(x => x.IsHuman).ThenByDescending(x => x.Fleet.Count).Take(6))
+        {
+            var ops = new TheAirline.Helpers.MonthOps();
+            for (var m = new DateTime(start.Year, start.Month, 1); m <= g.GameTime; m = m.AddMonths(1))
+            {
+                var o = TheAirline.Helpers.AirlineReportService.Ops(a, m.Year, m.Month);
+                ops.Flights += o.Flights; ops.Cancelled += o.Cancelled; ops.OnTime += o.OnTime; ops.Passengers += o.Passengers; ops.Seats += o.Seats; ops.Cargo += o.Cargo;
+            }
+            var st = a.Statistics;
+            Console.WriteLine("  " + a.Profile.IATACode + (a.IsHuman ? " (player)" : "") + " fleet " + a.Fleet.Count + ": recorded " + ops.Flights + " flights, " + ops.Passengers + " pax, " + ops.Cancelled + " cancelled, " + ops.OnTime + " on time");
+            Console.WriteLine("     stats: " + string.Join(", ", st.StatValues.Where(v => v.Year == year && v.Stat != null).Select(v => v.Stat.Shortname + "=" + v.Value.ToString("0.#"))));
+            // airports: the airline's arrivals and departures summed over all airports
+            double arr = 0, dep = 0, pax = 0;
+            foreach (var ap in TheAirline.Models.Airports.Airports.GetAllActiveAirports())
+            {
+                arr += ap.Statistics.GetStatisticsValue(year, a, T("Arrivals"));
+                dep += ap.Statistics.GetStatisticsValue(year, a, T("Departures"));
+                pax += ap.Statistics.GetStatisticsValue(year, a, T("Passengers"));
+            }
+            Console.WriteLine("     airports: arrivals " + arr + ", departures " + dep + ", passengers " + pax);
+            // aircraft
+            double farr = 0, fdep = 0, fpax = 0;
+            foreach (var f in a.Fleet.ToList()) { farr += f.Statistics.GetStatisticsValue(year, T("Arrivals")); fdep += f.Statistics.GetStatisticsValue(year, T("Departures")); fpax += f.Statistics.GetStatisticsValue(year, T("Passengers")); }
+            Console.WriteLine("     aircraft: arrivals " + farr + ", departures " + fdep + ", passengers " + fpax);
+            // routes
+            double rdep = 0, rpax = 0;
+            foreach (var r in a.Routes.ToList()) { rdep += r.Statistics.GetTotalValue(T("Departures")); rpax += r.Statistics.GetTotalValue(T("Passengers")); }
+            Console.WriteLine("     routes: departures " + rdep + ", passengers " + rpax);
+        }
+        Console.WriteLine("STATS PROBE DONE");
+    }
+
     /// <summary>"vm engines" (TAP_YEAR=1996): every aircraft type has its engines, and an order can take another one.</summary>
     static void EnginesTest(AirlineViewModel av)
     {
@@ -1100,16 +1225,14 @@ static class VmTest
         Console.WriteLine("SUGGEST TEST OK");
     }
 
-    static async Task ReportTest(AirlineViewModel av)
+    /// <summary>Buys aircraft and opens that many flying routes for the player (the route advisor's picks).</summary>
+    static async Task GivePlayerRoutes(AirlineViewModel av, int count)
     {
-        Console.WriteLine("REPORT TEST");
-        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
-        var g = TheAirline.Models.General.GameObject.GetInstance();
-        var h = g.HumanAirline;
+        var h = TheAirline.Models.General.GameObject.GetInstance().HumanAirline;
         var mk = av.Market;
         var ap = av.Airports;
         // two routes of the player's, flying
-        for (int n = 0; n < 2; n++)
+        for (int n = 0; n < count; n++)
         {
             foreach (var item in mk.Aircraft.OrderBy(x => x.Airliner.GetPrice()).Skip(n).Take(200)) { mk.Selected = item; if (mk.Homebase != null) break; }
             mk.BuyCommand.Execute(null);
@@ -1130,6 +1253,17 @@ static class VmTest
             if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
             if (f.Routes.Count > 0 && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
         }
+    }
+
+    static async Task ReportTest(AirlineViewModel av)
+    {
+        Console.WriteLine("REPORT TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        var mk = av.Market;
+        var ap = av.Airports;
+        await GivePlayerRoutes(av, 2);
         if (h.Routes.Count < 2) fail("could not make two routes");
         Console.WriteLine("  routes: " + string.Join(", ", h.Routes.Select(r => r.Destination1.Profile.IATACode + "-" + r.Destination2.Profile.IATACode)) + ", start " + g.GameTime.ToString("yyyy-MM-dd"));
 
@@ -3734,6 +3868,8 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("typecheck")) { TypeCheck(av); return; }
             if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("statsprobe")) { await StatsProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("stats")) { await StatsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("aicheck")) { AiCheckProbe(); return; }

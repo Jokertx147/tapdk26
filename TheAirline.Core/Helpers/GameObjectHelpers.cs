@@ -718,13 +718,15 @@ namespace TheAirline.Helpers
             }
         }
 
+        // the "Clear stats" setting: the routes' recent figures and the airports' passengers by destination (the computer
+        // airlines judge a route by its recent load). The airlines' statistics are kept by year and no longer cleared (a
+        // month's clearing left the "yearly" figures with this month only); airports keep their last years.
         private static void ClearAllUsedStats()
         {
             Airports.GetAllAirports().ForEach(a => a.ClearDestinationPassengerStatistics());
             Airports.GetAllAirports().ForEach(a => a.ClearDestinationCargoStatistics());
             AirlineHelpers.ClearRoutesStatistics();
-            AirlineHelpers.ClearAirlinesStatistics();
-            AirportHelpers.ClearAirportStatistics();
+            FlightStatistics.PruneAirportStatistics();
         }
 
         //do the daily update
