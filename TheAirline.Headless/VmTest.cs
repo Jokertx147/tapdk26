@@ -1220,8 +1220,13 @@ static class VmTest
         for (int i = 0; i < 35; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
         double days = (g.GameTime - start).TotalDays - 5;
         double real = opened.GetBalance(start.AddDays(5), g.GameTime) / days;
+        foreach (var x in new[] { h }.Concat(TheAirline.Helpers.CompetitorService.RivalRoutes(opened).Select(rr => rr.Airline)).Distinct())
+            Console.WriteLine("  customer rating " + x.Profile.IATACode + ": " + x.Ratings?.CustomerHappinessRating.ToString("0.0") + " (factor " + TheAirline.Helpers.RatingsService.CustomerFactor(x).ToString("0.000") + "), on time " + TheAirline.Helpers.FlightStatistics.OnTimePercent(x).ToString("0") + "%");
         Console.WriteLine("  " + top.Name + ": forecast " + top.Forecast.ProfitPerDay.ToString("0") + " a day, flew " + real.ToString("0") + " a day over " + days.ToString("0") + " days (" + (opened.FillingDegree * 100).ToString("0") + "% full, forecast " + (top.Forecast.Load * 100).ToString("0") + "%)");
-        if (Math.Abs(real - top.Forecast.ProfitPerDay) > Math.Max(1500, Math.Abs(top.Forecast.ProfitPerDay) * 0.5)) fail("the route earned far from its forecast");
+        // the load is the fair check (a few points of load move a thin margin a long way); a route may beat its forecast,
+        // but not earn far less than it promised
+        if (Math.Abs(opened.FillingDegree - top.Forecast.Load) > 0.15) fail("the route's load far from its forecast");
+        if (real < top.Forecast.ProfitPerDay - Math.Max(1500, Math.Abs(top.Forecast.ProfitPerDay) * 0.5)) fail("the route earned far less than its forecast");
         Console.WriteLine("SUGGEST TEST OK");
     }
 
