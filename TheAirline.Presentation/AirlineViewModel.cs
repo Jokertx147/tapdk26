@@ -291,7 +291,7 @@ namespace TheAirline.Presentation
         {
             switch (PageNames[page])
             {
-                case "My Airline": FleetPerformance.Reload(); if (MyAirlineTab == ReportTabIndex) Report.Reload(); break;
+                case "My Airline": FleetPerformance.Reload(); if (MyAirlineTab == ReportTabIndex) Report.Reload(); if (MyAirlineTab == StatisticsTabIndex) Statistics.Reload(); break;
                 case "Airports": AirportStats.Reload(); break;
                 case "Routes": Connections.Reload(); RouteProfits.Reload(); if (RoutesTab == SuggestionsTabIndex) { var _ = Suggestions.Reload(); } break;
                 case "Alliances": Alliances.Reload(); break;
@@ -341,11 +341,17 @@ namespace TheAirline.Presentation
             set
             {
                 if (SetProperty(ref _myAirlineTab, value) && value == ReportTabIndex) Report?.Reload();
+                if (value == StatisticsTabIndex) Statistics?.Reload();
             }
         }
 
         /// <summary>My Airline > Monthly report.</summary>
         public AirlineReportViewModel Report { get; }
+
+        /// <summary>My Airline > Statistics (the last sub tab).</summary>
+        public StatisticsViewModel Statistics { get; } = new StatisticsViewModel();
+
+        public const int StatisticsTabIndex = 18;
 
         // where a line of the monthly report leads
         private void OpenReportItem(ReportItem item)

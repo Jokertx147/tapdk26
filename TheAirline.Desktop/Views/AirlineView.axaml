@@ -138,6 +138,9 @@
             <TabItem Header="Contracts">
               <v:ContractsView DataContext="{Binding Contracts}" />
             </TabItem>
+            <TabItem Header="Statistics">
+              <v:StatisticsView DataContext="{Binding Statistics}" />
+            </TabItem>
           </TabControl>
         </TabItem>
 

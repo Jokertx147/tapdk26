@@ -957,6 +957,74 @@ static class VmTest
         Console.WriteLine("STATS TEST OK");
     }
 
+    /// <summary>"vm statistics": My Airline > Statistics against the game's figures, after a month's end.</summary>
+    static async Task StatisticsTest(AirlineViewModel av)
+    {
+        Console.WriteLine("STATISTICS TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var h = g.HumanAirline;
+        await GivePlayerRoutes(av, 2);
+        int month = g.GameTime.Month;
+        while (g.GameTime.Month == month) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        for (int i = 0; i < 6; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+
+        av.Page = av.Pages.ToList().IndexOf("My Airline");
+        av.MyAirlineTab = TheAirline.Presentation.AirlineViewModel.StatisticsTabIndex;
+        var sv = av.Statistics;
+        if (sv.Airlines.Count < 2 || !sv.Airlines[0].IsMine || sv.Airlines.Count(a => a.Shown) < 2) fail("the airlines on the chart");
+        Console.WriteLine("  airlines: " + string.Join(", ", sv.Airlines.Select(a => a.Name + (a.Shown ? "" : " (off)") + " " + a.Color)));
+        foreach (var figure in TheAirline.Presentation.StatisticsViewModel.Figures)
+        {
+            sv.Figure = figure;
+            var c = sv.Chart;
+            var mine = c.Series.First(x => x.IsMine);
+            Console.WriteLine("  " + figure + ": " + string.Join(" | ", c.Labels.Select((l, i) => l + " " + (mine.Values[i].HasValue ? c.Format(mine.Values[i].Value) : "-"))) + "  -> " + sv.Summary);
+            if (c.Labels.Length != 2 || c.Series.Count != sv.Airlines.Count(a => a.Shown) || sv.Table.Count != 2 || sv.Table[0].Cells.Count != c.Series.Count) fail(figure + ": the chart's shape");
+            if (string.IsNullOrEmpty(sv.Summary)) fail(figure + ": no summary");
+            if (c.IsShare && mine.Values.Any(v => v.HasValue && (v < 0 || v > 1))) fail(figure + ": a share outside 0 to 100%");
+            string axis = c.AxisFormat(mine.Values.Where(v => v.HasValue).Select(v => v.Value).DefaultIfEmpty(0).Max());
+            if (axis.Length > 9) fail(figure + ": the axis label " + axis + " is too long");
+        }
+        // the figures behind it
+        sv.Figure = "Flights";
+        var ops = TheAirline.Helpers.AirlineReportService.Ops(h, last.Year, last.Month);
+        if (sv.Chart.Series.First(x => x.IsMine).Values[0] != ops.Flights) fail("last month's flights");
+        sv.Figure = "Cash";
+        var cash = sv.Chart.Series.First(x => x.IsMine).Values;
+        if (cash[1] != h.Money || cash[0] != ops.Cash) fail("the cash");
+        sv.Figure = "Operating result";
+        TheAirline.Helpers.AirlineReportService.IncomeAndCosts(h, last.Year, last.Month, out double inc, out double cost);
+        if (Math.Abs(sv.Chart.Series.First(x => x.IsMine).Values[0].Value - (inc + cost)) > 0.5) fail("last month's result");
+        // by year: the game's yearly statistics
+        sv.Period = TheAirline.Presentation.StatisticsViewModel.ByYear;
+        sv.Figure = "Passengers";
+        double yearPax = h.Statistics.GetStatisticsValue(g.GameTime.Year, TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Passengers"));
+        if (sv.Chart.Labels.Length != g.GameTime.Year - g.StartDate.Year + 1 || sv.Chart.Series.First(x => x.IsMine).Values.Last() != yearPax) fail("the year's passengers");
+        Console.WriteLine("  by year: " + string.Join(", ", sv.Chart.Labels) + " -> " + sv.Summary);
+        // a rival switched off leaves the chart
+        int shown = sv.Chart.Series.Count;
+        sv.Airlines.First(a => !a.IsMine && a.Shown).Shown = false;
+        if (sv.Chart.Series.Count != shown - 1) fail("switching a rival off");
+
+        // every airline's year so far
+        if (sv.League.Count != TheAirline.Models.Airlines.Airlines.GetAllAirlines().Count || sv.League.Count(r => r.IsMine) != 1) fail("the league");
+        var pax = sv.League.Select(r => long.Parse(r.Passengers.Replace(",", ""))).ToList();
+        for (int i = 1; i < pax.Count; i++) if (pax[i] > pax[i - 1]) fail("the league isn't by passengers");
+        sv.LeagueSort = "Fleet";
+        var fleets = sv.League.Select(r => int.Parse(r.Fleet)).ToList();
+        for (int i = 1; i < fleets.Count; i++) if (fleets[i] > fleets[i - 1]) fail("the league isn't by fleet");
+        foreach (var r in sv.League.Take(4)) Console.WriteLine("  league: " + r.Rank + " " + r.Name + " | " + r.Passengers + " pax, " + r.Flights + " flights, " + r.Load + " full, " + r.OnTime + " on time, " + r.Result + ", " + r.Fleet + " aircraft");
+
+        // the player's airports
+        if (sv.AirportRows.Count == 0) fail("no airports");
+        double arrivals = h.Statistics.GetStatisticsValue(g.GameTime.Year, TheAirline.Models.General.Statistics.StatisticsTypes.GetStatisticsType("Arrivals"));
+        if (sv.AirportRows.Sum(r => double.Parse(r.Arrivals.Replace(",", ""))) > arrivals) fail("the airports' arrivals");
+        foreach (var r in sv.AirportRows.Take(3)) Console.WriteLine("  airport: " + r.Airport + " | " + r.Arrivals + " arrivals, " + r.Passengers + " pax, last year " + r.LastYear + " " + r.Change + ", " + r.Share);
+        Console.WriteLine("STATISTICS TEST OK");
+    }
+
     /// <summary>"vm reputation": a new route's forecast counts the reputation the route itself brings at both ends.</summary>
     static async Task ReputationTest(AirlineViewModel av)
     {
@@ -3967,6 +4035,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("statsprobe")) { await StatsProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("gapprobe")) { await GapProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("reputation")) { await ReputationTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("statistics")) { await StatisticsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("stats")) { await StatsTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("idle")) { IdleProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("mapanim")) { MapAnimTest(av); return; }
