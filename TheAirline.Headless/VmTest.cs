@@ -915,8 +915,7 @@ static class VmTest
             double airportArr = airports.Sum(ap => ap.Statistics.GetStatisticsValue(year, a, T("Arrivals")));
             double airportDep = airports.Sum(ap => ap.Statistics.GetStatisticsValue(year, a, T("Departures")));
             if (airportArr != arr || airportDep != dep) fail(a.Profile.IATACode + " airports: " + airportArr + "/" + airportDep);
-            double fleetArr = a.Fleet.ToList().Sum(f => f.Statistics.GetStatisticsValue(year, T("Arrivals")));
-            if (fleetArr > arr) fail(a.Profile.IATACode + " aircraft arrivals above the airline's");
+            // (the aircraft's own counts aren't compared: one bought or leased from another airline this year brings its flights along)
             double otp = TheAirline.Helpers.FlightStatistics.OnTimePercent(a);
             if (otp < 0 || otp > 100 || Math.Abs(otp - 100 * ontime / arr) > 1e-6) fail(a.Profile.IATACode + " on-time share " + otp);
             // the routes' recent figures (since the month's start): averages within the seats and the cargo space
