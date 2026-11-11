@@ -41,7 +41,7 @@
           </ComboBox.ItemTemplate>
         </ComboBox>
         <TextBlock Text="Engine" VerticalAlignment="Center" Margin="10,0,0,0" />
-        <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" MinWidth="220">
+        <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" MinWidth="420" MaxWidth="560">
           <ComboBox.ItemTemplate>
             <DataTemplate>
               <TextBlock Text="{Binding Text}" />

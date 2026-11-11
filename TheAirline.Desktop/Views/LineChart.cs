@@ -70,6 +70,41 @@ namespace TheAirline.Desktop.Views
             return new FormattedText(s ?? "", CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Face, size, brush ?? TextBrush);
         }
 
+        // ---- the log scale ----
+        //
+        // Plain logs can't show 0 or a loss, and both are ordinary here, so values below one unit keep a straight line
+        // through zero and everything above it gains the same height per ten times, mirrored for losses. Four decades
+        // of the largest value are shown, which puts a 27,000 passenger airline and a 4,500,000 one on one chart.
+
+        private static double LogUnit(double maxAbs)
+        {
+            if (maxAbs <= 0) return 1;
+            return Math.Max(1, Math.Pow(10, Math.Ceiling(Math.Log10(maxAbs)) - 4));
+        }
+
+        private static double Squash(double v, double unit)
+        {
+            double a = Math.Abs(v)/unit;
+            return Math.Sign(v)*(a <= 1 ? a : 1 + Math.Log10(a));
+        }
+
+        // the values the axis is labelled with: zero, then one unit and each ten times above it, both ways
+        private static List<double> LogTicks(double unit, double lo, double hi)
+        {
+            var ticks = new List<double> {0};
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (double v = unit; ; v *= 10)
+                {
+                    double t = side*v;
+                    if (t > hi + 1e-9 || t < lo - 1e-9) break;
+                    ticks.Add(t);
+                    if (v > 1e15) break;
+                }
+            }
+            return ticks;
+        }
+
         // round steps for the axis: 1, 2 or 5 times a power of ten
         private static double NiceStep(double range, int ticks)
         {
@@ -108,18 +143,38 @@ namespace TheAirline.Desktop.Views
                 max = Math.Max(0, values.DefaultIfEmpty(0).Max());
                 if (max - min < 1e-9) max = min + 1;
             }
+            bool log = d.Log && !d.IsShare;
+            double unit = log ? LogUnit(Math.Max(Math.Abs(min), Math.Abs(max))) : 1;
+            Func<double, double> scale = v => log ? Squash(v, unit) : v;
             double step = d.IsShare ? 0.2 : NiceStep(max - min, 5);
-            double lo = Math.Floor(min/step)*step, hi = Math.Ceiling(max/step)*step;
-            if (hi - lo < 1e-9) hi = lo + step;
-            Func<double, double> Y = v => Top + h - (v - lo)/(hi - lo)*h;
+            double lo, hi;
+            List<double> ticks;
+            if (log)
+            {
+                ticks = LogTicks(unit, min, max);
+                // a little room above and below the furthest line
+                lo = Math.Min(scale(min), 0) - 0.35;
+                hi = Math.Max(scale(max), 0) + 0.35;
+            }
+            else
+            {
+                lo = Math.Floor(min/step)*step;
+                hi = Math.Ceiling(max/step)*step;
+                if (hi - lo < 1e-9) hi = lo + step;
+                ticks = new List<double>();
+                for (double v = lo; v <= hi + step/2; v += step) ticks.Add(v);
+            }
+            double span = Math.Max(1e-9, hi - lo);
+            Func<double, double> Y = v => Top + h - (scale(v) - lo)/span*h;
             double dx = Step(d);
             Func<int, double> X = i => d.Labels.Length > 1 ? Left + i*dx : Left + w/2;
 
             // grid and axis labels
-            for (double v = lo; v <= hi + step/2; v += step)
+            foreach (double v in ticks)
             {
                 double y = Y(v);
-                ctx.DrawLine(Math.Abs(v) < step/1000 ? ZeroPen : GridPen, new Point(Left, y), new Point(Left + w, y));
+                if (y < Top - 1 || y > Top + h + 1) continue;
+                ctx.DrawLine(Math.Abs(v) < 1e-9 ? ZeroPen : GridPen, new Point(Left, y), new Point(Left + w, y));
                 var t = Text((d.AxisFormat ?? d.Format)(v), 10);
                 ctx.DrawText(t, new Point(Left - 6 - t.Width, y - t.Height/2));
             }

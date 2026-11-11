@@ -986,6 +986,23 @@ static class VmTest
             string axis = c.AxisFormat(mine.Values.Where(v => v.HasValue).Select(v => v.Value).DefaultIfEmpty(0).Max());
             if (axis.Length > 9) fail(figure + ": the axis label " + axis + " is too long");
         }
+        // the log scale: on by itself when the airlines shown are of very different size, and never for a share
+        foreach (var a in sv.Airlines) a.Shown = true;
+        sv.Figure = "Passengers";
+        var spread = sv.Chart.Series.SelectMany(x => x.Values).Where(v => v.HasValue && v.Value > 0).Select(v => v.Value).ToList();
+        bool wide = spread.Count > 1 && spread.Max() >= spread.Min() * TheAirline.Presentation.StatisticsViewModel.LogSpread;
+        Console.WriteLine("  passengers: biggest " + spread.Max().ToString("#,0") + ", smallest " + spread.Min().ToString("#,0") + " -> log " + sv.LogScale + " (expected " + wide + ")");
+        if (sv.LogScale != wide || sv.Chart.Log != wide) fail("the log scale didn't follow the spread");
+        if (!sv.CanLogScale) fail("the log scale should be offered for passengers");
+        sv.LogScale = false;
+        if (sv.Chart.Log) fail("the log scale stayed on when switched off");
+        sv.Figure = "Seats filled";
+        if (sv.Chart.Log || sv.CanLogScale) fail("a share should have no log scale");
+        sv.Figure = "Passengers";
+        if (sv.Chart.Log) fail("the player's choice wasn't kept");
+        sv.LogScale = true;
+        if (!sv.Chart.Log) fail("the log scale didn't come back on");
+
         // the figures behind it
         sv.Figure = "Flights";
         var ops = TheAirline.Helpers.AirlineReportService.Ops(h, last.Year, last.Month);

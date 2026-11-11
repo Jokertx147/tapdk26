@@ -33,6 +33,9 @@ namespace TheAirline.Presentation
 
         /// <summary>A share (0 to 1): the axis goes from 0 to 100%.</summary>
         public bool IsShare { get; set; }
+
+        /// <summary>Each decade takes the same height, so a small airline and a giant both show (0 and losses included).</summary>
+        public bool Log { get; set; }
     }
 
     /// <summary>An airline that can be shown on the chart.</summary>
@@ -110,8 +113,11 @@ namespace TheAirline.Presentation
 
         private string _figure = Figures[0], _period = ByMonth, _leagueSort = LeagueSorts[0], _summary, _leagueTitle, _airportsTitle;
         private ChartData _chart = new ChartData();
-        private bool _loading;
+        private bool _loading, _logScale, _logChosen;
         private Airline _for;
+
+        /// <summary>A spread this wide between the airlines shown turns the log scale on by itself.</summary>
+        public const double LogSpread = 25;
 
         public StatisticsViewModel()
         {
@@ -151,6 +157,19 @@ namespace TheAirline.Presentation
                 if (value != null && SetProperty(ref _period, value) && !_loading) LoadChart();
             }
         }
+
+        /// <summary>Each decade the same height: the only way a two-aircraft airline and a 600-aircraft one fit one chart.</summary>
+        public bool LogScale
+        {
+            get => _logScale;
+            set
+            {
+                _logChosen = true;
+                if (SetProperty(ref _logScale, value) && !_loading) LoadChart();
+            }
+        }
+
+        public bool CanLogScale => !_chart.IsShare;
 
         public string LeagueSort
         {
@@ -351,7 +370,22 @@ namespace TheAirline.Presentation
                     Values = periods.Select(p => Value(_figure, a.Airline, p.Item1, p.Item2)).ToArray()
                 });
             }
+            // on a shared axis a giant's millions flatten a new airline's thousands to the zero line, so unless the
+            // player has said otherwise the log scale comes on when the airlines shown are of very different size
+            var sizes = data.Series.SelectMany(x => x.Values).Where(v => v.HasValue && Math.Abs(v.Value) > 0).Select(v => Math.Abs(v.Value)).ToList();
+            bool wide = sizes.Count > 1 && sizes.Max() >= sizes.Min()*LogSpread;
+            if (!_logChosen || data.IsShare)
+            {
+                bool want = wide && !data.IsShare;
+                if (want != _logScale)
+                {
+                    _logScale = want;
+                    OnPropertyChanged(nameof(LogScale));
+                }
+            }
+            data.Log = _logScale && !data.IsShare;
             Chart = data;
+            OnPropertyChanged(nameof(CanLogScale));
 
             Table.Clear();
             TableHeader = data.Series.Select(x => new ChartCell {Text = x.Name, Color = x.Color}).ToList();

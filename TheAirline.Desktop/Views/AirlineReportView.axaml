@@ -31,7 +31,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border Background="#262626" CornerRadius="6" Padding="12,8" Margin="0,0,8,8" Width="190">
+            <Border Background="#262626" CornerRadius="6" Padding="12,8" Margin="0,0,8,8" Width="178">
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding Label}" Opacity="0.65" FontSize="12" />
                 <TextBlock Text="{Binding Value}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -45,7 +45,7 @@
 
       <Grid ColumnDefinitions="*,16,*">
         <!-- left: what needs attention, and the money -->
-        <StackPanel Spacing="6">
+        <StackPanel Spacing="6" MaxWidth="700" HorizontalAlignment="Left">
           <TextBlock Text="Needs attention" FontSize="16" FontWeight="SemiBold" />
           <TextBlock Text="Nothing needs your attention." Opacity="0.7" IsVisible="{Binding NothingToDo}" />
           <ItemsControl ItemsSource="{Binding Attention}">
@@ -84,7 +84,7 @@
         </StackPanel>
 
         <!-- right: routes and rivals -->
-        <StackPanel Grid.Column="2" Spacing="6">
+        <StackPanel Grid.Column="2" Spacing="6" MaxWidth="700" HorizontalAlignment="Left">
           <TextBlock Text="Best routes" FontSize="16" FontWeight="SemiBold" />
           <TextBlock Text="No route made money." Opacity="0.7" IsVisible="{Binding !HasBest}" />
           <ItemsControl ItemsSource="{Binding Best}" ItemTemplate="{StaticResource LinkRow}" />

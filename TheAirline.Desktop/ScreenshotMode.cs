@@ -136,11 +136,12 @@ namespace TheAirline.Desktop
                 var me = GameObject.GetInstance().HumanAirline;
                 Log("game created: " + me.Profile.Name + ", " + GameObject.GetInstance().GameTime.ToString("yyyy-MM-dd"));
 
-                // three aircraft, each on the best route suggested for it
-                foreach (int skip in new[] {40, 90, 140}) Buy(av, skip);
+                // four aircraft: three get a route, the fourth is delivered during the weeks played and left idle
+                foreach (int skip in new[] {40, 90, 140, 60}) Buy(av, skip);
                 foreach (var f in me.Fleet.ToList())
                     if (f.Pilots.Count < f.Airliner.Type.CockpitCrew) AirlineHelpers.HireAirlinerPilots(f);
-                for (int i = 0; i < 3; i++)
+                int give = Math.Max(1, me.Fleet.Count - 1);
+                for (int i = 0; i < give; i++)
                 {
                     await av.Suggestions.Reload();
                     var row = av.Suggestions.Aircraft.FirstOrDefault(a => a.Suggestions.Count > 0);
@@ -158,10 +159,9 @@ namespace TheAirline.Desktop
                 {
                     for (int d = 0; d < 72; d++) GameObjectHelpers.SimulateTurn();
                 });
-                Log("played to " + GameObject.GetInstance().GameTime.ToString("yyyy-MM-dd") + "; routes " + me.Routes.Count + ", fleet " + me.Fleet.Count);
-                // one more aircraft, left idle, for the suggestions screen
-                Buy(av, 60);
                 av.Refresh();
+                Log("played to " + GameObject.GetInstance().GameTime.ToString("yyyy-MM-dd") + "; routes " + me.Routes.Count
+                    + ", fleet " + me.Fleet.Count + ", idle " + RouteSuggestionService.IdleAircraft(me).Count);
 
                 // My Airline > Statistics
                 av.Page = PageOf("My Airline");
@@ -169,6 +169,11 @@ namespace TheAirline.Desktop
                 await Shoot(window, "01-statistics-passengers");
                 av.Statistics.Figure = "Operating result";
                 await Shoot(window, "02-statistics-result");
+                Log("statistics: log scale " + av.Statistics.LogScale);
+                av.Statistics.LogScale = !av.Statistics.LogScale;
+                await Settle();
+                Save(window, "02b-statistics-result-other-scale");
+                av.Statistics.LogScale = !av.Statistics.LogScale;
                 av.Statistics.Figure = "Seats filled";
                 await Settle();
                 Save(window, "03-statistics-seats-filled");

@@ -8,6 +8,8 @@
         <ComboBox ItemsSource="{Binding FigureChoices}" SelectedItem="{Binding Figure}" MinWidth="170" />
         <ComboBox ItemsSource="{Binding PeriodChoices}" SelectedItem="{Binding Period}" MinWidth="120" />
         <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+        <CheckBox Content="Log scale" IsChecked="{Binding LogScale}" IsEnabled="{Binding CanLogScale}" VerticalAlignment="Center"
+                  ToolTip.Tip="Each ten times takes the same height, so a small airline and a giant both show on one chart. Zero and losses still show." />
       </StackPanel>
       <TextBlock Text="{Binding Summary}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
 
@@ -29,7 +31,7 @@
       </ItemsControl>
 
       <v:LineChart Data="{Binding Chart}" Height="300" />
-      <TextBlock Text="Point at the chart for a period's figures. * is the month still running; a gap is a figure not known (a month before the game recorded it, or the cash of a month not ended)." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="Point at the chart for a period's figures. * is the month still running; a gap is a figure not known (a month before the game recorded it, or the cash of a month not ended). On the log scale each ten times takes the same height, so airlines of very different size both show." Opacity="0.55" FontSize="12" TextWrapping="Wrap" />
 
       <Grid ColumnDefinitions="*,16,*">
         <!-- the chart's figures as a table -->
