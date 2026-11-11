@@ -22,6 +22,9 @@ jobs:
     name: Linux (Avalonia app + headless test)
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # to put the screenshots on the ci-screenshots branch (the run's artifacts can't be fetched everywhere)
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -202,6 +205,24 @@ jobs:
           name: screenshots-linux
           path: shots
           if-no-files-found: ignore
+
+      # also on an orphan branch, force-pushed, so the pictures can be looked at with a plain git fetch
+      - name: Put the screenshots on the ci-screenshots branch
+        if: github.ref == 'refs/heads/sdk-style-conversion'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/shots && cp -r shots /tmp/shots
+          git checkout --orphan ci-screenshots
+          git rm -rf --cached . > /dev/null
+          rm -rf shots
+          mkdir -p shots && cp /tmp/shots/* shots/
+          echo "The Avalonia app's newer screens, drawn by CI under a virtual display at every push to" > README.md
+          echo "sdk-style-conversion. Replaced each time; not part of the game's history." >> README.md
+          echo "From commit ${GITHUB_SHA}." >> README.md
+          git add -A shots README.md
+          git commit -q -m "Screenshots from ${GITHUB_SHA}"
+          git push -q --force origin ci-screenshots
 
       - name: Publish a ready-to-run Linux build
         run: |
