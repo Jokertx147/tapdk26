@@ -31,10 +31,10 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border Background="#262626" CornerRadius="6" Padding="12,8" Margin="0,0,8,8" Width="178">
+            <Border Background="#262626" CornerRadius="6" Padding="12,8" Margin="0,0,8,8" MinWidth="178">
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding Label}" Opacity="0.65" FontSize="12" />
-                <TextBlock Text="{Binding Value}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Value}" FontSize="18" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Change}" FontSize="12" TextWrapping="Wrap"
                            Foreground="{Binding Trend, Converter={x:Static v:ReportTrendBrush.Instance}}" />
               </StackPanel>
