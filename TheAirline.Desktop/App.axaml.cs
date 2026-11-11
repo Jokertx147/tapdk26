@@ -35,6 +35,14 @@ namespace TheAirline.Desktop
                         .ContinueWith(_ => Dispatcher.UIThread.Post(() => { saved = true; desktop.Shutdown(); }));
                 };
                 desktop.Exit += (s, e) => GameSession.StopClock();
+
+                // "--screenshots <folder>": pictures of the newer screens, then exit (see ScreenshotMode)
+                string shots = ScreenshotMode.FolderFrom(desktop.Args);
+                if (shots != null)
+                {
+                    var window = desktop.MainWindow;
+                    window.Opened += async (s, e) => await ScreenshotMode.Run(shell, window, shots);
+                }
             }
 
             base.OnFrameworkInitializationCompleted();

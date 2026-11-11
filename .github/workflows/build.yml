@@ -188,6 +188,21 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm skip 2>&1 | tee skiptest.log
           grep -q "SKIP TEST OK" skiptest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " skiptest.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Screenshot mode (the newer screens drawn under a virtual display)
+        run: |
+          sudo apt-get install -y -qq xvfb > /dev/null
+          xvfb-run -a -s "-screen 0 1600x1000x24" timeout 900 dotnet run --no-build -c Release --project TheAirline.Desktop -- --screenshots shots || true
+          cat shots/progress.txt || true
+          grep -q " done$" shots/progress.txt || { (cat shots/error.txt 2>/dev/null || echo "no screenshots were made") | head -12 | sed 's/^/::error::/'; exit 1; }
+          ls -la shots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-linux
+          path: shots
+          if-no-files-found: ignore
+
       - name: Publish a ready-to-run Linux build
         run: |
           dotnet publish TheAirline.Desktop/TheAirline.Desktop.csproj -c Release -r linux-x64 --self-contained true -o publish/TheAirline
