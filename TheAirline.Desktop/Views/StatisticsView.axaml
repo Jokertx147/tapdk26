@@ -37,6 +37,8 @@
         <!-- the chart's figures as a table -->
         <StackPanel Spacing="4">
           <TextBlock Text="The figures" FontSize="16" FontWeight="SemiBold" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel>
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="" Width="90" />
             <ItemsControl ItemsSource="{Binding TableHeader}">
@@ -45,7 +47,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <TextBlock Text="{Binding Text}" Width="110" TextAlignment="Right" FontWeight="SemiBold"
+                  <TextBlock Text="{Binding Text}" Width="96" TextAlignment="Right" FontWeight="SemiBold"
                              Foreground="{Binding Color, Converter={x:Static v:HexBrush.Instance}}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -62,7 +64,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
-                        <TextBlock Text="{Binding Text}" Width="110" TextAlignment="Right" />
+                        <TextBlock Text="{Binding Text}" Width="96" TextAlignment="Right" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
@@ -70,6 +72,8 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          </StackPanel>
+          </ScrollViewer>
 
           <TextBlock Text="{Binding AirportsTitle}" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0" />
           <TextBlock Text="No flights of yours have landed this year yet." Opacity="0.7" IsVisible="{Binding !HasAirports}" />
@@ -105,7 +109,7 @@
             <TextBlock Text="by" VerticalAlignment="Center" Opacity="0.7" />
             <ComboBox ItemsSource="{Binding LeagueSortChoices}" SelectedItem="{Binding LeagueSort}" MinWidth="150" />
           </StackPanel>
-          <Grid ColumnDefinitions="30,*,90,70,55,55,110,45">
+          <Grid ColumnDefinitions="30,*,90,70,62,66,92,45">
             <TextBlock Text="" />
             <TextBlock Grid.Column="1" Text="Airline" Opacity="0.65" />
             <TextBlock Grid.Column="2" Text="Passengers" Opacity="0.65" HorizontalAlignment="Right" />
@@ -118,7 +122,7 @@
           <ItemsControl ItemsSource="{Binding League}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Grid ColumnDefinitions="30,*,90,70,55,55,110,45" Margin="0,1">
+                <Grid ColumnDefinitions="30,*,90,70,62,66,92,45" Margin="0,1">
                   <TextBlock Text="{Binding Rank}" Opacity="0.6" />
                   <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
                              FontWeight="{Binding IsMine, Converter={x:Static v:StatisticsBold.Instance}}" />

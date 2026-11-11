@@ -186,6 +186,15 @@ namespace TheAirline.Presentation
 
         private static string Money(double v) => Convert.ToString(new ValueCurrencyFormatter().Convert(v));
 
+        /// <summary>Money in short, as the chart's axis writes it ($389.4M): for tables that compare rather than account.</summary>
+        public static string ShortMoney(double v)
+        {
+            string one = Money(1);
+            int digit = one.IndexOfAny("0123456789".ToCharArray());
+            string prefix = digit > 0 ? one.Substring(0, digit).Replace("-", "") : "";
+            return (v < 0 ? "-" : "") + prefix + Compact(Math.Abs(v));
+        }
+
         /// <summary>A year's flying from the game's statistics (kept by year since the statistics fix).</summary>
         private static MonthOps YearOps(Airline a, int year)
         {
@@ -396,7 +405,7 @@ namespace TheAirline.Presentation
                 Table.Add(new ChartTableRow
                 {
                     Period = periods[k].Item3,
-                    Cells = data.Series.Select(x => new ChartCell {Text = x.Values[idx].HasValue ? data.Format(x.Values[idx].Value) : "-", Color = x.Color}).ToList()
+                    Cells = data.Series.Select(x => new ChartCell {Text = x.Values[idx].HasValue ? data.AxisFormat(x.Values[idx].Value) : "-", Color = x.Color}).ToList()
                 });
             }
 
@@ -472,7 +481,7 @@ namespace TheAirline.Presentation
                     Rank = rank.ToString(), Name = r.Item1.Profile.IATACode + " " + r.Item1.Profile.Name, IsMine = r.Item1 == _for,
                     Passengers = o.Passengers.ToString("#,0"), Flights = o.Flights.ToString("#,0"),
                     Load = o.Seats > 0 ? (o.Load*100).ToString("0") + "%" : "-", OnTime = o.Flights > 0 ? (o.OnTimeShare*100).ToString("0") + "%" : "-",
-                    Result = Money(r.Item3), Fleet = r.Item4.ToString()
+                    Result = ShortMoney(r.Item3), Fleet = r.Item4.ToString()
                 });
             }
         }
