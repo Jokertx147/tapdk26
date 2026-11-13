@@ -23,7 +23,7 @@
         </StackPanel>
         <TextBlock Text="{Binding NearStatus}" IsVisible="{Binding SortByDistance}" Opacity="0.7" TextWrapping="Wrap" />
       </StackPanel>
-      <Grid Grid.Row="1" ColumnDefinitions="30,160,62,86,86,76,70,48,55,40,50,64" Margin="4,0,0,2" Opacity="0.7">
+      <Grid Grid.Row="1" ColumnDefinitions="30,*,62,80,80,72,66,48,52,40,50,72" Margin="4,0,0,2" Opacity="0.7">
         <TextBlock Grid.Column="1" Text="Airport" FontWeight="SemiBold" />
         <TextBlock Grid.Column="2" Text="Code" FontWeight="SemiBold" />
         <TextBlock Grid.Column="3" Text="Town" FontWeight="SemiBold" />
@@ -39,7 +39,7 @@
       <ListBox Grid.Row="2" ItemsSource="{Binding Airports}" SelectedItem="{Binding Selected}">
         <ListBox.ItemTemplate>
           <DataTemplate>
-            <Grid ColumnDefinitions="30,160,62,86,86,76,70,48,55,40,50,64">
+            <Grid ColumnDefinitions="30,*,62,80,80,72,66,48,52,40,50,72">
               <Button Content="+" Command="{Binding LeaseCommand}" IsVisible="{Binding CanLease}"
                       Padding="0" Width="24" Height="22" HorizontalContentAlignment="Center"
                       ToolTip.Tip="Lease gates at this airport" />
