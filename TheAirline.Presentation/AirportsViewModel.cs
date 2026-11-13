@@ -13,16 +13,28 @@ namespace TheAirline.Presentation
 {
     public class AirportItem
     {
-        public AirportItem(Airport airport, bool own)
+        public AirportItem(Airport airport, bool own, Airport near = null)
         {
             Airport = airport;
             Text = airport.Profile.IATACode + "  " + airport.Profile.Name + ", " + airport.Profile.Country?.Name;
             IsOwn = own;
+            if (near != null && near != airport && airport.Profile.Coordinates != null && near.Profile.Coordinates != null)
+            {
+                Distance = MathHelpers.GetDistance(near, airport);
+                Details = DistanceFormatter.Km(Distance.Value) + " from " + near.Profile.IATACode;
+            }
+            else if (near == airport) Details = "the airport you are measuring from";
         }
 
         public Airport Airport { get; }
         public string Text { get; }
         public bool IsOwn { get; }
+
+        /// <summary>How far from the airport the list is sorted around, when there is one.</summary>
+        public double? Distance { get; }
+
+        public string Details { get; }
+        public bool HasDetails => !string.IsNullOrEmpty(Details);
     }
 
     public class AdviceItem
@@ -91,6 +103,8 @@ namespace TheAirline.Presentation
         private bool _busy;
         private List<Airport> _all;
         private bool _cargo;
+        private string _near = "";
+        private Airport _nearAirport;
 
         public AirportsViewModel(Action changed)
         {
@@ -107,6 +121,50 @@ namespace TheAirline.Presentation
         public ObservableCollection<AirportItem> Airports { get; }
         public ObservableCollection<AdviceItem> Advice { get; }
         public ObservableCollection<DestinationItem> Destinations { get; }
+
+        /// <summary>
+        ///     Sorts the airports by how far they are from this one, nearest first (a code, a name, a town; empty sorts
+        ///     by name again). Useful for finding what is near a hub, or which of your airports is closest to somewhere.
+        /// </summary>
+        public string Near
+        {
+            get { return _near; }
+            set
+            {
+                if (SetProperty(ref _near, value ?? ""))
+                {
+                    _nearAirport = Resolve(_near);
+                    OnPropertyChanged(nameof(NearStatus));
+                    OnPropertyChanged(nameof(HasNear));
+                    ApplySearch();
+                }
+            }
+        }
+
+        /// <summary>The airport the list is sorted around, or null.</summary>
+        public Airport NearAirport => _nearAirport;
+
+        public bool HasNear => !string.IsNullOrEmpty(_near.Trim());
+
+        public string NearStatus
+        {
+            get
+            {
+                if (!HasNear) return "";
+                if (_nearAirport == null) return "No airport found for \"" + _near.Trim() + "\".";
+                return "Nearest first from " + _nearAirport.Profile.IATACode + "  " + _nearAirport.Profile.Name + ".";
+            }
+        }
+
+        /// <summary>The airport a typed code or name means: an exact code wins, else the first match by name.</summary>
+        public Airport Resolve(string text)
+        {
+            string s = (text ?? "").Trim();
+            if (s.Length == 0) return null;
+            _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
+            return _all.FirstOrDefault(a => string.Equals(a.Profile.IATACode, s, StringComparison.OrdinalIgnoreCase))
+                   ?? _all.FirstOrDefault(a => Matches(a, s));
+        }
 
         /// <summary>Search any airport as the destination of a new route (code, name or country), recommended or not.</summary>
         public string DestinationSearch
@@ -325,10 +383,16 @@ namespace TheAirline.Presentation
                 list = _all.Where(a => Matches(a, s));
             }
 
+            // sorted around an airport when one is given, so the nearest 150 are the ones kept
+            if (_nearAirport != null)
+                list = list.Where(a => a.Profile.Coordinates != null)
+                           .OrderBy(a => a == _nearAirport ? 0 : 1)
+                           .ThenBy(a => MathHelpers.GetDistance(_nearAirport, a));
+
             Airports.Clear();
             foreach (var a in list.Take(150))
             {
-                Airports.Add(new AirportItem(a, own.Contains(a)));
+                Airports.Add(new AirportItem(a, own.Contains(a), _nearAirport));
             }
         }
 

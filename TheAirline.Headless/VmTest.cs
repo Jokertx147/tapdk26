@@ -1181,6 +1181,64 @@ static class VmTest
         Console.WriteLine("AIRPORT SEARCH TEST OK");
     }
 
+    /// <summary>"vm airportsort": the airport list sorted by distance from an airport you name.</summary>
+    static void AirportSortTest(AirlineViewModel av)
+    {
+        Console.WriteLine("AIRPORT SORT TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var ap = av.Airports;
+
+        // by name until an airport is named
+        ap.Search = "Hawaii";
+        ap.Near = "";
+        if (ap.HasNear || ap.NearAirport != null || ap.NearStatus != "") fail("nothing should be named yet");
+        var byName = ap.Airports.Select(x => x.Airport.Profile.Name).ToList();
+        if (byName.Count < 5) fail("the Hawaii search");
+        for (int i = 1; i < byName.Count; i++)
+            if (string.CompareOrdinal(byName[i], byName[i - 1]) < 0) fail("not sorted by name: " + byName[i - 1] + " then " + byName[i]);
+        if (ap.Airports.Any(x => x.HasDetails)) fail("a distance shown with nothing to measure from");
+
+        // nearest first from Hilo
+        ap.Near = "ITO";
+        if (ap.NearAirport?.Profile.IATACode != "ITO" || !ap.HasNear) fail("ITO wasn't found: " + ap.NearStatus);
+        Console.WriteLine("  " + ap.NearStatus);
+        var rows = ap.Airports.ToList();
+        foreach (var r in rows) Console.WriteLine("    " + r.Text + (r.HasDetails ? " | " + r.Details : ""));
+        if (rows[0].Airport.Profile.IATACode != "ITO" || rows[0].Distance != null) fail("the airport measured from should come first, with no distance");
+        var far = rows.Skip(1).ToList();
+        for (int i = 1; i < far.Count; i++)
+            if (far[i].Distance < far[i - 1].Distance - 0.01) fail("not nearest first: " + far[i - 1].Text + " then " + far[i].Text);
+        if (far[0].Airport.Profile.IATACode != "KOA") fail("Kona is the nearest to Hilo, not " + far[0].Airport.Profile.IATACode);
+        if (!far.All(x => x.HasDetails && x.Details.EndsWith("from ITO"))) fail("each row should say how far from ITO");
+
+        // a name works as well as a code, and the sort holds over a new search
+        ap.Near = "Kona International";
+        if (ap.NearAirport?.Profile.IATACode != "KOA") fail("a name didn't find Kona");
+        ap.Search = "";
+        if (ap.Airports.Count > 0 && ap.Airports.Any(x => !x.IsOwn)) fail("an empty search should list the airline's own airports");
+        ap.Search = "United States";
+        var us = ap.Airports.ToList();
+        if (us.Count < 20) fail("the United States search");
+        if (us[0].Airport.Profile.IATACode != "KOA" || us[0].Distance != null) fail("Kona itself should lead its own list");
+        var rest = us.Skip(1).ToList();
+        for (int i = 1; i < rest.Count; i++)
+            if (rest[i].Distance < rest[i - 1].Distance - 0.01) fail("the US list isn't nearest first");
+        Console.WriteLine("  nearest to KOA in the United States: " + string.Join(", ", rest.Take(6).Select(x => x.Airport.Profile.IATACode + " " + DistanceFormatter.Km(x.Distance ?? 0))));
+        if (rest[0].Airport.Profile.IATACode != "ITO") fail("Hilo is the nearest to Kona, not " + rest[0].Airport.Profile.IATACode);
+        // the mainland is a long way off: the nearest 150 are kept, so the list stops before every US airport
+        if (rest.Any(x => x.Distance > 0) && rest.Last().Distance < 3000) fail("the US list looks too short");
+
+        // an airport that doesn't exist says so and leaves the list by name
+        ap.Near = "zzzz";
+        if (ap.NearAirport != null || !ap.NearStatus.StartsWith("No airport found")) fail("a reference that matches nothing");
+        var names = ap.Airports.Select(x => x.Airport.Profile.Name).ToList();
+        for (int i = 1; i < names.Count; i++)
+            if (string.CompareOrdinal(names[i], names[i - 1]) < 0) fail("should fall back to sorting by name");
+        ap.Near = "";
+        ap.Search = "";
+        Console.WriteLine("AIRPORT SORT TEST OK");
+    }
+
     /// <summary>"vm airportprobe": whether the airports whose IATA codes are in TAP_IATA are in the game, and what demand they have.</summary>
     static void AirportProbe(AirlineViewModel av)
     {
@@ -4128,6 +4186,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("airportprobe")) { AirportProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("airportsearch")) { AirportSearchTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("airportsort")) { AirportSortTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("statsprobe")) { await StatsProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("gapprobe")) { await GapProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("reputation")) { await ReputationTest(av); return; }
