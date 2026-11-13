@@ -906,7 +906,8 @@ static class VmTest
             double ontime = st.GetStatisticsValue(year, T("On-Time")), cap = st.GetStatisticsValue(year, T("Capacity")), cargo = st.GetStatisticsValue(year, T("Cargo"));
             double cancelled = st.GetStatisticsValue(year, T("Cancellations"));
             Console.WriteLine("  " + a.Profile.IATACode + ": " + arr + " arrivals (" + ops.Flights + " flown), " + dep + " departures, " + pax + " passengers (" + ops.Passengers + "), " + ontime + " on time (" + ops.OnTime + "), seats " + cap + ", cargo " + cargo.ToString("0") + ", cancelled " + cancelled + " (" + ops.Cancelled + ")");
-            if (arr != ops.Flights) fail(a.Profile.IATACode + " arrivals: the month's end cleared them?");
+            if (arr != ops.Flights) fail(a.Profile.IATACode + " arrivals: the game counted " + arr + ", the report recorded " + ops.Flights
+                                        + " (" + (ops.Flights - arr) + " lost; the month's end clearing them, or two threads counting at once?)");
             if (pax != ops.Passengers || Math.Abs(cargo - ops.Cargo) > 1) fail(a.Profile.IATACode + " passengers or cargo");
             if (ontime != ops.OnTime) fail(a.Profile.IATACode + " on time: " + ontime + " against " + ops.OnTime);
             if (cancelled != ops.Cancelled) fail(a.Profile.IATACode + " cancellations");

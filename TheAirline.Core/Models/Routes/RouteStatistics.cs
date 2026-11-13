@@ -45,18 +45,23 @@ namespace TheAirline.Models.Routes
             base.GetObjectData(info, context);
         }
 
+        // locked for the same reason as an airline's statistics: a find, a change and a write that two threads
+        // could interleave, losing what one of them counted
         public void AddStatisticsValue(RouteAirlinerClass aClass, StatisticsType type, int value)
         {
-            RouteStatisticsItem item = Stats.Find(
-                i => i.Type.Shortname == type.Shortname && i.RouteClass == aClass);
+            lock (Stats)
+            {
+                RouteStatisticsItem item = Stats.Find(
+                    i => i.Type.Shortname == type.Shortname && i.RouteClass == aClass);
 
-            if (item == null)
-            {
-                Stats.Add(new RouteStatisticsItem(aClass, type, value));
-            }
-            else
-            {
-                item.Value += value;
+                if (item == null)
+                {
+                    Stats.Add(new RouteStatisticsItem(aClass, type, value));
+                }
+                else
+                {
+                    item.Value += value;
+                }
             }
         }
 
@@ -79,14 +84,13 @@ namespace TheAirline.Models.Routes
         //returns the value for a statistics type for a route class
         public long GetStatisticsValue(RouteAirlinerClass aClass, StatisticsType type)
         {
-            RouteStatisticsItem item =
-                Stats.Find(i => i.Type.Shortname == type.Shortname && i.RouteClass.Type == aClass.Type);
-
-            if (item == null)
+            lock (Stats)
             {
-                return 0;
+                RouteStatisticsItem item =
+                    Stats.Find(i => i.Type.Shortname == type.Shortname && i.RouteClass.Type == aClass.Type);
+
+                return item == null ? 0 : item.Value;
             }
-            return item.Value;
         }
 
         public long GetStatisticsValue(StatisticsType type)
@@ -116,16 +120,19 @@ namespace TheAirline.Models.Routes
         //sets the value for a statistics type to a route class
         public void SetStatisticsValue(RouteAirlinerClass aClass, StatisticsType type, int value)
         {
-            RouteStatisticsItem item = Stats.Find(
-                i => i.Type.Shortname == type.Shortname && i.RouteClass == aClass);
+            lock (Stats)
+            {
+                RouteStatisticsItem item = Stats.Find(
+                    i => i.Type.Shortname == type.Shortname && i.RouteClass == aClass);
 
-            if (item == null)
-            {
-                Stats.Add(new RouteStatisticsItem(aClass, type, value));
-            }
-            else
-            {
-                item.Value = value;
+                if (item == null)
+                {
+                    Stats.Add(new RouteStatisticsItem(aClass, type, value));
+                }
+                else
+                {
+                    item.Value = value;
+                }
             }
         }
 

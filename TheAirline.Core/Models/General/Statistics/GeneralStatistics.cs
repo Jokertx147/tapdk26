@@ -39,17 +39,25 @@ namespace TheAirline.Models.General.Statistics
             base.GetObjectData(info, context);
         }
 
+        // An airline's own flights are simulated on one thread, but an aircraft leased to another airline, and the
+        // flights an airline's subsidiaries fly, are counted from that other airline's thread. Finding the line and
+        // then adding to it is a read, a change and a write: without the lock two threads could both find none and
+        // both add a line (only the first of which is ever read again), or both read the same total and write it back
+        // once, and either way flights are quietly lost.
         public void AddStatisticsValue(int year, StatisticsType type, double value)
         {
-            StatisticsValue item = StatValues.Find(s => s.Year == year && s.Stat.Shortname == type.Shortname);
+            lock (StatValues)
+            {
+                StatisticsValue item = StatValues.Find(s => s.Year == year && s.Stat.Shortname == type.Shortname);
 
-            if (item == null)
-            {
-                StatValues.Add(new StatisticsValue(year, type, value));
-            }
-            else
-            {
-                item.Value += value;
+                if (item == null)
+                {
+                    StatValues.Add(new StatisticsValue(year, type, value));
+                }
+                else
+                {
+                    item.Value += value;
+                }
             }
         }
 
@@ -64,7 +72,8 @@ namespace TheAirline.Models.General.Statistics
         //returns the value for a statistics type for a year
         public double GetStatisticsValue(int year, StatisticsType type)
         {
-            var stats = new List<StatisticsValue>(StatValues);
+            List<StatisticsValue> stats;
+            lock (StatValues) stats = new List<StatisticsValue>(StatValues);
 
             StatisticsValue item =
                 stats.FirstOrDefault(s => s.Stat != null && s.Year == year && s.Stat.Shortname == type.Shortname);
@@ -79,13 +88,11 @@ namespace TheAirline.Models.General.Statistics
         //returns the total value for a statistics type
         public double GetStatisticsValue(StatisticsType type)
         {
-            if (StatValues != null
-                && StatValues.Exists(s => s.Stat != null && s.Stat.Shortname == type.Shortname))
+            if (StatValues == null) return 0;
+            lock (StatValues)
             {
-                return StatValues.Where(s => s.Stat != null && s.Stat.Shortname == type.Shortname)
-                                 .Sum(s => s.Value);
+                return StatValues.Where(s => s.Stat != null && s.Stat.Shortname == type.Shortname).Sum(s => s.Value);
             }
-            return 0;
         }
 
         //adds the value for a statistics type for a year
@@ -93,20 +100,23 @@ namespace TheAirline.Models.General.Statistics
         //returns all years with statistics
         public List<int> GetYears()
         {
-            return StatValues.Select(s => s.Year).Distinct().ToList();
+            lock (StatValues) return StatValues.Select(s => s.Year).Distinct().ToList();
         }
 
         public void SetStatisticsValue(int year, StatisticsType type, double value)
         {
-            StatisticsValue item = StatValues.Find(s => s.Year == year && s.Stat.Shortname == type.Shortname);
+            lock (StatValues)
+            {
+                StatisticsValue item = StatValues.Find(s => s.Year == year && s.Stat.Shortname == type.Shortname);
 
-            if (item == null)
-            {
-                StatValues.Add(new StatisticsValue(year, type, value));
-            }
-            else
-            {
-                item.Value = value;
+                if (item == null)
+                {
+                    StatValues.Add(new StatisticsValue(year, type, value));
+                }
+                else
+                {
+                    item.Value = value;
+                }
             }
         }
 
