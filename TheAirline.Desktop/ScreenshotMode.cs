@@ -194,13 +194,18 @@ namespace TheAirline.Desktop
                 await Wait(() => !av.Suggestions.IsBusy, "the suggestions");
                 await Shoot(window, "06-route-suggestions");
 
-                // Airports: the list sorted by distance from an airport
+                // Airports > Manage: the list sorted by distance from an airport
                 av.Page = PageOf("Airports");
-                av.Airports.Search = "United States";
-                av.Airports.Near = "KOA";
-                await Shoot(window, "06b-airports-near");
-                av.Airports.Near = "";
-                av.Airports.Search = "";
+                av.AirportsTab = 0;
+                av.AirportManager.OnlyMine = false;
+                av.AirportManager.Search = "United States";
+                av.AirportManager.SortBy = "Distance";
+                av.AirportManager.Near = "KOA";
+                await Settle();
+                Save(window, "06b-airports-near");
+                av.AirportManager.SortBy = "Name";
+                av.AirportManager.Near = "";
+                av.AirportManager.Search = "";
 
                 // Airlines > Competitors
                 av.Page = PageOf("Airlines");

@@ -21,7 +21,8 @@ namespace TheAirline.Presentation
             if (near != null && near != airport && airport.Profile.Coordinates != null && near.Profile.Coordinates != null)
             {
                 Distance = MathHelpers.GetDistance(near, airport);
-                Details = DistanceFormatter.Km(Distance.Value) + " from " + near.Profile.IATACode;
+                DistanceText = DistanceFormatter.Km(Distance.Value);
+                Details = DistanceText + " from " + near.Profile.IATACode;
             }
             else if (near == airport) Details = "the airport you are measuring from";
         }
@@ -32,6 +33,9 @@ namespace TheAirline.Presentation
 
         /// <summary>How far from the airport the list is sorted around, when there is one.</summary>
         public double? Distance { get; }
+
+        /// <summary>Just the distance, for a narrow column.</summary>
+        public string DistanceText { get; } = "";
 
         public string Details { get; }
         public bool HasDetails => !string.IsNullOrEmpty(Details);
@@ -159,11 +163,8 @@ namespace TheAirline.Presentation
         /// <summary>The airport a typed code or name means: an exact code wins, else the first match by name.</summary>
         public Airport Resolve(string text)
         {
-            string s = (text ?? "").Trim();
-            if (s.Length == 0) return null;
             _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
-            return _all.FirstOrDefault(a => string.Equals(a.Profile.IATACode, s, StringComparison.OrdinalIgnoreCase))
-                   ?? _all.FirstOrDefault(a => Matches(a, s));
+            return AirportSearch.Resolve(text, _all);
         }
 
         /// <summary>Search any airport as the destination of a new route (code, name or country), recommended or not.</summary>
@@ -221,23 +222,8 @@ namespace TheAirline.Presentation
         }
 
 
-        /// <summary>
-        ///     Whether the search text matches the airport: its IATA code, its name, its town, its state (by name or
-        ///     short name, so "Hawaii" and "HI" both find Kona and Hilo) or its country.
-        /// </summary>
-        public static bool Matches(Airport a, string s)
-        {
-            if (string.IsNullOrEmpty(s)) return true;
-            if (a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)) return true;
-            if (a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            Town town = a.Profile.Town;
-            if (town == null) return false;
-            if (town.Name != null && town.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            if (town.State != null
-                && ((town.State.Name != null && town.State.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)
-                    || string.Equals(town.State.ShortName, s, StringComparison.OrdinalIgnoreCase))) return true;
-            return a.Profile.Country != null && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
+        /// <summary>Whether the search text matches the airport (code, name, town, state or country).</summary>
+        public static bool Matches(Airport a, string s) => AirportSearch.Matches(a, s);
 
         /// <summary>Filters by IATA code, name, town, state or country; empty shows the airline's own airports.</summary>
         public string Search

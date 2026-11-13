@@ -6,11 +6,12 @@
     <!-- airport list, like the Windows airport page: plus button to lease gates -->
     <Grid RowDefinitions="Auto,Auto,*">
       <StackPanel Spacing="6" Margin="0,0,0,6">
-        <TextBox Text="{Binding Search}" Watermark="search airport, code, town or country" />
+        <TextBox Text="{Binding Search}" Watermark="search airport, code, town, state or country" />
         <StackPanel Orientation="Horizontal" Spacing="10">
           <CheckBox Content="My airports only" IsChecked="{Binding OnlyMine}" />
           <TextBlock Text="Sort" VerticalAlignment="Center" />
           <ComboBox ItemsSource="{Binding SortChoices}" SelectedItem="{Binding SortBy}" MinWidth="110" />
+          <TextBox Text="{Binding Near}" Watermark="from (airport)" MinWidth="130" IsVisible="{Binding SortByDistance}" />
           <TextBlock Text="+ leases 2 gates with" VerticalAlignment="Center" />
           <ComboBox ItemsSource="{Binding ContractTypes}" SelectedItem="{Binding ContractType}" MinWidth="110">
             <ComboBox.ItemTemplate>
@@ -20,8 +21,9 @@
             </ComboBox.ItemTemplate>
           </ComboBox>
         </StackPanel>
+        <TextBlock Text="{Binding NearStatus}" IsVisible="{Binding SortByDistance}" Opacity="0.7" TextWrapping="Wrap" />
       </StackPanel>
-      <Grid Grid.Row="1" ColumnDefinitions="30,170,62,95,95,80,75,48,55,40,50" Margin="4,0,0,2" Opacity="0.7">
+      <Grid Grid.Row="1" ColumnDefinitions="30,160,62,86,86,76,70,48,55,40,50,64" Margin="4,0,0,2" Opacity="0.7">
         <TextBlock Grid.Column="1" Text="Airport" FontWeight="SemiBold" />
         <TextBlock Grid.Column="2" Text="Code" FontWeight="SemiBold" />
         <TextBlock Grid.Column="3" Text="Town" FontWeight="SemiBold" />
@@ -32,11 +34,12 @@
         <TextBlock Grid.Column="8" Text="Runway" FontWeight="SemiBold" />
         <TextBlock Grid.Column="9" Text="Airl." FontWeight="SemiBold" />
         <TextBlock Grid.Column="10" Text="Routes" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="11" Text="Distance" FontWeight="SemiBold" IsVisible="{Binding SortByDistance}" />
       </Grid>
       <ListBox Grid.Row="2" ItemsSource="{Binding Airports}" SelectedItem="{Binding Selected}">
         <ListBox.ItemTemplate>
           <DataTemplate>
-            <Grid ColumnDefinitions="30,170,62,95,95,80,75,48,55,40,50">
+            <Grid ColumnDefinitions="30,160,62,86,86,76,70,48,55,40,50,64">
               <Button Content="+" Command="{Binding LeaseCommand}" IsVisible="{Binding CanLease}"
                       Padding="0" Width="24" Height="22" HorizontalContentAlignment="Center"
                       ToolTip.Tip="Lease gates at this airport" />
@@ -50,6 +53,7 @@
               <TextBlock Grid.Column="8" Text="{Binding Runway}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="9" Text="{Binding Airlines}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="10" Text="{Binding Routes}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="11" Text="{Binding DistanceText}" VerticalAlignment="Center" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

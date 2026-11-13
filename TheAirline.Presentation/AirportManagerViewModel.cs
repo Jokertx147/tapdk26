@@ -16,7 +16,7 @@ namespace TheAirline.Presentation
     /// <summary>One row of the airport list, with the columns of the Windows airport list and a quick lease button.</summary>
     public class AirportRow : AirportItem
     {
-        public AirportRow(Airport airport, bool own) : base(airport, own)
+        public AirportRow(Airport airport, bool own, Airport near = null) : base(airport, own, near)
         {
             var p = airport.Profile;
             Name = p.Name;
@@ -519,7 +519,46 @@ namespace TheAirline.Presentation
         }
 
         public List<string> SortChoices { get; } =
-            new List<string> { "Name", "Country", "Size", "Runway", "Free gates", "Airlines", "Routes" };
+            new List<string> { "Name", "Distance", "Country", "Size", "Runway", "Free gates", "Airlines", "Routes" };
+
+        /// <summary>The Distance sort is chosen, so the box for the airport to measure from is shown.</summary>
+        public bool SortByDistance => _sortBy == "Distance";
+
+        private string _near = "";
+        private Airport _nearAirport;
+
+        /// <summary>
+        ///     The airport the Distance sort measures from (a code, a name, a town, a state). Answers "what is near my
+        ///     hub" and "which airport is closest to there".
+        /// </summary>
+        public string Near
+        {
+            get { return _near; }
+            set
+            {
+                if (SetProperty(ref _near, value ?? ""))
+                {
+                    _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
+                    _nearAirport = AirportSearch.Resolve(_near, _all);
+                    OnPropertyChanged(nameof(NearStatus));
+                    ApplySearch();
+                }
+            }
+        }
+
+        /// <summary>The airport the list is measured from, or null.</summary>
+        public Airport NearAirport => _nearAirport;
+
+        public string NearStatus
+        {
+            get
+            {
+                if (!SortByDistance) return "";
+                if (_near.Trim().Length == 0) return "Name an airport to measure from.";
+                if (_nearAirport == null) return "No airport found for \"" + _near.Trim() + "\".";
+                return "Nearest first from " + _nearAirport.Profile.IATACode + "  " + _nearAirport.Profile.Name + ".";
+            }
+        }
 
         public string SortBy
         {
@@ -528,6 +567,8 @@ namespace TheAirline.Presentation
             {
                 if (SetProperty(ref _sortBy, value ?? "Name"))
                 {
+                    OnPropertyChanged(nameof(SortByDistance));
+                    OnPropertyChanged(nameof(NearStatus));
                     ApplySearch();
                 }
             }
@@ -711,16 +752,19 @@ namespace TheAirline.Presentation
             string s = _search.Trim();
             if (s.Length > 0)
             {
-                list = list.Where(
-                    a => a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)
-                         || a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
-                         || (a.Profile.Town != null && a.Profile.Town.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)
-                         || (a.Profile.Country != null
-                             && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0));
+                list = list.Where(a => AirportSearch.Matches(a, s));
             }
 
+            Airport near = SortByDistance ? _nearAirport : null;
             switch (_sortBy)
             {
+                case "Distance":
+                    // without an airport to measure from there is nothing to sort by, so the list stays by name
+                    if (near != null)
+                        list = list.Where(a => a.Profile.Coordinates != null)
+                                   .OrderBy(a => a == near ? 0 : 1)
+                                   .ThenBy(a => MathHelpers.GetDistance(near, a));
+                    break;
                 case "Country":
                     list = list.OrderBy(a => a.Profile.Country?.Name).ThenBy(a => a.Profile.Name);
                     break;
@@ -746,7 +790,7 @@ namespace TheAirline.Presentation
             Airports.Clear();
             foreach (var a in list.Take(300))
             {
-                var row = new AirportRow(a, own.Contains(a));
+                var row = new AirportRow(a, own.Contains(a), near);
                 row.LeaseCommand = new RelayCommand(() => QuickLease(row));
                 Airports.Add(row);
             }

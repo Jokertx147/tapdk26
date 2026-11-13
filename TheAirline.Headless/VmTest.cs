@@ -1212,6 +1212,40 @@ static class VmTest
         if (far[0].Airport.Profile.IATACode != "KOA") fail("Kona is the nearest to Hilo, not " + far[0].Airport.Profile.IATACode);
         if (!far.All(x => x.HasDetails && x.Details.EndsWith("from ITO"))) fail("each row should say how far from ITO");
 
+        // the Airports page's own Distance sort, around an airport you name
+        var mg = av.AirportManager;
+        mg.OnlyMine = false;
+        mg.Search = "Hawaii";
+        mg.SortBy = "Name";
+        if (mg.SortByDistance || mg.NearStatus != "") fail("Distance isn't chosen yet");
+        if (mg.Airports.Any(x => x.DistanceText != "")) fail("a distance shown while sorting by name");
+        mg.SortBy = "Distance";
+        if (!mg.SortByDistance || !mg.NearStatus.StartsWith("Name an airport")) fail("Distance with nothing to measure from: " + mg.NearStatus);
+        var byNameStill = mg.Airports.Select(x => x.Airport.Profile.Name).ToList();
+        for (int i = 1; i < byNameStill.Count; i++)
+            if (string.CompareOrdinal(byNameStill[i], byNameStill[i - 1]) < 0) fail("without an airport to measure from the list should stay by name");
+        mg.Near = "ITO";
+        Console.WriteLine("  Airports page: " + mg.NearStatus);
+        var mrows = mg.Airports.OfType<TheAirline.Presentation.AirportRow>().ToList();
+        if (mrows.Count != mg.Airports.Count) fail("the Airports page's rows");
+        foreach (var r in mrows) Console.WriteLine("    " + r.Codes + " " + r.Name + " | " + r.Town + " | " + (r.DistanceText == "" ? "-" : r.DistanceText));
+        if (mrows[0].Airport.Profile.IATACode != "ITO" || mrows[0].DistanceText != "") fail("Hilo should lead its own list");
+        var mfar = mrows.Skip(1).ToList();
+        for (int i = 1; i < mfar.Count; i++)
+            if (mfar[i].Distance < mfar[i - 1].Distance - 0.01) fail("the Airports page isn't nearest first");
+        if (mfar[0].Airport.Profile.IATACode != "KOA") fail("Kona is nearest to Hilo, not " + mfar[0].Airport.Profile.IATACode);
+        if (mfar.Any(x => x.DistanceText == "")) fail("every row but the first should show its distance");
+        // the state search works here too, and the sort goes back when another is chosen
+        if (mrows.Count < 5 || mrows.Any(x => x.Airport.Profile.Town?.State?.Name != "Hawaii")) fail("the Airports page's Hawaii search");
+        mg.SortBy = "Size";
+        if (mg.SortByDistance || mg.Airports.Any(x => x.DistanceText != "")) fail("the distance should go when another sort is chosen");
+        mg.SortBy = "Distance";
+        mg.Near = "nowhere at all";
+        if (!mg.NearStatus.StartsWith("No airport found")) fail("an airport that doesn't exist");
+        mg.Search = "";
+        mg.SortBy = "Name";
+        mg.Near = "";
+
         // a name works as well as a code, and the sort holds over a new search
         ap.Near = "Kona International";
         if (ap.NearAirport?.Profile.IATACode != "KOA") fail("a name didn't find Kona");
