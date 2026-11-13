@@ -4028,6 +4028,10 @@ static class VmTest
                 mineO.Add(al);
             }
             int idle0 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
+            // (the airline may be sitting on idle aircraft of its own, and may sell one of those instead of one of the
+            // six just given to it, so what is counted is how many more of its aircraft reach the used market)
+            var ownedO = aiO.Fleet.Select(f => f.Airliner).ToList();
+            int marketO = TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => ownedO.Contains(a));
             double cash0 = aiO.Money; int sold = 0;
             var tO = gO.GameTime;
             // one a week: a second sale the same day is refused, the next week's goes through
@@ -4042,8 +4046,15 @@ static class VmTest
             }
             gO.GameTime = tO;
             int idle1 = aiO.Fleet.Count(f => !f.HasRoute && TheAirline.Helpers.OwnershipService.IsOwned(f) && f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped);
-            Console.WriteLine("  " + aiO.Profile.Name + ": " + idle0 + " idle owned, reserve " + TheAirline.Helpers.OwnershipService.Reserve(aiO) + " -> sold " + sold + " for " + (aiO.Money - cash0).ToString("N0") + ", " + idle1 + " idle left; on the used market: " + TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)));
-            if (idle1 > TheAirline.Helpers.OwnershipService.Reserve(aiO) || sold == 0 || aiO.Money <= cash0 || TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => mineO.Contains(a)) != sold) { Console.WriteLine("  FAILED surplus sale"); Environment.Exit(1); }
+            Console.WriteLine("  " + aiO.Profile.Name + ": " + idle0 + " idle owned, reserve " + TheAirline.Helpers.OwnershipService.Reserve(aiO) + " -> sold " + sold + " for " + (aiO.Money - cash0).ToString("N0") + ", " + idle1 + " idle left; new on the used market: " + (TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => ownedO.Contains(a)) - marketO));
+            int onMarketO = TheAirline.Models.Airliners.Airliners.GetAirlinersForSale().Count(a => ownedO.Contains(a)) - marketO;
+            if (idle1 > TheAirline.Helpers.OwnershipService.Reserve(aiO) || sold == 0 || aiO.Money <= cash0 || onMarketO != sold)
+            {
+                Console.WriteLine("  FAILED surplus sale: " + sold + " sold, " + onMarketO + " reached the used market, "
+                                  + idle1 + " idle left against a reserve of " + TheAirline.Helpers.OwnershipService.Reserve(aiO)
+                                  + ", cash " + (aiO.Money - cash0).ToString("N0"));
+                Environment.Exit(1);
+            }
         }
         Console.WriteLine("AIRLINE KIND TEST");
         {
