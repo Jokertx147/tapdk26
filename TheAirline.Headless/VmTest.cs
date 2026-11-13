@@ -1134,6 +1134,78 @@ static class VmTest
         Console.WriteLine("GAP PROBE DONE");
     }
 
+    /// <summary>"vm airportsearch": the airport search finds an airport by its town and state, not only its name and country.</summary>
+    static void AirportSearchTest(AirlineViewModel av)
+    {
+        Console.WriteLine("AIRPORT SEARCH TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var all = TheAirline.Models.Airports.Airports.GetAllAirports();
+        Func<string, System.Collections.Generic.List<TheAirline.Models.Airports.Airport>> find =
+            q => all.Where(a => TheAirline.Presentation.AirportsViewModel.Matches(a, q)).ToList();
+
+        // the Hawaiian airports are in the game and a search for the state finds them
+        foreach (string code in new[] { "KOA", "ITO", "HNL", "OGG", "LIH" })
+        {
+            var a = all.FirstOrDefault(x => x.Profile.IATACode == code);
+            if (a == null) fail(code + " isn't in the game");
+            if (a.Profile.Town?.State?.Name != "Hawaii") fail(code + " isn't in Hawaii: " + a.Profile.Town?.State?.Name);
+            if (a.GetMaxRunwayLength() <= 0 || a.Terminals.NumberOfGates <= 0) fail(code + " has no runway or gates");
+        }
+        var hawaii = find("Hawaii");
+        Console.WriteLine("  \"Hawaii\": " + string.Join(", ", hawaii.Select(a => a.Profile.IATACode)));
+        foreach (string code in new[] { "KOA", "ITO", "HNL", "OGG", "LIH" })
+            if (!hawaii.Any(a => a.Profile.IATACode == code)) fail("\"Hawaii\" didn't find " + code);
+        if (hawaii.Any(a => a.Profile.Town?.State?.Name != "Hawaii")) fail("\"Hawaii\" found an airport outside Hawaii");
+
+        // the state's short name, the town, the code, the airport's name and the country all still work
+        if (!find("HI").Any(a => a.Profile.IATACode == "KOA")) fail("\"HI\" didn't find KOA");
+        if (!find("Hilo").Any(a => a.Profile.IATACode == "ITO")) fail("\"Hilo\" didn't find ITO");
+        if (!find("KOA").Any(a => a.Profile.IATACode == "KOA")) fail("\"KOA\" didn't find KOA");
+        if (!find("Kona International").Any(a => a.Profile.IATACode == "KOA")) fail("the airport's name didn't find KOA");
+        if (find("United States").Count < 50) fail("the country search");
+        var texas = find("Texas");
+        Console.WriteLine("  \"Texas\": " + string.Join(", ", texas.Select(a => a.Profile.IATACode)));
+        if (!texas.Any(a => a.Profile.IATACode == "DFW") || !texas.Any(a => a.Profile.IATACode == "IAH")) fail("\"Texas\" didn't find DFW and IAH");
+        if (find("zzzz").Count != 0) fail("a search that matches nothing");
+        if (find("").Count != all.Count) fail("an empty search should match everything");
+
+        // and a route can be flown to them: the demand is there
+        foreach (string code in new[] { "KOA", "ITO" })
+        {
+            var a = all.First(x => x.Profile.IATACode == code);
+            int demand = a.GetDestinationPassengersSum();
+            Console.WriteLine("  " + code + " " + a.Profile.Name + ", " + a.Profile.Town.Name + ", " + a.Profile.Town.State.Name
+                + ": " + a.Terminals.NumberOfGates + " gates, " + a.GetMaxRunwayLength() + " m runway, demand out " + demand.ToString("#,0"));
+            if (demand <= 0) fail(code + " has no demand");
+        }
+        Console.WriteLine("AIRPORT SEARCH TEST OK");
+    }
+
+    /// <summary>"vm airportprobe": whether the airports whose IATA codes are in TAP_IATA are in the game, and what demand they have.</summary>
+    static void AirportProbe(AirlineViewModel av)
+    {
+        Console.WriteLine("AIRPORT PROBE");
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        string[] codes = (Environment.GetEnvironmentVariable("TAP_IATA") ?? "KOA,ITO,HNL,OGG,LIH").Split(',').Select(x => x.Trim()).ToArray();
+        var all = TheAirline.Models.Airports.Airports.GetAllAirports();
+        var active = TheAirline.Models.Airports.Airports.GetAllActiveAirports();
+        Console.WriteLine("  " + all.Count + " airports loaded, " + active.Count + " active on " + g.GameTime.ToString("yyyy-MM-dd"));
+        foreach (string code in codes)
+        {
+            var a = all.FirstOrDefault(x => x.Profile.IATACode == code);
+            if (a == null) { Console.WriteLine("  " + code + ": NOT LOADED"); continue; }
+            bool isActive = active.Contains(a);
+            double pax = a.Profile.PaxValues == null ? -1 : a.Profile.PaxValues.Where(v => v.FromYear <= g.GameTime.Year).OrderBy(v => v.FromYear).Select(v => (double)v.Pax).LastOrDefault();
+            double outDemand = a.GetDestinationPassengersSum();
+            Console.WriteLine("  " + code + " " + a.Profile.Name + " | " + a.Profile.Town + ", " + a.Profile.Town.Country.Name
+                + " | type " + a.Profile.Type + " | size " + a.Profile.Size + " | active " + isActive
+                + " | period " + a.Profile.Period.From.Year + "-" + a.Profile.Period.To.Year
+                + " | pax " + pax + " | runway " + a.GetMaxRunwayLength() + "m | gates " + a.Terminals.NumberOfGates
+                + " | demand out " + outDemand.ToString("#,0"));
+        }
+        Console.WriteLine("AIRPORT PROBE DONE");
+    }
+
     /// <summary>"vm statsprobe": the game's yearly statistics against the flights the monthly report recorded (TAP_DAYS, default 20).</summary>
     static async Task StatsProbe(AirlineViewModel av)
     {
@@ -4054,6 +4126,8 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("typecheck")) { TypeCheck(av); return; }
             if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("airportprobe")) { AirportProbe(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("airportsearch")) { AirportSearchTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("statsprobe")) { await StatsProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("gapprobe")) { await GapProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("reputation")) { await ReputationTest(av); return; }

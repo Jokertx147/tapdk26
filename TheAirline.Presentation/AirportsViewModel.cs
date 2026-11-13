@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TheAirline.Helpers;
 using TheAirline.Models.Airports;
+using TheAirline.Models.General.Countries.Towns;
 using TheAirline.Models.General;
 using TheAirline.Models.Routes;
 
@@ -150,11 +151,7 @@ namespace TheAirline.Presentation
             _all = _all ?? Models.Airports.Airports.GetAllAirports().OrderBy(a => a.Profile.Name).ToList();
             string s = _destSearch.Trim();
             var origin = _selected.Airport;
-            var found = _all.Where(
-                              a => a != origin && a.Profile.Coordinates != null
-                                   && (a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)
-                                       || a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
-                                       || (a.Profile.Country != null && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)))
+            var found = _all.Where(a => a != origin && a.Profile.Coordinates != null && Matches(a, s))
                             .Select(a => new DestinationItem(origin, a))
                             .OrderBy(d => string.Equals(d.Airport.Profile.IATACode, s, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
                             .ThenBy(d => d.Distance)
@@ -165,7 +162,26 @@ namespace TheAirline.Presentation
             }
         }
 
-        /// <summary>Filters by IATA code, name or country; empty shows the airline's own airports.</summary>
+
+        /// <summary>
+        ///     Whether the search text matches the airport: its IATA code, its name, its town, its state (by name or
+        ///     short name, so "Hawaii" and "HI" both find Kona and Hilo) or its country.
+        /// </summary>
+        public static bool Matches(Airport a, string s)
+        {
+            if (string.IsNullOrEmpty(s)) return true;
+            if (a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)) return true;
+            if (a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            Town town = a.Profile.Town;
+            if (town == null) return false;
+            if (town.Name != null && town.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (town.State != null
+                && ((town.State.Name != null && town.State.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0)
+                    || string.Equals(town.State.ShortName, s, StringComparison.OrdinalIgnoreCase))) return true;
+            return a.Profile.Country != null && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>Filters by IATA code, name, town, state or country; empty shows the airline's own airports.</summary>
         public string Search
         {
             get { return _search; }
@@ -306,11 +322,7 @@ namespace TheAirline.Presentation
             else
             {
                 string s = _search.Trim();
-                list = _all.Where(
-                    a => a.Profile.IATACode.StartsWith(s, StringComparison.OrdinalIgnoreCase)
-                         || a.Profile.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
-                         || (a.Profile.Country != null
-                             && a.Profile.Country.Name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0));
+                list = _all.Where(a => Matches(a, s));
             }
 
             Airports.Clear();
