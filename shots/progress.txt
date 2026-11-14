@@ -1,0 +1,25 @@
+05:14:59 started; window 1100x720 at scale 1
+05:15:02 saved 00-new-game.png (1440x900)
+05:15:02 saved 00-new-game-2.png (1440x900)
+05:15:03 saved 00-new-game-3.png (1440x900)
+05:15:03 saved 00-new-game-4.png (1440x900)
+05:15:08 game created: Delta Air Lines, 2007-01-01
+05:15:08 route ATL-ORD with N002DL  Bombardier CRJ900: opened
+05:15:19 played to 2007-03-14; routes 1, fleet 2, idle 1
+05:15:19 saved 01-statistics-passengers.png (1440x900)
+05:15:20 saved 01-statistics-passengers-2.png (1440x900)
+05:15:20 saved 02-statistics-result.png (1440x900)
+05:15:21 saved 02-statistics-result-2.png (1440x900)
+05:15:21 statistics: log scale True
+05:15:21 saved 02b-statistics-result-other-scale.png (1440x900)
+05:15:22 saved 03-statistics-seats-filled.png (1440x900)
+05:15:22 saved 04-statistics-cash-by-year.png (1440x900)
+05:15:23 saved 05-monthly-report.png (1440x900)
+05:15:24 saved 06-route-suggestions.png (1440x900)
+05:15:24 saved 06-route-suggestions-2.png (1440x900)
+05:15:25 saved 06b-airports-near.png (1440x900)
+05:15:25 saved 07-competitors.png (1440x900)
+05:15:26 saved 08-news-report-link.png (1440x900)
+05:15:26 saved 09-new-aircraft-engines.png (1440x900)
+05:15:27 saved 09-new-aircraft-engines-2.png (1440x900)
+05:15:27 done
