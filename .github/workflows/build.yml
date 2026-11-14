@@ -113,7 +113,7 @@ jobs:
 
       - name: Round trip advice test (the forecast's extra round trip against a month flown with and without it)
         run: |
-          TAP_SAMPLE=40 timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm tripadvice 2>&1 | tee tripadvicetest.log
+          TAP_OPPONENTS=20 TAP_SAMPLE=40 timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm tripadvice 2>&1 | tee tripadvicetest.log
           grep -q "TRIP ADVICE TEST OK" tripadvicetest.log || { grep -m8 -iE "FAILED|timeout|exception|   at " tripadvicetest.log | sed 's/^/::error::/'; exit 1; }
 
       - name: Follow an aircraft on the map test

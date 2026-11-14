@@ -308,11 +308,7 @@ static class VmTest
     static void YearProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
-        // TAP_MINLOAD: the emptiest a route may be forecast and still be opened (0 lets every route through)
-        double minLoad;
-        if (double.TryParse(Environment.GetEnvironmentVariable("TAP_MINLOAD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out minLoad))
-            TheAirline.Helpers.AIRouteChoice.MinLoad = minLoad;
-        Console.WriteLine("  routes are opened only when forecast at least " + (TheAirline.Helpers.AIRouteChoice.MinLoad * 100).ToString("0") + "% full");
+
         int yearMonths = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "12");
         for (int m = 0; m < yearMonths; m++)
         {
@@ -2139,13 +2135,13 @@ static class VmTest
                 .OfType<TheAirline.Models.Routes.PassengerRoute>()
                 .Where(r => !(r is TheAirline.Models.Routes.HelicopterRoute) && r.GetAirliners().Count == 1 && r.StartDate < start.AddDays(-30) && !r.HasStopovers)
                 .Where(r => { var f = r.GetAirliners()[0]; int n = TheAirline.Helpers.AIRouteChoice.CurrentTrips(r);
-                              return n >= 2 && r.TimeTable.Entries.Count == 14 * n && !TheAirline.Helpers.AIRouteChoice.IsBusiness(r, f); })
+                              return n >= 1 && r.TimeTable.Entries.Count == 14 * n && !TheAirline.Helpers.AIRouteChoice.IsBusiness(r, f); })
                 .OrderBy(r => r.Id).ToList();
         var chosen = pick();
         // a spread sample: every k-th
         int step = Math.Max(1, chosen.Count / sample);
         var ids = chosen.Where((r, i) => i % step == 0).Take(sample).Select(r => r.Id).ToList();
-        Console.WriteLine("TRIPPROBE " + start.ToString("dd MMM yyyy") + ": " + chosen.Count + " routes fly two round trips a day or more; sample " + ids.Count);
+        Console.WriteLine("TRIPPROBE " + start.ToString("dd MMM yyyy") + ": " + chosen.Count + " routes to add a round trip to; sample " + ids.Count);
         TheAirline.Helpers.SerializedLoadSaveHelpers.SaveGame("tripprobe");
 
         Func<bool, System.Collections.Generic.Dictionary<string, double[]>> play = extra =>
@@ -4299,6 +4295,14 @@ static class VmTest
             menu.NewGameCommand.Execute(null);
             var ng = (NewGameViewModel)shell.Current;
             await Wait(() => !ng.IsBusy, "new game screen loads");
+            // TAP_MINLOAD: the emptiest a route the computer airlines will open (0 lets every route through), for the probes
+            double minLoad;
+            if (double.TryParse(Environment.GetEnvironmentVariable("TAP_MINLOAD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out minLoad))
+            {
+                TheAirline.Helpers.AIRouteChoice.MinLoad = minLoad;
+                Console.WriteLine("routes are opened only when forecast at least " + (minLoad * 100).ToString("0") + "% full");
+            }
+
             // TAP_YEAR starts the game in another year (the probes)
             int startYear; if (int.TryParse(Environment.GetEnvironmentVariable("TAP_YEAR"), out startYear)) { ng.StartYear = startYear; await Wait(() => !ng.IsBusy, "airlines for the year"); }
             Console.WriteLine("airlines for " + ng.StartYear + ": " + ng.Airlines.Count);
