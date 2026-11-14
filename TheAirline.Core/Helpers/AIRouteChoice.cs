@@ -20,11 +20,28 @@ namespace TheAirline.Helpers
         // how many of the destinations with the most demand are forecast
         public const int Candidates = 6;
 
+        /// <summary>
+        ///     A route the forecast says would fly emptier than this is not opened. Measured over 93 new routes of the
+        ///     computer airlines: every one of the 54 forecast under 15% full lost money a month later, together about
+        ///     2.7 million a day, and not one recovered (the ones forecast under 5% full ended at 7% full). Above it
+        ///     they are mixed, and by 30% most pay, so the floor only rules out the hopeless.
+        /// </summary>
+        public static double MinLoad = 0.15;
+
+        /// <summary>
+        ///     When the destinations with the most demand are all too empty, this many are forecast before the airline
+        ///     gives up for now: a thin home airport should send it further afield, not stop it growing.
+        /// </summary>
+        public const int WideCandidates = 24;
+
         // a route is given time to find its passengers before it is given up
         public const int DaysBeforeDrop = 60;
 
         /// <summary>Counters for the tests: destinations forecast, not the one with the most demand, all forecast to lose, routes given up.</summary>
         public static int Picked, PickedOther, AllLosing, Dropped;
+
+        /// <summary>Counters for the tests: searches that went past the first candidates to find a route with passengers, and that found none.</summary>
+        public static int Widened, TooEmpty;
 
         /// <summary>Counters for the tests: route searches that found no start airport, no destination, no aircraft; that used an idle aircraft; that bought or leased one.</summary>
         public static int NoStart, NoDestination, NoAircraft, UsedIdle, GotAircraft, IdleRoutes, EmptyDropped;
@@ -135,24 +152,47 @@ namespace TheAirline.Helpers
             {
                 double fares = FareFactor(airline);
                 var fleet = new FleetSnapshot(airline);
-                Airport best = null;
+                Airport best = null, bestAnyLoad = null;
                 double bestProfit = double.MinValue;
-                foreach (Airport d in ranked.Take(Candidates))
+                bool forecast = false;
+                int looked = 0;
+                foreach (Airport d in ranked)
                 {
+                    // the destinations with the most demand first; further down the list only while they are all empty
+                    if (looked >= Candidates && best != null) break;
+                    if (looked >= WideCandidates) break;
                     double km = MathHelpers.GetDistance(origin, d);
                     FleetAirliner f = fleet.Reference(km);
                     if (f == null) continue;
+                    looked++;
+                    // at the round trips that earn the most, which asks whether there is a route here worth flying
+                    // at all. (Judging it instead at the trips the airline will really fly, which fill the day, was
+                    // measured over five game years and came out worse: it turned away routes that are fine at a
+                    // lower frequency, and the airline's habit of filling the day is a separate matter.)
                     RouteForecast fc = Best(airline, origin, d, f, null, false, fares);
-                    if (fc.ProfitPerDay > bestProfit)
+                    forecast = true;
+                    if (bestAnyLoad == null) bestAnyLoad = d;
+                    // a route the forecast leaves nearly empty never fills up: it is passed over, however it compares
+                    // with the other empty ones
+                    if (fc.Load < MinLoad) continue;
+                    if (best == null || fc.ProfitPerDay > bestProfit)
                     {
                         bestProfit = fc.ProfitPerDay;
                         best = d;
                     }
                 }
-                if (best == null) return ranked[0]; // nothing to forecast with yet: the most demand
+                if (!forecast) return ranked[0]; // nothing to forecast with yet: the most demand
+                if (best == null)
+                {
+                    // nowhere within reach has the passengers to fill a flight: no route today, and the aircraft is
+                    // left for another search (or, once it has sat long enough, for sale)
+                    System.Threading.Interlocked.Increment(ref TooEmpty);
+                    return null;
+                }
+                if (looked > Candidates) System.Threading.Interlocked.Increment(ref Widened);
                 System.Threading.Interlocked.Increment(ref Picked);
-                // even when every one is forecast to lose money it is flown: an idle aircraft costs its ownership too,
-                // and a new route finds more passengers as the airline becomes known there
+                // a route that fills its seats but is still forecast to lose money is flown: an idle aircraft costs its
+                // ownership too, and a new route finds more passengers as the airline becomes known there
                 if (bestProfit < 0) System.Threading.Interlocked.Increment(ref AllLosing);
                 if (best != ranked[0]) System.Threading.Interlocked.Increment(ref PickedOther);
                 return best;

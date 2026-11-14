@@ -308,6 +308,11 @@ static class VmTest
     static void YearProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
+        // TAP_MINLOAD: the emptiest a route may be forecast and still be opened (0 lets every route through)
+        double minLoad;
+        if (double.TryParse(Environment.GetEnvironmentVariable("TAP_MINLOAD"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out minLoad))
+            TheAirline.Helpers.AIRouteChoice.MinLoad = minLoad;
+        Console.WriteLine("  routes are opened only when forecast at least " + (TheAirline.Helpers.AIRouteChoice.MinLoad * 100).ToString("0") + "% full");
         int yearMonths = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "12");
         for (int m = 0; m < yearMonths; m++)
         {
@@ -334,6 +339,14 @@ static class VmTest
             margins.Sort();
             var shared = TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Routes).OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
             int sharedCount = shared.Count(r => TheAirline.Helpers.AIPricingService.Rivals(r).Count > 0);
+            // how the airlines are growing, and how often a search found nowhere worth flying
+            var aiY = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).ToList();
+            Console.WriteLine("   fleet " + aiY.Sum(a => a.Fleet.Count) + ", routes " + aiY.Sum(a => a.Routes.Count)
+                              + ", airlines with routes " + aiY.Count(a => a.Routes.Count > 0)
+                              + " | picked " + TheAirline.Helpers.AIRouteChoice.Picked
+                              + ", looked further " + TheAirline.Helpers.AIRouteChoice.Widened
+                              + ", nowhere with passengers " + TheAirline.Helpers.AIRouteChoice.TooEmpty
+                              + ", given up " + TheAirline.Helpers.AIRouteChoice.Dropped);
             Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money, all together " + totalProfit.ToString("N0") + ", " + idle + " aircraft idle | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival | AI forecasts: " + TheAirline.Helpers.AIRouteChoice.Picked + " picks (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the most demand, " + TheAirline.Helpers.AIRouteChoice.AllLosing + " all forecast to lose), " + TheAirline.Helpers.AIRouteChoice.Dropped + " dropped");
             foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0).OrderByDescending(a => a.Fleet.Count).Take(6))
             {
@@ -1274,6 +1287,97 @@ static class VmTest
         Console.WriteLine("AIRPORT SORT TEST OK");
     }
 
+    /// <summary>"vm aiempty": a computer airline passes over destinations its forecast leaves nearly empty.</summary>
+    static void EmptyRouteTest(AirlineViewModel av)
+    {
+        Console.WriteLine("EMPTY ROUTE TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        double floor = TheAirline.Helpers.AIRouteChoice.MinLoad;
+        if (floor <= 0 || floor >= 0.5) fail("the floor should be a sensible share: " + floor);
+
+        // a computer airline with aircraft, and the destinations it would consider from one of its airports
+        var ai = TheAirline.Models.Airlines.Airlines.GetAllAirlines()
+                           .Where(a => !a.IsHuman && a.Airports.Count > 0 && a.Fleet.Count > 0
+                                       && a.AirlineRouteFocus == TheAirline.Models.Routes.Route.RouteType.Passenger)
+                           .OrderByDescending(a => a.Fleet.Count).First();
+        TheAirline.Models.Airports.Airport origin = null;
+        System.Collections.Generic.List<TheAirline.Models.Airports.Airport> ranked = null;
+        foreach (var ap in ai.Airports.ToList())
+        {
+            var list = TheAirline.Helpers.AIHelpers.GetDestinationAirports(ai, ap);
+            if (list.Count >= 8) { origin = ap; ranked = list; break; }
+        }
+        if (origin == null) fail("no airport with destinations to forecast");
+        Console.WriteLine("  " + ai.Profile.Name + " from " + origin.Profile.IATACode + ": " + ranked.Count + " destinations to choose from");
+
+        // what the forecast says about the ones it would look at
+        var fleet = new System.Collections.Generic.List<Tuple<string, double, double>>();
+        double fares = TheAirline.Helpers.AIRouteChoice.FareFactor(ai);
+        foreach (var d in ranked.Take(TheAirline.Helpers.AIRouteChoice.Candidates))
+        {
+            var f = TheAirline.Helpers.AIRouteChoice.Reference(ai, TheAirline.Helpers.MathHelpers.GetDistance(origin, d));
+            if (f == null) continue;
+            var fc = TheAirline.Helpers.AIRouteChoice.Best(ai, origin, d, f, null, false, fares);
+            fleet.Add(Tuple.Create(d.Profile.IATACode, fc.Load, fc.ProfitPerDay));
+        }
+        foreach (var x in fleet) Console.WriteLine("    " + x.Item1 + " forecast " + (x.Item2 * 100).ToString("0") + "% full, " + x.Item3.ToString("+#,0;-#,0") + " a day");
+        if (fleet.Count == 0) fail("nothing could be forecast");
+
+        // with the floor where it is, anything picked clears it
+        int tooEmpty0 = TheAirline.Helpers.AIRouteChoice.TooEmpty;
+        var picked = TheAirline.Helpers.AIRouteChoice.PickDestination(ai, origin, ranked);
+        if (picked != null)
+        {
+            var f = TheAirline.Helpers.AIRouteChoice.Reference(ai, TheAirline.Helpers.MathHelpers.GetDistance(origin, picked));
+            double load = TheAirline.Helpers.AIRouteChoice.Best(ai, origin, picked, f, null, false, fares).Load;
+            Console.WriteLine("  picked " + picked.Profile.IATACode + " at " + (load * 100).ToString("0") + "% full");
+            if (load < floor) fail("picked a destination below the floor: " + (load * 100).ToString("0") + "%");
+        }
+        else
+        {
+            Console.WriteLine("  nowhere worth flying from " + origin.Profile.IATACode);
+            if (TheAirline.Helpers.AIRouteChoice.TooEmpty != tooEmpty0 + 1) fail("giving up should be counted");
+        }
+
+        // a floor nothing can clear: no destination at all, and it is counted
+        TheAirline.Helpers.AIRouteChoice.MinLoad = 1.01;
+        int before = TheAirline.Helpers.AIRouteChoice.TooEmpty;
+        if (TheAirline.Helpers.AIRouteChoice.PickDestination(ai, origin, ranked) != null) fail("a floor of 101% should turn everything away");
+        if (TheAirline.Helpers.AIRouteChoice.TooEmpty != before + 1) fail("the count of searches that found nowhere");
+
+        // no floor: the old behaviour, the best of them by profit whatever its load
+        TheAirline.Helpers.AIRouteChoice.MinLoad = 0;
+        var any = TheAirline.Helpers.AIRouteChoice.PickDestination(ai, origin, ranked);
+        if (any == null) fail("without a floor something should always be picked");
+        double bestProfit = fleet.Max(x => x.Item3);
+        if (Math.Abs(fleet.First(x => x.Item1 == any.Profile.IATACode).Item3 - bestProfit) > 1) fail("without a floor the most profitable should be picked");
+        Console.WriteLine("  without a floor: " + any.Profile.IATACode + " at " + (fleet.First(x => x.Item1 == any.Profile.IATACode).Item2 * 100).ToString("0") + "% full");
+
+        // a floor between the two looks past the first candidates rather than giving up at once
+        var sorted = fleet.OrderByDescending(x => x.Item2).ToList();
+        if (sorted.Count > 1 && sorted[0].Item2 > 0.02)
+        {
+            TheAirline.Helpers.AIRouteChoice.MinLoad = Math.Min(0.99, sorted[0].Item2 - 0.001);
+            int widened = TheAirline.Helpers.AIRouteChoice.Widened;
+            var one = TheAirline.Helpers.AIRouteChoice.PickDestination(ai, origin, ranked);
+            if (one == null) fail("a floor the fullest candidate clears should still pick it");
+            Console.WriteLine("  floor just under the fullest (" + (sorted[0].Item2 * 100).ToString("0") + "%): picked " + one.Profile.IATACode
+                              + ", looked past the first " + TheAirline.Helpers.AIRouteChoice.Candidates + ": " + (TheAirline.Helpers.AIRouteChoice.Widened > widened));
+        }
+        TheAirline.Helpers.AIRouteChoice.MinLoad = floor;
+
+        // and over a few days of play the airlines still open routes
+        int routes0 = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).Sum(a => a.Routes.Count);
+        int picked0 = TheAirline.Helpers.AIRouteChoice.Picked;
+        for (int i = 0; i < 20; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int routes1 = TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => !a.IsHuman).Sum(a => a.Routes.Count);
+        Console.WriteLine("  20 days: routes " + routes0 + " -> " + routes1 + ", picked " + (TheAirline.Helpers.AIRouteChoice.Picked - picked0)
+                          + ", looked further " + TheAirline.Helpers.AIRouteChoice.Widened + ", nowhere with passengers " + TheAirline.Helpers.AIRouteChoice.TooEmpty);
+        if (routes1 <= routes0) fail("the computer airlines stopped opening routes");
+        Console.WriteLine("EMPTY ROUTE TEST OK");
+    }
+
     /// <summary>"vm airportprobe": whether the airports whose IATA codes are in TAP_IATA are in the game, and what demand they have.</summary>
     static void AirportProbe(AirlineViewModel av)
     {
@@ -2172,6 +2276,7 @@ static class VmTest
         var last = g.GameTime.AddMonths(-1);
         int dim = DateTime.DaysInMonth(last.Year, last.Month);
         double fl = 0, rl = 0, fp = 0, rp = 0, ft = 0, rt = 0; int n2 = 0;
+        var bands = new System.Collections.Generic.List<Tuple<double, double, double>>(); // forecast load, real load, real profit a day
         double sScore = 0, sRep = 0, sRealScore = 0, sRealRep = 0, sFare = 0, sRealFare = 0, sPred = 0;
         foreach (var kv in made)
         {
@@ -2184,6 +2289,7 @@ static class VmTest
             var fc = kv.Value.Item1;
             double own = TheAirline.Helpers.OwnershipService.MonthlyCost(f) / 30.4;
             fl += fc.Load; rl += realLoad; fp += fc.ProfitPerDay + own; rp += realProfit; ft += fc.RevenuePerFlight * fc.RoundTrips * 2; rt += realTickets; n2++;
+            bands.Add(Tuple.Create(fc.Load, realLoad, realProfit));
             sScore += kv.Value.Item4[2]; sRealScore += TheAirline.Helpers.PassengerHelpers.RouteScoreFor(r);
             sRep += (kv.Value.Item4[0] + kv.Value.Item4[1]) / 2;
             sPred += kv.Value.Item4[4];
@@ -2194,6 +2300,19 @@ static class VmTest
             if (n2 <= 15) Console.WriteLine(string.Format("  {0}-{1} {2} trips: load at creation {3:0}%, real {4:0}%, forecast now {5:0}% | profit a day at creation {6:+#,0;-#,0}, real {7:+#,0;-#,0}, forecast now {8:+#,0;-#,0} | one fewer at creation {9:+#,0;-#,0}",
                 r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode, kv.Value.Item3, fc.Load * 100, realLoad * 100, now.Load * 100, fc.ProfitPerDay + own, realProfit, now.ProfitPerDay + own, kv.Value.Item2.ProfitPerDay + own));
         }
+        // by the load the forecast gave the route when it was opened: which bands are worth opening at all
+        Console.WriteLine("  forecast load at creation -> how they really did");
+        var edges = new[] { 0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50, 1.01 };
+        for (int b = 0; b < edges.Length - 1; b++)
+        {
+            var inBand = bands.Where(x => x.Item1 >= edges[b] && x.Item1 < edges[b + 1]).ToList();
+            if (inBand.Count == 0) continue;
+            Console.WriteLine(string.Format("    forecast {0:0}-{1:0}%: {2,3} routes, real load {3,3:0}%, real profit a day {4,9:+#,0;-#,0}, total a day {5,12:+#,0;-#,0}, {6} still losing",
+                edges[b] * 100, edges[b + 1] * 100, inBand.Count, 100 * inBand.Average(x => x.Item2), inBand.Average(x => x.Item3), inBand.Sum(x => x.Item3), inBand.Count(x => x.Item3 < 0)));
+        }
+        Console.WriteLine(string.Format("  routes forecast under 10% full: {0} of {1}, together {2:+#,0;-#,0} a day",
+            bands.Count(x => x.Item1 < 0.10), bands.Count, bands.Where(x => x.Item1 < 0.10).Sum(x => x.Item3)));
+
         int k = Math.Max(1, n2);
         Console.WriteLine(string.Format("NEWPROBE {0} new routes, {1:MMM yyyy}: load at creation {2:0}% real {3:0}% | tickets a day at creation {4:N0} real {5:N0} | profit a day (before ownership) at creation {6:N0} real {7:N0} | score at creation {8:0.00} real {9:0.00} | reputation share {10:0.00} (predicted with the route {14:0.00}) real {11:0.00} | fare level {12:0.00} real {13:0.00}",
             n2, last, 100 * fl / k, 100 * rl / k, ft / k, rt / k, fp / k, rp / k, sScore / k, sRealScore / k, sRep / k, sRealRep / k, sFare / k, sRealFare / k, sPred / k));
@@ -4230,6 +4349,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("typecheck")) { TypeCheck(av); return; }
             if (Environment.GetCommandLineArgs().Contains("orderahead")) { OrderAheadTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("engines")) { EnginesTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("aiempty")) { EmptyRouteTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("airportprobe")) { AirportProbe(av); return; }
             if (Environment.GetCommandLineArgs().Contains("airportsearch")) { AirportSearchTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("airportsort")) { AirportSortTest(av); return; }
