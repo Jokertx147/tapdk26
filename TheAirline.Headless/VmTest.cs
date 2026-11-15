@@ -343,7 +343,7 @@ static class VmTest
                               + ", looked further " + TheAirline.Helpers.AIRouteChoice.Widened
                               + ", nowhere with passengers " + TheAirline.Helpers.AIRouteChoice.TooEmpty
                               + ", given up " + TheAirline.Helpers.AIRouteChoice.Dropped);
-            Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money, all together " + totalProfit.ToString("N0") + ", " + idle + " aircraft idle | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival | AI forecasts: " + TheAirline.Helpers.AIRouteChoice.Picked + " picks (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the most demand, " + TheAirline.Helpers.AIRouteChoice.AllLosing + " all forecast to lose), " + TheAirline.Helpers.AIRouteChoice.Dropped + " dropped");
+            Console.WriteLine("-- " + last.ToString("MMM yyyy") + " (" + (swY.ElapsedMilliseconds / 1000.0).ToString("0") + " s) | " + margins.Count + " airlines earning | margin median " + (margins.Count > 0 ? margins[margins.Count / 2] : 0).ToString("0") + "%, " + margins.Count(x => x < 0) + " losing money, all together " + totalProfit.ToString("N0") + ", " + idle + " aircraft idle | " + shared.Count + " passenger routes, " + sharedCount + " shared with a rival, " + FlightsPerAircraft().ToString("0.0") + " flights a week an aircraft | AI forecasts: " + TheAirline.Helpers.AIRouteChoice.Picked + " picks (" + TheAirline.Helpers.AIRouteChoice.PickedOther + " not the most demand, " + TheAirline.Helpers.AIRouteChoice.AllLosing + " all forecast to lose), " + TheAirline.Helpers.AIRouteChoice.Dropped + " dropped");
             foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines().Where(a => a.Fleet.Count > 0).OrderByDescending(a => a.Fleet.Count).Take(6))
             {
                 var routes = a.Routes.OfType<TheAirline.Models.Routes.PassengerRoute>().Where(r => r.HasAirliner).ToList();
@@ -2929,6 +2929,26 @@ static class VmTest
 
     // Every computer-airline passenger route after a warm-up: how it is doing, and for the ones losing money, which
     // of ShouldDrop's conditions is keeping them. Shows what the review misses, rather than what it catches.
+    // how hard the fleets are worked: the flights a week an aircraft with a route is rostered for, averaged over
+    // every computer airline. The gap the scheduler leaves between flights sets the ceiling on this.
+    static double FlightsPerAircraft()
+    {
+        int flights = 0, aircraft = 0;
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            if (a.IsHuman) continue;
+            foreach (var f in a.DeliveredFleet.ToList())
+            {
+                int n = f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f));
+                if (n == 0) continue;
+                flights += n;
+                aircraft++;
+            }
+        }
+
+        return aircraft == 0 ? 0 : (double) flights/aircraft;
+    }
+
     static void DropProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
