@@ -207,15 +207,33 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>
-        ///     Whether a computer airline gives up a passenger route: it has flown two months, loses money with half its
-        ///     seats empty or more, lost money over those two months, and the forecast says no number of round trips
-        ///     would pay for its flights (the aircraft's ownership is paid whether it flies or not). A full route that
-        ///     loses money is kept: its fares go up instead.
+        ///     Whether the pricing could still raise this route's fares. A computer airline prices a route as a share of
+        ///     the market fare and goes no higher than its mentality's ceiling (AIPricingService.Band), so a route
+        ///     whose costs need more than the ceiling can never be priced into profit, however full it flies.
+        /// </summary>
+        public static bool FaresCanStillRise(Airline airline, PassengerRoute route)
+        {
+            double market = PricingService.MarketFare(route.Destination1, route.Destination2, AirlinerClass.ClassType.EconomyClass);
+            double fare = AIPricingService.EconomyFare(route);
+            // no market fare to go by, or no fare set yet: leave the route to the pricing
+            if (market <= 0 || fare <= 0) return true;
+            double low, high;
+            AIPricingService.Band(airline.Mentality, out low, out high);
+            return fare/market < high*0.98;
+        }
+
+        /// <summary>
+        ///     Whether a computer airline gives up a passenger route: it has flown two months, loses money, lost money
+        ///     over those two months, and the forecast says no number of round trips would pay for its flights (the
+        ///     aircraft's ownership is paid whether it flies or not). A route that loses money with half its seats or
+        ///     more sold is the pricing's business first: its fares rise a little each week, and only once they have
+        ///     reached the most this airline will ever charge, and it still loses, is the route itself the problem.
         /// </summary>
         public static bool ShouldDrop(Airline airline, Route route, double balance)
         {
             if (!(route is PassengerRoute) || !route.HasAirliner || route.TimeTable.Entries.Count == 0) return false;
-            if (balance >= -1000 || route.FillingDegree >= 0.5) return false;
+            if (balance >= -1000) return false;
+            if (route.FillingDegree >= 0.5 && FaresCanStillRise(airline, (PassengerRoute) route)) return false;
             var airliners = route.GetAirliners();
             if (airliners.Count != 1) return false;
             DateTime today = GameObject.GetInstance().GameTime;

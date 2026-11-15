@@ -2349,6 +2349,97 @@ static class VmTest
         Console.WriteLine("SCHEDULE TEST OK");
     }
 
+    // the mean of the values that are known (an unflown route's load is not a number)
+    static double Avg(System.Collections.Generic.IEnumerable<double> xs)
+    {
+        var ok = xs.Where(x => !double.IsNaN(x) && !double.IsInfinity(x)).ToList();
+        return ok.Count == 0 ? 0 : ok.Average();
+    }
+
+    // Every computer-airline passenger route after a warm-up: how it is doing, and for the ones losing money, which
+    // of ShouldDrop's conditions is keeping them. Shows what the review misses, rather than what it catches.
+    static void DropProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int warm = int.Parse(Environment.GetEnvironmentVariable("TAP_WARM") ?? "400");
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        // to the end of the next full month, so there is a whole month to judge by
+        int m0 = g.GameTime.Month;
+        while (g.GameTime.Month == m0) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+        int dim = DateTime.DaysInMonth(last.Year, last.Month);
+        DateTime today = g.GameTime;
+
+        var rows = new System.Collections.Generic.List<Tuple<double, double, string, int, TheAirline.Models.Routes.PassengerRoute>>();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            if (a.IsHuman) continue;
+            foreach (var route in a.Routes.ToList())
+            {
+                var r = route as TheAirline.Models.Routes.PassengerRoute;
+                if (r == null || !r.HasAirliner || r.TimeTable.Entries.Count == 0) continue;
+                double profit = TheAirline.Helpers.RouteProfitService.Month(r, last.Year, last.Month)/dim;
+                var airliners = r.GetAirliners();
+                double own = airliners.Sum(f => TheAirline.Helpers.OwnershipService.MonthlyCost(f))/30.4;
+                // as a visit sees it: the game looks at a route every 7-13 days and counts the loss since the last look
+                double balance = r.GetBalance(today.AddDays(-10), today);
+                int age = (int) (today - r.StartDate).TotalDays;
+                // the first condition of ShouldDrop that turns this route away ("dropped" when none does)
+                string why;
+                if (profit >= 0) why = "makes money";
+                else if (balance >= -1000) why = "balance since review not bad enough";
+                else if (r.FillingDegree >= 0.5) why = "half full or better";
+                else if (airliners.Count != 1) why = "more than one aircraft";
+                else if (age < TheAirline.Helpers.AIRouteChoice.DaysBeforeDrop) why = "too new";
+                else if (r.GetBalance(today.AddDays(-TheAirline.Helpers.AIRouteChoice.DaysBeforeDrop), today) >= 0) why = "two months together not a loss";
+                else
+                {
+                    var f = airliners[0];
+                    var best = TheAirline.Helpers.AIRouteChoice.Best(a, r.Destination1, r.Destination2, f, r, TheAirline.Helpers.AIRouteChoice.IsBusiness(r, f));
+                    why = best.ProfitPerDay + TheAirline.Helpers.OwnershipService.MonthlyCost(f)/30.4 < 0 ? "dropped on the next review" : "forecast says it could pay";
+                }
+                rows.Add(Tuple.Create(profit, own, why, age, r));
+            }
+        }
+        var losing = rows.Where(x => x.Item1 < 0).ToList();
+        // for the losers that fill half their seats: how their fare compares with the most the airline would charge,
+        // and what break-even would need, which says whether the pricing could ever fix them
+        var full = losing.Where(x => x.Item5.FillingDegree >= 0.5).ToList();
+        if (full.Count > 0)
+        {
+            var atCeiling = 0; var sFare = 0.0; var sFloor = 0.0; var n = 0;
+            foreach (var x in full)
+            {
+                var r = x.Item5;
+                double market = TheAirline.Helpers.PricingService.MarketFare(r.Destination1, r.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
+                if (market <= 0) continue;
+                double low, high;
+                TheAirline.Helpers.AIPricingService.Band(r.Airline.Mentality, out low, out high);
+                double ratio = TheAirline.Helpers.AIPricingService.EconomyFare(r)/market;
+                double floor;
+                try { floor = TheAirline.Helpers.PricingService.BreakEvenFare(r, Math.Max(0.5, Math.Min(0.9, TheAirline.Helpers.ConnectionService.MonthLoad(r))))/market; }
+                catch (Exception) { continue; }
+                if (!TheAirline.Helpers.AIRouteChoice.FaresCanStillRise(r.Airline, r)) atCeiling++;
+                sFare += ratio/high; sFloor += floor/high; n++;
+            }
+            if (n > 0) Console.WriteLine(string.Format("  the {0} half-full losers: fare is {1:0}% of the most the airline would charge, break-even would need {2:0}% of it; {3} are already at the ceiling",
+                n, 100*sFare/n, 100*sFloor/n, atCeiling));
+        }
+        Console.WriteLine(string.Format("  {0:MMM yyyy}: {1} computer-airline passenger routes, {2} losing money, together {3:+#,0;-#,0} a day",
+            last, rows.Count, losing.Count, losing.Sum(x => x.Item1)));
+        Console.WriteLine("  the losing ones, by what keeps them:");
+        foreach (var grp in losing.GroupBy(x => x.Item3).OrderBy(grp => -grp.Sum(x => -x.Item1)))
+            Console.WriteLine(string.Format("    {0,-38} {1,4} routes, {2,9:+#,0;-#,0} a day each, {3,12:+#,0;-#,0} a day in all, load {4,3:0}%, {5,4:0} days old",
+                grp.Key, grp.Count(), grp.Average(x => x.Item1), grp.Sum(x => x.Item1), 100*Avg(grp.Select(x => x.Item5.FillingDegree)), grp.Average(x => x.Item4)));
+        // the worst few, to see what kind of route they are
+        foreach (var x in losing.OrderBy(x => x.Item1).Take(10))
+            Console.WriteLine(string.Format("    {0}-{1} {2}: {3:+#,0;-#,0} a day, load {4:0}%, {5} aircraft, {6} days old, {7} trips | {8}",
+                x.Item5.Destination1.Profile.IATACode, x.Item5.Destination2.Profile.IATACode, x.Item5.Airline.Profile.IATACode,
+                x.Item1, 100*Avg(new[] {x.Item5.FillingDegree}), x.Item5.GetAirliners().Count, x.Item4, TheAirline.Helpers.AIRouteChoice.CurrentTrips(x.Item5), x.Item3));
+        Console.WriteLine(string.Format("DROPPROBE {0} routes, {1} losing {2:+#,0;-#,0} a day; dropped since the start: {3} by forecast, {4} empty",
+            rows.Count, losing.Count, losing.Sum(x => x.Item1), TheAirline.Helpers.AIRouteChoice.Dropped, TheAirline.Helpers.AIRouteChoice.EmptyDropped));
+    }
+
     static void NewRouteProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -4450,6 +4541,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("schedule")) { ScheduleTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }

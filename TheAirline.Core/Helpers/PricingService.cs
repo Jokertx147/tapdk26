@@ -212,8 +212,14 @@ namespace TheAirline.Helpers
             var parts = FlightCosts.Calculate(a, km, hours, 0);
             double fixedCost = fuel + fees + cabin + parts.Ground + parts.Maintenance + parts.EnRoute + parts.Crew + OwnershipPerFlight(f);
             double share = FlightCosts.Enabled ? (FlightCosts.DistributionShare(route.Airline) + 0.07)*(FlightCosts.Level >= 2 ? 1.4 : 1) : 0;
-            // business and first seats pay more: count them as several economy seats
-            double weight = route.Classes.Sum(c => a.GetAirlinerClass(c.Type) == null ? 0 : a.GetAirlinerClass(c.Type).SeatingCapacity*GeneralHelpers.ClassToPriceFactor(c.Type));
+            // Business and first seats pay more, so they count as several economy seats. Only the classes the aircraft
+            // really has: a route may sell a class the aircraft has no cabin for, and Airliner.GetAirlinerClass answers
+            // for such a class with the first cabin it does have, which would count the whole aircraft once per class.
+            double weight = route.Classes.Sum(c =>
+            {
+                AirlinerClass cabin = a.Classes.FirstOrDefault(x => x.Type == c.Type);
+                return cabin == null ? 0 : cabin.SeatingCapacity*GeneralHelpers.ClassToPriceFactor(c.Type);
+            });
             double economyEquivalents = weight > 0 ? weight*Math.Max(0.1, load) : pax;
             return fixedCost/Math.Max(1, economyEquivalents*(1 - share));
         }
