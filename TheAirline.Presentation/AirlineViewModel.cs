@@ -132,6 +132,12 @@ namespace TheAirline.Presentation
                     RoutesTab = 0;
                     SelectedRoute = Routes.FirstOrDefault(r => r.Route == route);
                 });
+            Ranking = new ProfitRankingViewModel(route =>
+                {
+                    Page = Array.IndexOf(PageNames, "Routes");
+                    RoutesTab = 0;
+                    SelectedRoute = Routes.FirstOrDefault(r => r.Route == route);
+                });
             Competitors = new CompetitorsViewModel(route =>
                 {
                     Page = Array.IndexOf(PageNames, "Routes");
@@ -291,7 +297,12 @@ namespace TheAirline.Presentation
         {
             switch (PageNames[page])
             {
-                case "My Airline": FleetPerformance.Reload(); if (MyAirlineTab == ReportTabIndex) Report.Reload(); if (MyAirlineTab == StatisticsTabIndex) Statistics.Reload(); break;
+                case "My Airline":
+                    FleetPerformance.Reload();
+                    if (MyAirlineTab == ReportTabIndex) Report.Reload();
+                    if (MyAirlineTab == StatisticsTabIndex) Statistics.Reload();
+                    if (MyAirlineTab == RankingTabIndex) Ranking.Reload();
+                    break;
                 case "Airports": AirportStats.Reload(); break;
                 case "Routes": Connections.Reload(); RouteProfits.Reload(); if (RoutesTab == SuggestionsTabIndex) { var _ = Suggestions.Reload(); } break;
                 case "Alliances": Alliances.Reload(); break;
@@ -342,6 +353,7 @@ namespace TheAirline.Presentation
             {
                 if (SetProperty(ref _myAirlineTab, value) && value == ReportTabIndex) Report?.Reload();
                 if (value == StatisticsTabIndex) Statistics?.Reload();
+                if (value == RankingTabIndex) Ranking?.Reload();
             }
         }
 
@@ -352,6 +364,11 @@ namespace TheAirline.Presentation
         public StatisticsViewModel Statistics { get; } = new StatisticsViewModel();
 
         public const int StatisticsTabIndex = 18;
+
+        /// <summary>My Airline > Best and worst: the routes, or the aircraft, that earn most and least.</summary>
+        public ProfitRankingViewModel Ranking { get; }
+
+        public const int RankingTabIndex = 19;
 
         // where a line of the monthly report leads
         private void OpenReportItem(ReportItem item)

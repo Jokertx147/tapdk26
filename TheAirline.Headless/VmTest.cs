@@ -2244,6 +2244,126 @@ static class VmTest
     }
 
     // "vm newprobe": a new route's forecast when it opens against its first full month
+    // vm ranking: My Airline > Best and worst. The order, the sums, and that an aircraft's share of its routes'
+    // profit plus what it costs to own accounts for the money once and only once.
+    static void RankingTest(AirlineViewModel av)
+    {
+        Console.WriteLine("RANKING TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+
+        // a few aircraft on a few routes, then a month of flying to earn something
+        var home = me.Airports.First();
+        var type = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+        var targets = TheAirline.Models.Airports.Airports.GetAllAirports()
+            .Where(x => x != home && x.Profile.Town != null
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) > 400
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) < 2500
+                        && x.GetMaxRunwayLength() >= 2500
+                        && x.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) >= 3)
+            .OrderByDescending(x => x.Profile.Size).Take(3).ToList();
+        if (targets.Count < 3) fail("not enough airports within reach of " + home.Profile.IATACode);
+
+        var shared = new System.Collections.Generic.List<TheAirline.Models.Airliners.FleetAirliner>();
+        for (int i = 0; i < 4; i++)
+        {
+            var al = new TheAirline.Models.Airliners.Airliner("rk" + i, type, "N-RK" + i, g.GameTime.AddYears(-1)) { Airline = me };
+            TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+            var f = TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, home, false);
+            TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+            shared.Add(f);
+        }
+
+        var tt = av.Timetable;
+        for (int i = 0; i < targets.Count; i++)
+        {
+            TheAirline.Helpers.AirportHelpers.RentGates(targets[i], me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 2);
+            string why;
+            var route = TheAirline.Helpers.RouteCreator.Create(
+                new TheAirline.Helpers.NewRouteRequest { Origin = home, Destination = targets[i], RouteType = TheAirline.Models.Routes.Route.RouteType.Passenger }, out why);
+            if (route == null) fail("couldn't open a route to " + targets[i].Profile.IATACode + ": " + why);
+
+            // the first route gets two aircraft, so the share has something to divide
+            foreach (var f in i == 0 ? shared.Take(2).ToList() : new[] { shared[i + 1] }.ToList())
+            {
+                tt.Select(f);
+                tt.SelectedRoute = tt.Routes.First(r => r.Route == route);
+                tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(i == 0 && f == shared[1] ? 13 : 7, 0, 0));
+                tt.WeekdaysCommand.Execute(null);
+                tt.AddRoundTripCommand.Execute(null);
+                f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+            }
+        }
+
+        int m0 = g.GameTime.Month;
+        while (g.GameTime.Month == m0) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int m1 = g.GameTime.Month;
+        while (g.GameTime.Month == m1) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var month = g.GameTime.AddMonths(-1);
+        Console.WriteLine("  " + me.Routes.Count + " routes, " + me.DeliveredFleet.Count + " aircraft, judged on " + month.ToString("MMM yyyy"));
+
+        // the figures themselves: an aircraft's share of its routes, and what it costs
+        var figures = TheAirline.Helpers.AircraftProfitService.All(me, month.Year, month.Month);
+        if (figures.Count != me.DeliveredFleet.Count) fail("expected one row per aircraft, got " + figures.Count);
+        double shares = figures.Sum(x => x.RouteShare);
+        double routesTotal = me.Routes.Sum(r => TheAirline.Helpers.RouteProfitService.Month(r, month.Year, month.Month));
+        Console.WriteLine(string.Format("  the aircraft's shares add to {0:#,0}, the routes earned {1:#,0}", shares, routesTotal));
+        if (Math.Abs(shares - routesTotal) > Math.Max(50, Math.Abs(routesTotal)*0.02))
+            fail("the shares do not add up to what the routes earned: " + shares.ToString("N0") + " against " + routesTotal.ToString("N0"));
+
+        var twoOnOne = figures.Where(x => x.Routes == figures.First().Routes && x.WeeklyFlights > 0).ToList();
+        foreach (var x in figures.OrderByDescending(x => x.Profit).Take(3))
+            Console.WriteLine(string.Format("    {0,-8} {1,10:+#,0;-#,0} = share {2,10:+#,0;-#,0} less {3,9:#,0} to own | {4} flights, {5}",
+                x.Name, x.Profit, x.RouteShare, x.Ownership, x.WeeklyFlights, x.Idle ? "no routes" : x.Routes));
+
+        // an idle aircraft earns nothing and still costs what it costs
+        var spare = shared[0];
+        var idleFig = figures.FirstOrDefault(x => x.WeeklyFlights == 0);
+        if (idleFig != null && Math.Abs(idleFig.Profit + idleFig.Ownership) > 0.5)
+            fail("an aircraft with no flights should lose exactly what it costs to own, " + idleFig.Name + " shows " + idleFig.Profit.ToString("N0"));
+
+        // the view model: ordered, and the worst is not also the best
+        var rank = av.Ranking;
+        rank.What = TheAirline.Presentation.ProfitRankingViewModel.Routes;
+        rank.Period = TheAirline.Presentation.ProfitRankingViewModel.LastMonth;
+        rank.HowMany = 5;
+        rank.Reload();
+        Console.WriteLine("  routes: " + rank.Summary);
+        if (rank.Best.Count == 0) fail("no routes in the ranking");
+        for (int i = 1; i < rank.Best.Count; i++)
+            if (rank.Best[i].Value > rank.Best[i - 1].Value) fail("the best list is not in order");
+        for (int i = 1; i < rank.Worst.Count; i++)
+            if (rank.Worst[i].Value > rank.Worst[i - 1].Value) fail("the worst list is not in order");
+        if (rank.Best.Any(b => rank.Worst.Contains(b))) fail("the same route is in both the best and the worst");
+        if (rank.Best.Count + rank.Worst.Count > me.Routes.Count) fail("more bars than routes");
+        if (rank.Largest <= 0) fail("the chart has nothing to scale the bars by");
+        if (rank.Best.Any(b => b.Route == null)) fail("a route bar has no route to open");
+
+        // and the aircraft, where the profit is the share less the ownership
+        rank.What = TheAirline.Presentation.ProfitRankingViewModel.Aircraft;
+        rank.Reload();
+        Console.WriteLine("  aircraft: " + rank.Summary);
+        if (rank.Best.Count == 0) fail("no aircraft in the ranking");
+        if (rank.Best.Count + rank.Worst.Count > me.DeliveredFleet.Count) fail("more bars than aircraft");
+        for (int i = 1; i < rank.Best.Count; i++)
+            if (rank.Best[i].Value > rank.Best[i - 1].Value) fail("the aircraft are not in order");
+        if (rank.Best.Any(b => b.Route != null)) fail("an aircraft bar offers to open a route");
+        var worstBar = rank.Worst.LastOrDefault() ?? rank.Best.Last();
+        Console.WriteLine("  worst: " + worstBar.Name + " " + worstBar.Amount + " | " + worstBar.Detail);
+
+        // the periods all work and say what they mean
+        foreach (string period in rank.PeriodChoices)
+        {
+            rank.Period = period;
+            rank.Reload();
+            if (rank.Best.Count == 0 && rank.Worst.Count == 0) fail("nothing shown for " + period);
+            Console.WriteLine("  " + period + ": " + rank.Best.Count + " best, " + rank.Worst.Count + " worst, largest " + rank.Largest.ToString("N0"));
+        }
+
+        Console.WriteLine("RANKING TEST OK");
+    }
+
     // vm groundtime: the gap the scheduler insists on between one flight landing and the next taking off. It must be
     // the aircraft's ground time and no more, and the ground time must suit the size of the aircraft.
     static void GroundTimeTest()
@@ -4964,6 +5084,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("breakeven")) { BreakEvenTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cabins")) { CabinsTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("groundtime")) { GroundTimeTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("ranking")) { RankingTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
