@@ -2244,6 +2244,91 @@ static class VmTest
     }
 
     // "vm newprobe": a new route's forecast when it opens against its first full month
+    // vm groundtime: the gap the scheduler insists on between one flight landing and the next taking off. It must be
+    // the aircraft's ground time and no more, and the ground time must suit the size of the aircraft.
+    static void GroundTimeTest()
+    {
+        Console.WriteLine("GROUND TIME TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var home = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "ATL");
+        var away = TheAirline.Models.Airports.Airports.GetAllAirports().First(x => x.Profile.IATACode == "MCO");
+        TheAirline.Helpers.AirportHelpers.RentGates(home, me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 6);
+        TheAirline.Helpers.AirportHelpers.RentGates(away, me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 6);
+        double km = TheAirline.Helpers.MathHelpers.GetDistance(home, away);
+        Console.WriteLine(string.Format("  {0}-{1}, {2:#,0} km", home.Profile.IATACode, away.Profile.IATACode, km));
+        Console.WriteLine("  aircraft                        seats  max  flight  ground  earliest return after landing");
+        int checked2 = 0;
+
+        string[] want = { "Bombardier Dash 8-100", "Embraer ERJ-145", "Boeing 737-800", "Airbus A320-200", "Boeing 757-200",
+                          "Boeing 767-300ER", "Boeing 777-300", "Boeing 747-400", "Airbus A380-800", "Sikorsky S-92" };
+        foreach (string name in want)
+        {
+            var type = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().FirstOrDefault(t => t.Name == name);
+            if (type == null) { Console.WriteLine("  " + name + ": not in the data"); continue; }
+            var al = new TheAirline.Models.Airliners.Airliner("gt", type, "N-GT", g.GameTime.AddYears(-1)) { Airline = me };
+            TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+            var f = TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, home, false);
+            TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+            string why;
+            var route = (TheAirline.Models.Routes.PassengerRoute) TheAirline.Helpers.RouteCreator.Create(
+                new TheAirline.Helpers.NewRouteRequest { Origin = home, Destination = away, RouteType = TheAirline.Models.Routes.Route.RouteType.Passenger }, out why);
+            if (route == null) { Console.WriteLine("  " + name + ": no route (" + why + ")"); continue; }
+
+            TimeSpan flight = route.GetFlightTime(type);
+            TimeSpan ground = TheAirline.Helpers.FleetAirlinerHelpers.GetMinTimeBetweenFlights(f);
+            var outbound = new TheAirline.Models.Routes.RouteTimeTableEntry(route.TimeTable, DayOfWeek.Monday, new TimeSpan(8, 0, 0),
+                new TheAirline.Models.Routes.RouteEntryDestination(away, "GT001")) { Airliner = f };
+            route.TimeTable.AddEntry(outbound);
+
+            // step the return later a quarter hour at a time until the scheduler accepts it
+            int firstOk = -1;
+            TimeSpan lands = new TimeSpan(8, 0, 0).Add(flight);
+            for (int extra = 0; extra <= 600; extra += 5)
+            {
+                var ret = new TheAirline.Models.Routes.RouteTimeTableEntry(route.TimeTable, DayOfWeek.Monday, lands.Add(new TimeSpan(0, extra, 0)),
+                    new TheAirline.Models.Routes.RouteEntryDestination(home, "GT002")) { Airliner = f };
+                route.TimeTable.AddEntry(ret);
+                bool ok = TheAirline.Helpers.TimeTableHelpers.IsTimeTableValid(f, route.TimeTable.Entries.ToList(), false);
+                route.TimeTable.RemoveEntry(ret);
+                if (ok) { firstOk = extra; break; }
+            }
+
+            int maxSeats = type is TheAirline.Models.Airliners.AirlinerPassengerType pt ? pt.MaxSeatingCapacity : 0;
+            int seats = al.GetTotalSeatCapacity();
+            Console.WriteLine(string.Format("  {0,-30} {1,5} {2,4} {3,7} {4,7}  {5}", name, seats, maxSeats,
+                string.Format("{0}h{1:00}", (int) flight.TotalHours, flight.Minutes), (int) ground.TotalMinutes + "m",
+                firstOk < 0 ? "more than 10 hours" : firstOk + " minutes"));
+
+            // the gap asked for is the ground time, not a minute more
+            if (firstOk < 0) fail(name + " could not fly a return at all within ten hours of landing");
+            if (firstOk != (int) ground.TotalMinutes)
+                fail(name + " must wait " + firstOk + " minutes after landing but its ground time is only " + (int) ground.TotalMinutes);
+            // and the ground time suits its size: a 37 seat turboprop does not need a narrowbody's half hour
+            if (seats <= 50 && ground.TotalMinutes > 20) fail(name + " has " + seats + " seats but needs " + ground.TotalMinutes + " minutes on the ground");
+            if (seats > 300 && ground.TotalMinutes < 45) fail(name + " has " + seats + " seats but needs only " + ground.TotalMinutes + " minutes on the ground");
+            checked2++;
+            me.RemoveRoute(route);
+            me.RemoveAirliner(f);
+        }
+
+        if (checked2 < 6) fail("only " + checked2 + " aircraft could be checked");
+
+        // No aircraft in the game waits longer than the old flat rule did, so a timetable that was legal stays legal.
+        foreach (var t in TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes())
+        {
+            var al2 = new TheAirline.Models.Airliners.Airliner("gt", t, "N-GT2", g.GameTime.AddYears(-1));
+            int seats = al2.GetTotalSeatCapacity();
+            double was = seats > 200 ? 60 : 30;
+            double now = TheAirline.Helpers.FleetAirlinerHelpers.GetMinTimeBetweenFlights(al2).TotalMinutes;
+            if (now > was) fail(t.Name + " (" + seats + " seats) now waits " + now + " minutes where it used to wait " + was);
+        }
+
+        Console.WriteLine("  no aircraft waits longer than it used to, so timetables that were legal stay legal");
+        Console.WriteLine("GROUND TIME TEST OK");
+    }
+
     // vm cabins: every aircraft in the game can say which cabin a passenger sits in. Helicopters and combis were
     // built with no cabin at all, so counting the passengers on one threw and took the game's day with it.
     static void CabinsTest()
@@ -4805,6 +4890,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("schedule")) { ScheduleTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("breakeven")) { BreakEvenTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("cabins")) { CabinsTest(); return; }
+            if (Environment.GetCommandLineArgs().Contains("groundtime")) { GroundTimeTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }

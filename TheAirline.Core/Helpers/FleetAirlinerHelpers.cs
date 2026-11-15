@@ -274,13 +274,26 @@ namespace TheAirline.Helpers
             return GetMinTimeBetweenFlights(((AirlinerPassengerType) type).MaxSeatingCapacity);
         }
 
+        /// <summary>
+        ///     The least time an aircraft needs on the ground between two flights: unloading, cleaning, loading and
+        ///     boarding again. It used to be half an hour for anything up to 200 seats and an hour above that, which
+        ///     left a 37 seat turboprop needing as long as a full narrowbody, far longer than the quarter of an hour
+        ///     such an aircraft really turns round in, and so allowed it only a fraction of the short hops it flies in
+        ///     life. The steps below follow roughly what each size really takes: 15 to 20 minutes for a regional
+        ///     turboprop or regional jet, 20 to 30 for a small jet, 25 to 40 for a narrowbody, 35 to 45 for the larger
+        ///     narrowbodies, and an hour for a widebody.
+        ///
+        ///     Every step is the same as before or shorter, never longer, so a timetable that was legal stays legal.
+        ///     The widest aircraft are if anything given too little here: a 747 or an A380 really takes an hour and a
+        ///     half or more, but lengthening it would make existing timetables illegal, so it is left alone.
+        /// </summary>
         private static TimeSpan GetMinTimeBetweenFlights(int passengers)
         {
-            var minTime = new TimeSpan(0, 30, 0);
-
-            if (passengers > 200)
-                return minTime.Add(minTime);
-            return minTime;
+            if (passengers <= 50) return new TimeSpan(0, 20, 0);
+            if (passengers <= 100) return new TimeSpan(0, 25, 0);
+            if (passengers <= 200) return new TimeSpan(0, 30, 0);
+            if (passengers <= 250) return new TimeSpan(0, 40, 0);
+            return new TimeSpan(0, 60, 0);
         }
 
         //sets the flights stats for an airliner

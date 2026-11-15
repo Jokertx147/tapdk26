@@ -271,9 +271,13 @@ namespace TheAirline.Helpers
                     eEndTime = new TimeSpan(0, eEndTime.Hours, eEndTime.Minutes, eEndTime.Seconds);
                 }
 
-                if ((eStartTime >= startTime && endTime >= eStartTime) || (eEndTime >= startTime && endTime >= eEndTime)
-                    || (endTime >= eStartTime && eEndTime >= endTime)
-                    || (startTime >= eStartTime && eEndTime >= startTime))
+                // Two flights clash when one is still on the ground as the other leaves. A flight that leaves at the
+                // moment the one before it has finished its ground time does not clash: the comparisons at the two
+                // touching ends are strict, where they used to count that as a clash and so quietly demanded a minute
+                // more than the ground time, which with departures on the quarter hour cost a whole extra quarter.
+                if ((eStartTime >= startTime && endTime > eStartTime) || (eEndTime > startTime && endTime >= eEndTime)
+                    || (endTime > eStartTime && eEndTime >= endTime)
+                    || (startTime >= eStartTime && eEndTime > startTime))
                 {
                     if (e.Airliner == airliner || diffEndTime < 15 || diffStartTime < 15)
                     {
@@ -321,11 +325,13 @@ namespace TheAirline.Helpers
                                           ? minutesPerWeek - prevDate.Subtract(currentDate).TotalMinutes
                                           : Math.Abs(prevDate.Subtract(currentDate).TotalMinutes);
 
+                // Enough time to fly it, reach the next departure airport and do the ground time: exactly enough is
+                // enough, where asking for strictly more again cost a departure slot it did not need to.
                 if (timeFromPrev
-                    > previousEntry.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes
+                    >= previousEntry.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes
                       + flightTimePrevious.TotalMinutes
                     && timeToNext
-                    > entry.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes
+                    >= entry.TimeTable.Route.GetFlightTime(airliner.Airliner.Type).TotalMinutes
                     + flightTimeNext.TotalMinutes)
                 {
                     return true;
