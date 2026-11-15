@@ -2244,6 +2244,79 @@ static class VmTest
     }
 
     // "vm newprobe": a new route's forecast when it opens against its first full month
+    // vm breakeven: the break-even fare against what a month of real flying cost. A route sells classes the aircraft
+    // may have no cabin for, and counting the aircraft once per such class made break-even many times too low, which
+    // is the floor the computer airlines price against.
+    static void BreakEvenTest(AirlineViewModel av)
+    {
+        Console.WriteLine("BREAK EVEN TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var home = me.Airports.First();
+
+        var type = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+        var al = new TheAirline.Models.Airliners.Airliner("be", type, "N-BE1", g.GameTime.AddYears(-1)) { Airline = me };
+        TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+        var f = TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, home, false);
+        TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+        var dest = TheAirline.Models.Airports.Airports.GetAllAirports()
+            .Where(x => x != home && x.Profile.Town != null
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) > 600
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) < al.Range*0.7
+                        && x.GetMaxRunwayLength() >= al.MinRunwaylength
+                        && x.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) >= 3)
+            .OrderByDescending(x => x.Profile.Size).FirstOrDefault();
+        if (dest == null) fail("no airport within reach of " + home.Profile.IATACode);
+        TheAirline.Helpers.AirportHelpers.RentGates(dest, me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 2);
+        string why;
+        var route = (TheAirline.Models.Routes.PassengerRoute) TheAirline.Helpers.RouteCreator.Create(
+            new TheAirline.Helpers.NewRouteRequest { Origin = home, Destination = dest, RouteType = TheAirline.Models.Routes.Route.RouteType.Passenger }, out why);
+        if (route == null) fail("couldn't open a route: " + why);
+
+        var tt = av.Timetable;
+        tt.Select(f);
+        tt.SelectedRoute = tt.Routes.First(r => r.Route == route);
+        tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(7, 0, 0));
+        tt.DailyCommand.Execute(null);
+        tt.AddRoundTripCommand.Execute(null);
+        f.Status = TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.OnRoute;
+        int cabins = al.Classes.Count;
+        int sells = route.Classes.Count;
+        Console.WriteLine("  " + home.Profile.IATACode + "-" + dest.Profile.IATACode + ", " + al.GetTotalSeatCapacity()
+                          + " seats in " + cabins + " cabin(s), the route sells " + sells + " class(es)");
+        if (sells <= cabins) fail("this route sells no class the aircraft lacks, so it cannot show the fault");
+
+        // a full month of flying to compare against
+        int m0 = g.GameTime.Month;
+        while (g.GameTime.Month == m0) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int m1 = g.GameTime.Month;
+        while (g.GameTime.Month == m1) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var month = g.GameTime.AddMonths(-1);
+
+        double income, costs;
+        TheAirline.Helpers.RouteProfitService.IncomeAndCosts(route, month.Year, month.Month, out income, out costs);
+        double flights = route.TimeTable.Entries.Count*4.33;
+        double load = TheAirline.Helpers.ConnectionService.MonthLoad(route);
+        if (flights <= 0 || load <= 0.02 || costs >= 0) fail("the route didn't fly enough to judge: " + flights + " flights, load " + load.ToString("0.00") + ", costs " + costs.ToString("N0"));
+
+        // what a seat really had to earn: the month's costs, plus the aircraft's ownership, over the seats sold
+        double seatsSold = al.GetTotalSeatCapacity()*load*flights;
+        double real = (-costs + TheAirline.Helpers.OwnershipService.MonthlyCost(f))/seatsSold;
+        double reckoned = TheAirline.Helpers.PricingService.BreakEvenFare(route, load);
+        double ratio = reckoned/real;
+        Console.WriteLine(string.Format("  {0:MMM yyyy}: {1:#,0} flights, load {2:0}%, costs {3:#,0} | a seat really had to earn {4:#,0}, break-even says {5:#,0} ({6:0.00} of it)",
+            month, flights, 100*load, -costs, real, reckoned, ratio));
+
+        // The two are not the same sum: break-even is for one flight at a given load and solves for the sales costs
+        // that grow with the fare, while the month's costs are what was actually flown. A band catches the fault,
+        // which made break-even some ten times too low, without failing on that difference.
+        if (ratio < 0.6 || ratio > 1.8)
+            fail("break-even is " + ratio.ToString("0.00") + " of what a seat really had to earn; it should be close to 1");
+
+        Console.WriteLine("BREAK EVEN TEST OK");
+    }
+
     // vm schedule: the timetable editor. What was just placed is picked, a flight can be moved to another day or time
     // (which is what dragging a block does), one that won't fit is put back, and the picked flight can be renumbered.
     static void ScheduleTest(AirlineViewModel av)
@@ -4541,6 +4614,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("schedule")) { ScheduleTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("breakeven")) { BreakEvenTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
