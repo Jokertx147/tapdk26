@@ -2494,6 +2494,52 @@ static class VmTest
         if (tt.Status != onFri.Count + " flights removed.") fail("expected one message for the lot, got: " + tt.Status);
         if (tt.SelectedCount != 0) fail("nothing should be picked after removing the picked flights");
 
+        // The route box used to go back to the first route after every flight added, so adding four flights on one
+        // route meant finding it four times. Rebuilding the aircraft list empties the box bound to it and the empty
+        // box writes its own null back, which is what lost the choice; that is what this repeats.
+        var other = TheAirline.Models.Airports.Airports.GetAllAirports()
+            .Where(x => x != home && x != dest && x.Profile.Town != null
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) > 300
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) < al.Range*0.7
+                        && x.GetMaxRunwayLength() >= al.MinRunwaylength
+                        && x.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) >= 3)
+            .OrderByDescending(x => x.Profile.Size).FirstOrDefault();
+        if (other == null) fail("no second airport within reach of " + home.Profile.IATACode);
+        TheAirline.Helpers.AirportHelpers.RentGates(other, me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 2);
+        string why2;
+        var otherRoute = TheAirline.Helpers.RouteCreator.Create(
+            new TheAirline.Helpers.NewRouteRequest { Origin = home, Destination = other, RouteType = TheAirline.Models.Routes.Route.RouteType.Passenger }, out why2);
+        if (otherRoute == null) fail("couldn't open a second route: " + why2);
+        tt.ReloadAircraft();
+        tt.Select(f);
+        if (tt.Routes.Count < 2) fail("expected two routes to choose from, got " + tt.Routes.Count);
+
+        // pick a route that is not the one the box would fall back to, and the far end as the departure airport
+        var wanted = tt.Routes.First(r => r != tt.Routes[0]);
+        tt.SelectedRoute = wanted;
+        tt.SelectedFrom = tt.Directions.Last();
+        var wantedFrom = tt.SelectedFrom.Airport;
+        if (wanted == tt.Routes[0]) fail("the test needs a route other than the first to be meaningful");
+
+        tt.SelectedAircraft = null; // what the empty box writes back while the list is rebuilt
+        tt.ReloadAircraft();
+        Console.WriteLine("  after the aircraft list was rebuilt the route box says " + (tt.SelectedRoute?.Text ?? "nothing")
+                          + ", leaving from " + (tt.SelectedFrom?.Airport.Profile.IATACode ?? "nowhere"));
+        if (tt.SelectedRoute?.Route != wanted.Route)
+            fail("the route box went back to " + (tt.SelectedRoute?.Text ?? "nothing") + " instead of keeping " + wanted.Text);
+        if (tt.SelectedFrom?.Airport != wantedFrom)
+            fail("the departure airport went back to " + (tt.SelectedFrom?.Airport.Profile.IATACode ?? "nothing") + " instead of keeping " + wantedFrom.Profile.IATACode);
+
+        // and it survives actually adding a flight, which is when the player noticed it
+        tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(13, 0, 0));
+        foreach (var d in tt.Days) d.IsChecked = d.Day == DayOfWeek.Sunday;
+        tt.AddOneWayCommand.Execute(null);
+        Console.WriteLine("  after adding a flight the route box still says " + (tt.SelectedRoute?.Text ?? "nothing"));
+        if (tt.SelectedRoute?.Route != wanted.Route)
+            fail("adding a flight sent the route box back to " + (tt.SelectedRoute?.Text ?? "nothing"));
+        if (tt.SelectedFrom?.Airport != wantedFrom)
+            fail("adding a flight sent the departure airport back to " + (tt.SelectedFrom?.Airport.Profile.IATACode ?? "nothing"));
+
         Console.WriteLine("SCHEDULE TEST OK");
     }
 

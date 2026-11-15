@@ -100,6 +100,13 @@ namespace TheAirline.Presentation
         private TimelineBlock _selectedBlock;
         private List<RouteTimeTableEntry> _justAdded = new List<RouteTimeTableEntry>();
         private readonly HashSet<RouteTimeTableEntry> _selected = new HashSet<RouteTimeTableEntry>();
+
+        // What the player last chose to add, which is not the same as what is chosen right now. Rebuilding the
+        // aircraft list empties the box bound to it, and the empty box writes its own null back before the list is
+        // filled again, which wiped the choice and sent the route box back to the first route after every flight
+        // added. These hold the choice across that, so adding four flights on one route needs the route picked once.
+        private Route _wantRoute;
+        private Airport _wantFrom;
         private TimetableRow _selectedRow;
         private DayChoice _editDay;
         private TimeChoice _editTime;
@@ -582,6 +589,7 @@ namespace TheAirline.Presentation
             get { return _route; }
             set
             {
+                if (value?.Route != null) _wantRoute = value.Route;
                 if (SetProperty(ref _route, value))
                 {
                     LoadDirections();
@@ -600,7 +608,11 @@ namespace TheAirline.Presentation
         public AirportOption SelectedFrom
         {
             get { return _from; }
-            set { if (SetProperty(ref _from, value)) BuildPreview(); }
+            set
+            {
+                if (value?.Airport != null) _wantFrom = value.Airport;
+                if (SetProperty(ref _from, value)) BuildPreview();
+            }
         }
 
         public TimeChoice SelectedTime
@@ -728,14 +740,17 @@ namespace TheAirline.Presentation
                 }
             }
 
-            _route = Routes.FirstOrDefault(r => r.Route == keep) ?? Routes.FirstOrDefault();
+            _route = Routes.FirstOrDefault(r => r.Route == keep)
+                     ?? Routes.FirstOrDefault(r => r.Route == _wantRoute)
+                     ?? Routes.FirstOrDefault();
+            if (_route?.Route != null) _wantRoute = _route.Route;
             OnPropertyChanged(nameof(SelectedRoute));
             LoadDirections();
         }
 
         private void LoadDirections()
         {
-            var keep = _from?.Airport;
+            var keep = _from?.Airport ?? _wantFrom;
             if (_route == null)
             {
                 Directions = new List<AirportOption>();
@@ -747,6 +762,7 @@ namespace TheAirline.Presentation
                 .Select(a => new AirportOption { Airport = a, Text = a.Profile.IATACode + "  " + a.Profile.Name })
                 .ToList();
             SelectedFrom = Directions.FirstOrDefault(d => d.Airport == keep) ?? Directions[0];
+            if (_from?.Airport != null) _wantFrom = _from.Airport;
         }
 
         private static string FormatSpan(TimeSpan t)
