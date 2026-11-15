@@ -50,8 +50,9 @@
           <Button Content="{Binding RemoveSelectedText}" Command="{Binding RemoveSelectedCommand}" IsVisible="{Binding HasSelection}" />
           <Button Content="{Binding UndoText}" Command="{Binding UndoCommand}" ToolTip.Tip="Ctrl+Z" />
           <Button Content="Remove all flights" Command="{Binding RemoveAllFlightsCommand}" />
-          <TextBlock Text="{Binding SelectedBlockText}" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.85" />
         </StackPanel>
+        <!-- on its own line: beside the buttons it ran under the Add flights panel and was cut off -->
+        <TextBlock Text="{Binding SelectedBlockText}" TextWrapping="Wrap" Opacity="0.85" MaxWidth="780" HorizontalAlignment="Left" />
       </StackPanel>
       <Grid Grid.Row="2" ColumnDefinitions="50,60,70,90,110,*" Margin="4,0,0,2" Opacity="0.7">
         <TextBlock Text="Day" FontWeight="SemiBold" />

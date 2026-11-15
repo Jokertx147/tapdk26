@@ -152,11 +152,10 @@ namespace TheAirline.Desktop.Views
             // and nothing else can leave until it has passed
             foreach (var b in _vm.Ground.ToList().Concat(_vm.PreviewGround.ToList()))
             {
-                var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
                 var r = BlockRect(b);
                 if (r.Width < 1) continue;
-                ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(b.IsPreview ? (byte) 40 : (byte) 72, c.R, c.G, c.B)),
-                                  new Pen(new SolidColorBrush(Color.FromArgb(b.IsPreview ? (byte) 60 : (byte) 110, c.R, c.G, c.B)), 1), r, 2, 2);
+                var tail = new Rect(r.X, r.Y + 5, r.Width, Math.Max(4, r.Height - 10));
+                ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(b.IsPreview ? (byte) 55 : (byte) 95, 190, 196, 205)), null, tail, 2, 2);
             }
 
             foreach (var b in _vm.Blocks.ToList())
@@ -218,7 +217,7 @@ namespace TheAirline.Desktop.Views
                     {
                         double gs = end % 1440, ge = gs + gate;
                         int gd = (day + (int) (end/1440)) % 7;
-                        var faint = new SolidColorBrush(Color.FromArgb(55, c.R, c.G, c.B));
+                        var faint = new SolidColorBrush(Color.FromArgb(70, 190, 196, 205));
                         ctx.DrawRectangle(faint, null, BlockRectAt(gd, gs, Math.Min(ge, 1440)), 2, 2);
                         if (ge > 1440) ctx.DrawRectangle(faint, null, BlockRectAt((gd + 1) % 7, 0, ge - 1440), 2, 2);
                     }
