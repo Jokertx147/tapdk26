@@ -219,6 +219,17 @@ namespace TheAirline.Desktop
                 if (report != null) av.News.Selected = report;
                 await Shoot(window, "08-news-report-link");
 
+                // My Airline > Best and worst: the routes, then the aircraft
+                av.Page = PageOf("My Airline");
+                av.MyAirlineTab = AirlineViewModel.RankingTabIndex;
+                av.Ranking.What = TheAirline.Presentation.ProfitRankingViewModel.Routes;
+                av.Ranking.Reload();
+                await Shoot(window, "10-best-and-worst-routes");
+                av.Ranking.What = TheAirline.Presentation.ProfitRankingViewModel.Aircraft;
+                av.Ranking.Reload();
+                await Shoot(window, "10b-best-and-worst-aircraft");
+                Log("best and worst: " + av.Ranking.Summary);
+
                 // Airliners > New aircraft: a type with a choice of engines, ordered ahead of its first deliveries
                 av.Page = PageOf("Airliners");
                 av.NewAircraft.Reload();
