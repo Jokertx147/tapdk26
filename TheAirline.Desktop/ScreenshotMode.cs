@@ -219,6 +219,15 @@ namespace TheAirline.Desktop
                 if (report != null) av.News.Selected = report;
                 await Shoot(window, "08-news-report-link");
 
+                // Flights > Timetable: the week, with the gate time after each flight
+                var withFlights = me.Fleet.FirstOrDefault(x => x.Routes.Count > 0);
+                if (withFlights != null)
+                {
+                    av.OpenSchedule(withFlights);
+                    await Shoot(window, "11-timetable-gate-time");
+                    Log("timetable: " + av.Timetable.Summary);
+                }
+
                 // My Airline > Best and worst: the routes, then the aircraft
                 av.Page = PageOf("My Airline");
                 av.MyAirlineTab = AirlineViewModel.RankingTabIndex;

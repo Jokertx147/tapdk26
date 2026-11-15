@@ -97,6 +97,12 @@ namespace TheAirline.Presentation
 
         /// <summary>The whole flight's length, which a block cut in two at midnight does not show.</summary>
         public double DurationMinutes { get; set; }
+
+        /// <summary>
+        ///     A stretch of ground time rather than a flight: the aircraft is at the gate being turned round, and
+        ///     cannot leave again until it has passed. Drawn faint behind the flights.
+        /// </summary>
+        public bool IsGround { get; set; }
     }
 
     /// <summary>Edit the weekly schedule of one aircraft: add or remove flights on its routes.</summary>
@@ -114,6 +120,8 @@ namespace TheAirline.Presentation
         private List<AirportOption> _directions = new List<AirportOption>();
         private List<TimelineBlock> _blocks = new List<TimelineBlock>();
         private List<TimelineBlock> _preview = new List<TimelineBlock>();
+        private List<TimelineBlock> _ground = new List<TimelineBlock>();
+        private List<TimelineBlock> _previewGround = new List<TimelineBlock>();
         private TimelineBlock _selectedBlock;
         private List<RouteTimeTableEntry> _justAdded = new List<RouteTimeTableEntry>();
         private readonly HashSet<RouteTimeTableEntry> _selected = new HashSet<RouteTimeTableEntry>();
@@ -263,6 +271,14 @@ namespace TheAirline.Presentation
 
         public List<TimelineBlock> Blocks => _blocks;
         public List<TimelineBlock> Preview => _preview;
+
+        /// <summary>The time each flight spends at the gate afterwards, drawn behind the flights.</summary>
+        public List<TimelineBlock> Ground => _ground;
+
+        public List<TimelineBlock> PreviewGround => _previewGround;
+
+        /// <summary>How long the chosen aircraft needs on the ground between flights.</summary>
+        public int GroundMinutes => _aircraft == null ? 0 : (int) FleetAirlinerHelpers.GetMinTimeBetweenFlights(_aircraft.Airliner).TotalMinutes;
 
         /// <summary>
         ///     The flight the edit boxes act on: the last one clicked. Setting it picks that flight alone, as a plain
@@ -969,24 +985,56 @@ namespace TheAirline.Presentation
             BuildPreview();
 
             Summary = entries.Count == 0
-                ? f.Name + " has no flights yet."
-                : string.Format("{0}: {1} flights a week, about {2:0} hours in the air.", f.Name, entries.Count, airMinutes / 60);
+                ? string.Format("{0} has no flights yet. It needs {1} minutes at the gate between one flight and the next.", f.Name, GroundMinutes)
+                : string.Format(
+                    "{0}: {1} flights a week, about {2:0} hours in the air. The faint band after each flight is the {3} minutes it needs at the gate before it can leave again.",
+                    f.Name, entries.Count, airMinutes/60, GroundMinutes);
         }
 
         private static void AddBlocks(
-            List<TimelineBlock> list, DayOfWeek day, double startMinutes, double durationMinutes, string label, string detail, int color, bool preview, RouteTimeTableEntry entry)
+            List<TimelineBlock> list, List<TimelineBlock> groundList, DayOfWeek day, double startMinutes, double durationMinutes,
+            double groundMinutes, string label, string detail, int color, bool preview, RouteTimeTableEntry entry)
         {
             int d = DayIndex(day);
             double length = Math.Max(durationMinutes, 10);
-            double end = startMinutes + length;
-            if (end <= 1440)
+            Span(list, d, startMinutes, length, b =>
             {
-                list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = end, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
-                return;
-            }
+                b.Label = label;
+                b.Detail = detail;
+                b.ColorIndex = color;
+                b.IsPreview = preview;
+                b.Entry = entry;
+                b.DurationMinutes = length;
+            });
 
-            list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
-            list.Add(new TimelineBlock { Day = (d + 1) % 7, Start = 0, End = end - 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
+            // the time at the gate after it lands, which the aircraft needs before it can leave again
+            if (groundList == null || groundMinutes <= 0) return;
+            Span(groundList, d, startMinutes + length, groundMinutes, b =>
+            {
+                b.Detail = detail;
+                b.ColorIndex = color;
+                b.IsPreview = preview;
+                b.Entry = entry;
+                b.DurationMinutes = groundMinutes;
+                b.IsGround = true;
+            });
+        }
+
+        // a stretch of the week as one block, or two where it runs past midnight into the next day
+        private static void Span(List<TimelineBlock> list, int dayIndex, double start, double length, Action<TimelineBlock> fill)
+        {
+            int day = (dayIndex + (int) (start/1440))%7;
+            double from = start%1440;
+            double end = from + length;
+
+            var first = new TimelineBlock { Day = day, Start = from, End = Math.Min(end, 1440) };
+            fill(first);
+            list.Add(first);
+            if (end <= 1440) return;
+
+            var second = new TimelineBlock { Day = (day + 1)%7, Start = 0, End = end - 1440 };
+            fill(second);
+            list.Add(second);
         }
 
         private void BuildBlocks(List<RouteTimeTableEntry> entries)
@@ -995,6 +1043,8 @@ namespace TheAirline.Presentation
             var routes = f.Routes.ToList();
             var keep = _selectedBlock?.Entry;
             var list = new List<TimelineBlock>();
+            var ground = new List<TimelineBlock>();
+            double groundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(f).TotalMinutes;
             foreach (var e in entries)
             {
                 TimeSpan flight = e.TimeTable.Route.GetFlightTime(f.Airliner.Type);
@@ -1004,11 +1054,13 @@ namespace TheAirline.Presentation
                     "{0} {1}  |  {2}  |  leaves {3}, arrives {4}{5}  |  {6}",
                     e.Day, e.Destination.FlightCode, route, e.Time.ToString(@"hh\:mm"),
                     new TimeSpan(arrive.Hours, arrive.Minutes, 0).ToString(@"hh\:mm"), arrive.Days > 0 ? " (+" + arrive.Days + ")" : "", FormatSpan(flight));
-                AddBlocks(list, e.Day, e.Time.TotalMinutes, flight.TotalMinutes, e.Destination.FlightCode + " " + route, detail,
+                AddBlocks(list, ground, e.Day, e.Time.TotalMinutes, flight.TotalMinutes, groundMinutes,
+                          e.Destination.FlightCode + " " + route, detail,
                           Math.Max(0, routes.IndexOf(e.TimeTable.Route)), false, e);
             }
 
             _blocks = list;
+            _ground = ground;
             // what was just placed or moved is picked, so it can be seen and moved again straight away; otherwise
             // whatever was picked before stays picked, less any flight that has gone
             TimelineBlock pick = null;
@@ -1047,6 +1099,7 @@ namespace TheAirline.Presentation
         private void BuildPreview()
         {
             var list = new List<TimelineBlock>();
+            var ground = new List<TimelineBlock>();
             if (_aircraft != null && _route != null && _from != null && Days != null)
             {
                 var f = _aircraft.Airliner;
@@ -1056,17 +1109,19 @@ namespace TheAirline.Presentation
                 TimeSpan flight = route.GetFlightTime(f.Airliner.Type);
                 TimeSpan back = _time.Time.Add(flight).Add(new TimeSpan(0, _turnaround, 0));
                 int color = Math.Max(0, f.Routes.ToList().IndexOf(route));
+                double groundMinutes = FleetAirlinerHelpers.GetMinTimeBetweenFlights(f).TotalMinutes;
                 foreach (var day in Days.Where(d => d.IsChecked).Select(d => d.Day))
                 {
-                    AddBlocks(list, day, _time.Time.TotalMinutes, flight.TotalMinutes, from.Profile.IATACode + " > " + to.Profile.IATACode,
-                              "New flight", color, true, null);
+                    AddBlocks(list, ground, day, _time.Time.TotalMinutes, flight.TotalMinutes, groundMinutes,
+                              from.Profile.IATACode + " > " + to.Profile.IATACode, "New flight", color, true, null);
                     DayOfWeek backDay = (DayOfWeek) (((int) day + back.Days) % 7);
-                    AddBlocks(list, backDay, back.Hours * 60 + back.Minutes, flight.TotalMinutes, to.Profile.IATACode + " > " + from.Profile.IATACode,
-                              "New flight", color, true, null);
+                    AddBlocks(list, ground, backDay, back.Hours * 60 + back.Minutes, flight.TotalMinutes, groundMinutes,
+                              to.Profile.IATACode + " > " + from.Profile.IATACode, "New flight", color, true, null);
                 }
             }
 
             _preview = list;
+            _previewGround = ground;
             TimelineChanged?.Invoke();
         }
 

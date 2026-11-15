@@ -148,6 +148,17 @@ namespace TheAirline.Desktop.Views
                 ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(55, c.R, c.G, c.B)), new Pen(new SolidColorBrush(c), 1.5, new DashStyle(new double[] { 3, 2 }, 0)), r, 4, 4);
             }
 
+            // the gate time after each flight, behind the flights themselves: the aircraft is there but not flying,
+            // and nothing else can leave until it has passed
+            foreach (var b in _vm.Ground.ToList().Concat(_vm.PreviewGround.ToList()))
+            {
+                var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
+                var r = BlockRect(b);
+                if (r.Width < 1) continue;
+                ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(b.IsPreview ? (byte) 40 : (byte) 72, c.R, c.G, c.B)),
+                                  new Pen(new SolidColorBrush(Color.FromArgb(b.IsPreview ? (byte) 60 : (byte) 110, c.R, c.G, c.B)), 1), r, 2, 2);
+            }
+
             foreach (var b in _vm.Blocks.ToList())
             {
                 var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
@@ -199,6 +210,17 @@ namespace TheAirline.Desktop.Views
                     if (end > 1440)
                     {
                         ctx.DrawRectangle(wash, pen, BlockRectAt((day + 1) % 7, 0, end - 1440), 4, 4);
+                    }
+
+                    // where it would still be on the ground afterwards
+                    double gate = _vm.GroundMinutes;
+                    if (gate > 0)
+                    {
+                        double gs = end % 1440, ge = gs + gate;
+                        int gd = (day + (int) (end/1440)) % 7;
+                        var faint = new SolidColorBrush(Color.FromArgb(55, c.R, c.G, c.B));
+                        ctx.DrawRectangle(faint, null, BlockRectAt(gd, gs, Math.Min(ge, 1440)), 2, 2);
+                        if (ge > 1440) ctx.DrawRectangle(faint, null, BlockRectAt((gd + 1) % 7, 0, ge - 1440), 2, 2);
                     }
 
                     using (ctx.PushClip(first))

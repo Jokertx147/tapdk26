@@ -2753,6 +2753,51 @@ static class VmTest
         if (tt.Status != onFri.Count + " flights removed.") fail("expected one message for the lot, got: " + tt.Status);
         if (tt.SelectedCount != 0) fail("nothing should be picked after removing the picked flights");
 
+        // the gate time drawn after each flight: one band per flight, as long as the aircraft needs
+        int gate = tt.GroundMinutes;
+        Console.WriteLine("  " + tt.SelectedAircraft.Airliner.Name + " needs " + gate + " minutes at the gate; " + tt.Summary);
+        if (gate <= 0) fail("the aircraft has no ground time");
+        var byEntry = tt.Ground.GroupBy(b => b.Entry).ToList();
+        if (byEntry.Count != tt.Rows.Count) fail("expected one band for each of the " + tt.Rows.Count + " flights, got " + byEntry.Count);
+        foreach (var grp in byEntry)
+        {
+            double drawn = grp.Sum(b => b.End - b.Start);
+            if (Math.Abs(drawn - gate) > 0.5)
+                fail("the band after " + grp.Key.Destination.FlightCode + " is " + drawn + " minutes, not " + gate);
+            if (grp.Any(b => !b.IsGround)) fail("a gate band is not marked as one");
+        }
+
+        // it starts where the flight lands, and carries into the next day when that is past midnight
+        var one = tt.Rows.First().Entry;
+        var flight = one.TimeTable.Route.GetFlightTime(tt.SelectedAircraft.Airliner.Airliner.Type);
+        double lands = one.Time.TotalMinutes + flight.TotalMinutes;
+        var band = tt.Ground.Where(b => b.Entry == one).OrderBy(b => b.Day*1440.0 + b.Start).First();
+        double wantStart = lands%1440;
+        if (Math.Abs(band.Start - wantStart) > 0.5)
+            fail("the band after " + one.Destination.FlightCode + " starts at " + band.Start + " but it lands at " + wantStart);
+        if (tt.Ground.Any(b => b.Start < -0.01 || b.End > 1440.01)) fail("a gate band runs outside its day instead of carrying over");
+
+        // a flight that lands just before midnight has its band cut in two, and keeps its full length
+        var late = tt.Rows.Select(r => r.Entry).First();
+        double flightMin = late.TimeTable.Route.GetFlightTime(tt.SelectedAircraft.Airliner.Airliner.Type).TotalMinutes;
+        var landsLate = TimeSpan.FromMinutes(Math.Floor((1440 - flightMin - 10)/15)*15); // lands in the last few minutes of the day
+        string lateMoved = tt.MoveEntry(late, DayOfWeek.Saturday, landsLate);
+        if (lateMoved != null) fail("could not put a flight late on the Saturday: " + lateMoved);
+        var pieces = tt.Ground.Where(b => b.Entry == late).OrderBy(b => b.Day).ToList();
+        double total = pieces.Sum(b => b.End - b.Start);
+        Console.WriteLine("  leaving " + landsLate.ToString(@"hh\:mm") + " and landing before midnight: the band is in " + pieces.Count
+                          + " piece(s) over " + string.Join(" and ", pieces.Select(b => "day " + b.Day)) + ", " + total + " minutes in all");
+        if (pieces.Count != 2) fail("a band running past midnight should be in two pieces, got " + pieces.Count);
+        if (Math.Abs(total - gate) > 0.5) fail("the band lost time crossing midnight: " + total + " instead of " + gate);
+        if (pieces[1].Start != 0) fail("the second piece of the band does not start at midnight");
+        tt.UndoCommand.Execute(null);
+
+        // the flights about to be added show their gate time too
+        tt.SelectedRoute = tt.Routes.First();
+        foreach (var pd in tt.Days) pd.IsChecked = pd.Day == DayOfWeek.Sunday;
+        if (tt.Preview.Count > 0 && tt.PreviewGround.Count == 0) fail("the dashed flights show no gate time");
+        Console.WriteLine("  the flights about to be added: " + tt.Preview.Count + " dashed, " + tt.PreviewGround.Count + " gate band(s)");
+
         // copying a flight: shift held while dragging leaves it where it is and puts a copy at the new day and time
         var toCopy = tt.Rows.Select(r => r.Entry).First(e => e.Day == DayOfWeek.Thursday);
         int rowsBefore = tt.Rows.Count;
