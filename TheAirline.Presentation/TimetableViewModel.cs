@@ -30,6 +30,12 @@ namespace TheAirline.Presentation
         public string Text { get; set; }
     }
 
+    public class DayChoice
+    {
+        public DayOfWeek Day { get; set; }
+        public string Text { get; set; }
+    }
+
     public class TimeChoice
     {
         public TimeSpan Time { get; set; }
@@ -71,6 +77,9 @@ namespace TheAirline.Presentation
         public int ColorIndex { get; set; }
         public bool IsPreview { get; set; }
         public RouteTimeTableEntry Entry { get; set; }
+
+        /// <summary>The whole flight's length, which a block cut in two at midnight does not show.</summary>
+        public double DurationMinutes { get; set; }
     }
 
     /// <summary>Edit the weekly schedule of one aircraft: add or remove flights on its routes.</summary>
@@ -89,6 +98,13 @@ namespace TheAirline.Presentation
         private List<TimelineBlock> _blocks = new List<TimelineBlock>();
         private List<TimelineBlock> _preview = new List<TimelineBlock>();
         private TimelineBlock _selectedBlock;
+        private List<RouteTimeTableEntry> _justAdded = new List<RouteTimeTableEntry>();
+        private TimetableRow _selectedRow;
+        private DayChoice _editDay;
+        private TimeChoice _editTime;
+        private List<TimeChoice> _editTimes = new List<TimeChoice>();
+        private string _editFlightCode = "";
+        private bool _syncing;
 
         public TimetableViewModel(Action changed = null)
         {
@@ -116,7 +132,9 @@ namespace TheAirline.Presentation
             }
 
             _time = Times.First(t => t.Time == new TimeSpan(8, 0, 0));
+            _editTimes = Times;
             TurnaroundOptions = RouteCreator.TurnaroundOptions;
+            DayChoices = Days.Select(d => new DayChoice { Day = d.Day, Text = d.Day.ToString() }).ToList();
 
             AddRoundTripCommand = new RelayCommand(() => Add(true), () => _aircraft != null && _route != null);
             AddOneWayCommand = new RelayCommand(() => Add(false), () => _aircraft != null && _route != null);
@@ -127,6 +145,7 @@ namespace TheAirline.Presentation
             RemoveSelectedCommand = new RelayCommand(
                 () => { if (_selectedBlock?.Entry != null) RemoveEntry(_selectedBlock.Entry); },
                 () => _selectedBlock?.Entry != null);
+            ApplyEditCommand = new RelayCommand(ApplyEdit, () => _selectedBlock?.Entry != null);
             DailyCommand = new RelayCommand(() => SetDays(Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().ToArray()));
             WeekdaysCommand = new RelayCommand(
                 () => SetDays(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday));
@@ -143,6 +162,7 @@ namespace TheAirline.Presentation
         public List<DayFlag> Days { get; }
         public List<TimeChoice> Times { get; }
         public List<int> TurnaroundOptions { get; }
+        public List<DayChoice> DayChoices { get; }
 
         public ICommand AddRoundTripCommand { get; }
         public ICommand AddOneWayCommand { get; }
@@ -185,6 +205,7 @@ namespace TheAirline.Presentation
             Finish(n + " flight(s) removed from " + f.Name + ".");
         }
         public ICommand RemoveSelectedCommand { get; }
+        public ICommand ApplyEditCommand { get; }
         public ICommand DailyCommand { get; }
         public ICommand WeekdaysCommand { get; }
         public ICommand WeekendCommand { get; }
@@ -218,16 +239,167 @@ namespace TheAirline.Presentation
             {
                 if (SetProperty(ref _selectedBlock, value))
                 {
-                    OnPropertyChanged(nameof(SelectedBlockText));
-                    (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    AfterSelectionChanged();
                     TimelineChanged?.Invoke();
                 }
             }
         }
 
+        /// <summary>The flight picked in the list below the timeline; the two pick the same flight.</summary>
+        public TimetableRow SelectedRow
+        {
+            get { return _selectedRow; }
+            set
+            {
+                if (!SetProperty(ref _selectedRow, value) || _syncing) return;
+                _syncing = true;
+                SelectedBlock = value?.Entry == null ? null : _blocks.FirstOrDefault(b => b.Entry == value.Entry);
+                _syncing = false;
+            }
+        }
+
+        public bool CanEditSelected => _selectedBlock?.Entry != null;
+
+        /// <summary>The day the selected flight would move to.</summary>
+        public DayChoice EditDay
+        {
+            get { return _editDay; }
+            set { SetProperty(ref _editDay, value); }
+        }
+
+        /// <summary>Every quarter hour, plus the selected flight's own time when it falls between two.</summary>
+        public List<TimeChoice> EditTimes
+        {
+            get { return _editTimes; }
+            private set { SetProperty(ref _editTimes, value); }
+        }
+
+        public TimeChoice EditTime
+        {
+            get { return _editTime; }
+            set { SetProperty(ref _editTime, value); }
+        }
+
+        public string EditFlightCode
+        {
+            get { return _editFlightCode; }
+            set { SetProperty(ref _editFlightCode, value ?? ""); }
+        }
+
+        // the edit boxes follow whatever is picked, on the timeline or in the list
+        private void AfterSelectionChanged()
+        {
+            var entry = _selectedBlock?.Entry;
+            if (entry != null)
+            {
+                EditTimes = Times.Any(t => t.Time == entry.Time)
+                    ? Times
+                    : Times.Concat(new[] { new TimeChoice { Time = entry.Time, Text = entry.Time.ToString(@"hh\:mm") } })
+                           .OrderBy(t => t.Time).ToList();
+                EditDay = DayChoices.FirstOrDefault(d => d.Day == entry.Day);
+                EditTime = EditTimes.FirstOrDefault(t => t.Time == entry.Time);
+                EditFlightCode = entry.Destination.FlightCode ?? "";
+            }
+
+            if (!_syncing)
+            {
+                _syncing = true;
+                SelectedRow = entry == null ? null : Rows.FirstOrDefault(r => r.Entry == entry);
+                _syncing = false;
+            }
+
+            OnPropertyChanged(nameof(SelectedBlockText));
+            OnPropertyChanged(nameof(CanEditSelected));
+            (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ApplyEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
         public string SelectedBlockText => _selectedBlock == null
-            ? "Click a flight on the timeline to see it. The dashed blocks show the flights you are about to add."
+            ? "Click a flight on the timeline to see it, or drag it to another day or time. The dashed blocks show the flights you are about to add."
             : _selectedBlock.Detail;
+
+        /// <summary>
+        ///     Where a flight lands when it is dragged across so many day rows and so many minutes. The whole week
+        ///     moves with the pointer, so a flight dragged off Sunday evening comes back on Monday, and times snap to
+        ///     the quarter hour, which is what the Add panel offers.
+        /// </summary>
+        public static void DragTarget(DayOfWeek day, TimeSpan time, int daysMoved, double minutesMoved, out DayOfWeek newDay, out TimeSpan newTime)
+        {
+            const int week = 7*1440, snap = 15;
+            double at = DayIndex(day)*1440.0 + time.TotalMinutes + daysMoved*1440.0 + minutesMoved;
+            at = Math.Round(at/snap)*snap;
+            at = ((at%week) + week)%week;
+            int index = (int) (at/1440);
+            newDay = (DayOfWeek) ((index + 1)%7); // Monday is row 0
+            newTime = TimeSpan.FromMinutes(at - index*1440);
+        }
+
+        /// <summary>
+        ///     Moves one flight to another day and time, which is what dragging a block does. The flight is put back
+        ///     where it was when it would not fit, and the reason is returned; null means it moved.
+        /// </summary>
+        public string MoveEntry(RouteTimeTableEntry entry, DayOfWeek day, TimeSpan time)
+        {
+            if (_aircraft == null || entry == null) return "Pick an aircraft first.";
+            if (entry.Day == day && entry.Time == time) return null;
+
+            var f = _aircraft.Airliner;
+            DayOfWeek wasDay = entry.Day;
+            TimeSpan wasTime = entry.Time;
+            entry.Day = day;
+            entry.Time = time;
+            if (!TimeTableHelpers.IsTimeTableValid(f, AircraftEntries().ToList()))
+            {
+                entry.Day = wasDay;
+                entry.Time = wasTime;
+                string why = "That leaves " + entry.Destination.FlightCode + " where it was: on " + day + " at "
+                             + time.ToString(@"hh\:mm") + " it would overlap another flight of " + f.Name
+                             + " (which needs the flight time plus its time on the ground), or the airport has no free gate time then.";
+                Status = why;
+                return why;
+            }
+
+            _justAdded = new List<RouteTimeTableEntry> { entry };
+            Finish("Flight " + entry.Destination.FlightCode + " moved to " + day + " at " + time.ToString(@"hh\:mm") + ".");
+            return null;
+        }
+
+        // the edit panel's button: the day, the time and the flight number of the picked flight at once
+        private void ApplyEdit()
+        {
+            var entry = _selectedBlock?.Entry;
+            if (entry == null || _editDay == null || _editTime == null) return;
+
+            string code = _editFlightCode.Trim();
+            string wasCode = entry.Destination.FlightCode;
+            bool codeChanged = code.Length > 0 && code != wasCode;
+            if (codeChanged)
+            {
+                var clash = AircraftEntries().FirstOrDefault(e => e != entry && e.Destination.FlightCode == code);
+                if (clash == null && Human.Routes.SelectMany(r => r.TimeTable.Entries).Any(e => e != entry && e.Destination.FlightCode == code))
+                {
+                    Status = "Flight number " + code + " is already used by another of your flights.";
+                    return;
+                }
+                if (clash != null)
+                {
+                    Status = "Flight number " + code + " is already used by this aircraft.";
+                    return;
+                }
+                entry.Destination.FlightCode = code;
+            }
+
+            if (entry.Day == _editDay.Day && entry.Time == _editTime.Time)
+            {
+                if (codeChanged) Finish("Flight " + wasCode + " is now " + code + ".");
+                return;
+            }
+
+            if (MoveEntry(entry, _editDay.Day, _editTime.Time) != null && codeChanged)
+            {
+                entry.Destination.FlightCode = wasCode; // the move was refused, so the number goes back too
+            }
+        }
 
         public RouteOption SelectedRoute
         {
@@ -466,15 +638,16 @@ namespace TheAirline.Presentation
             List<TimelineBlock> list, DayOfWeek day, double startMinutes, double durationMinutes, string label, string detail, int color, bool preview, RouteTimeTableEntry entry)
         {
             int d = DayIndex(day);
-            double end = startMinutes + Math.Max(durationMinutes, 10);
+            double length = Math.Max(durationMinutes, 10);
+            double end = startMinutes + length;
             if (end <= 1440)
             {
-                list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = end, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
+                list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = end, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
                 return;
             }
 
-            list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
-            list.Add(new TimelineBlock { Day = (d + 1) % 7, Start = 0, End = end - 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry });
+            list.Add(new TimelineBlock { Day = d, Start = startMinutes, End = 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
+            list.Add(new TimelineBlock { Day = (d + 1) % 7, Start = 0, End = end - 1440, Label = label, Detail = detail, ColorIndex = color, IsPreview = preview, Entry = entry, DurationMinutes = length });
         }
 
         private void BuildBlocks(List<RouteTimeTableEntry> entries)
@@ -497,10 +670,19 @@ namespace TheAirline.Presentation
             }
 
             _blocks = list;
-            _selectedBlock = list.FirstOrDefault(b => b.Entry == keep);
+            // what was just placed or moved is picked, so it can be seen and moved again straight away; otherwise
+            // whatever was picked before stays picked
+            TimelineBlock pick = null;
+            foreach (var e in _justAdded)
+            {
+                pick = list.FirstOrDefault(b => b.Entry == e);
+                if (pick != null) break;
+            }
+
+            _justAdded = new List<RouteTimeTableEntry>();
+            _selectedBlock = pick ?? list.FirstOrDefault(b => b.Entry == keep);
             OnPropertyChanged(nameof(SelectedBlock));
-            OnPropertyChanged(nameof(SelectedBlockText));
-            (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            AfterSelectionChanged();
         }
 
         /// <summary>The dashed flights that "Add round trips" would put on the timeline.</summary>
@@ -659,6 +841,7 @@ namespace TheAirline.Presentation
                 f.AddRoute(route);
             }
 
+            _justAdded = rt.Entries.OrderBy(e => DayIndex(e.Day)).ThenBy(e => e.Time).ToList();
             Finish(string.Format("{0} flight(s) added ({1}).", rt.Entries.Count, roundTrip ? "round trips" : "one way"));
         }
     }

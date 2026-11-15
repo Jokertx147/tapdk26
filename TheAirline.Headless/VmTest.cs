@@ -2244,6 +2244,111 @@ static class VmTest
     }
 
     // "vm newprobe": a new route's forecast when it opens against its first full month
+    // vm schedule: the timetable editor. What was just placed is picked, a flight can be moved to another day or time
+    // (which is what dragging a block does), one that won't fit is put back, and the picked flight can be renumbered.
+    static void ScheduleTest(AirlineViewModel av)
+    {
+        Console.WriteLine("SCHEDULE TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var me = g.HumanAirline;
+        var home = me.Airports.First();
+
+        // an aircraft, and a route it has the range and the runways for
+        var type = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes().First(x => x.Name == "Airbus A320-200");
+        var al = new TheAirline.Models.Airliners.Airliner("sch", type, "N-SCH", g.GameTime.AddYears(-1)) { Airline = me };
+        TheAirline.Models.Airliners.Airliners.AddAirliner(al);
+        var f = TheAirline.Helpers.AirlineHelpers.AddAirliner(me, al, home, false);
+        TheAirline.Helpers.AirlineHelpers.HireAirlinerPilots(f);
+        var dest = TheAirline.Models.Airports.Airports.GetAllAirports()
+            .Where(x => x != home && x.Profile.Town != null
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) > 300
+                        && TheAirline.Helpers.MathHelpers.GetDistance(home, x) < al.Range*0.7
+                        && x.GetMaxRunwayLength() >= al.MinRunwaylength
+                        && x.Terminals.GetFreeGates(TheAirline.Models.Airports.Terminal.TerminalType.Passenger) >= 3)
+            .OrderByDescending(x => x.Profile.Size).FirstOrDefault();
+        if (dest == null) fail("no airport within reach of " + home.Profile.IATACode);
+        // a route needs gates at both ends
+        TheAirline.Helpers.AirportHelpers.RentGates(dest, me, TheAirline.Models.Airports.AirportContract.ContractType.Full, TheAirline.Models.Airports.Terminal.TerminalType.Passenger, 2);
+        string why;
+        var route = TheAirline.Helpers.RouteCreator.Create(
+            new TheAirline.Helpers.NewRouteRequest { Origin = home, Destination = dest, RouteType = TheAirline.Models.Routes.Route.RouteType.Passenger }, out why);
+        if (route == null) fail("couldn't open a route " + home.Profile.IATACode + "-" + dest.Profile.IATACode + ": " + why);
+        Console.WriteLine("  " + f.Name + " on " + home.Profile.IATACode + "-" + dest.Profile.IATACode);
+
+        var tt = av.Timetable;
+        tt.Select(f);
+        if (tt.SelectedAircraft?.Airliner != f) fail("the aircraft didn't open");
+        var option = tt.Routes.FirstOrDefault(r => r.Route == route);
+        if (option == null) fail("the new route isn't offered for this aircraft");
+        tt.SelectedRoute = option;
+        tt.SelectedTime = tt.Times.First(t => t.Time == new TimeSpan(7, 0, 0));
+        tt.WeekdaysCommand.Execute(null);
+        tt.AddRoundTripCommand.Execute(null);
+        Console.WriteLine("  added: " + tt.Status + " (" + tt.Rows.Count + " flights)");
+        if (tt.Rows.Count != 10) fail("expected ten weekday flights, got " + tt.Rows.Count);
+
+        // what was just placed is picked, on the timeline and in the list below it
+        var picked = tt.SelectedBlock;
+        if (picked?.Entry == null) fail("nothing was picked after placing the flights");
+        if (picked.Entry.Day != DayOfWeek.Monday || picked.Entry.Time != new TimeSpan(7, 0, 0))
+            fail("the pick isn't the first flight placed: " + picked.Entry.Day + " " + picked.Entry.Time);
+        if (tt.SelectedRow?.Entry != picked.Entry) fail("the list didn't follow the timeline");
+        if (!tt.CanEditSelected || tt.EditDay?.Day != picked.Entry.Day || tt.EditTime?.Time != picked.Entry.Time)
+            fail("the edit boxes don't show the picked flight");
+        Console.WriteLine("  picked " + picked.Entry.Destination.FlightCode + " " + picked.Entry.Day + " " + picked.Entry.Time);
+
+        // picking in the list picks the same flight on the timeline
+        var otherRow = tt.Rows.First(r => r.Entry != picked.Entry);
+        tt.SelectedRow = otherRow;
+        if (tt.SelectedBlock?.Entry != otherRow.Entry) fail("the timeline didn't follow the list");
+        tt.SelectedBlock = tt.Blocks.First(b => b.Entry == picked.Entry);
+
+        // dragged to an empty day: Saturday, which the weekdays didn't fill
+        var entry = tt.SelectedBlock.Entry;
+        string moved = tt.MoveEntry(entry, DayOfWeek.Saturday, new TimeSpan(9, 0, 0));
+        Console.WriteLine("  moved to Saturday 09:00: " + (moved ?? tt.Status));
+        if (moved != null) fail("a free Saturday morning was refused: " + moved);
+        if (entry.Day != DayOfWeek.Saturday || entry.Time != new TimeSpan(9, 0, 0)) fail("the flight didn't move");
+        if (tt.SelectedBlock?.Entry != entry) fail("the moved flight isn't picked any more");
+        if (!tt.Rows.Any(r => r.Entry == entry && r.Day == "Sat" && r.Time == "09:00")) fail("the list doesn't show the move");
+
+        // dragged onto another flight of the same aircraft: refused, and left where it was
+        var clash = tt.Rows.Select(r => r.Entry).First(e => e != entry);
+        string refused = tt.MoveEntry(entry, clash.Day, clash.Time);
+        Console.WriteLine("  onto " + clash.Destination.FlightCode + " (" + clash.Day + " " + clash.Time + "): " + (refused == null ? "ALLOWED" : "refused"));
+        if (refused == null) fail("two flights at once were allowed");
+        if (entry.Day != DayOfWeek.Saturday || entry.Time != new TimeSpan(9, 0, 0)) fail("a refused move still moved the flight");
+
+        // the flight number of the picked flight
+        tt.SelectedBlock = tt.Blocks.First(b => b.Entry == entry);
+        tt.EditFlightCode = "ZZ9001";
+        tt.ApplyEditCommand.Execute(null);
+        Console.WriteLine("  renumbered: " + tt.Status);
+        if (entry.Destination.FlightCode != "ZZ9001") fail("the flight number didn't change");
+        tt.SelectedBlock = tt.Blocks.First(b => b.Entry == entry);
+        tt.EditFlightCode = clash.Destination.FlightCode;
+        tt.ApplyEditCommand.Execute(null);
+        Console.WriteLine("  a number already in use: " + tt.Status);
+        if (entry.Destination.FlightCode != "ZZ9001") fail("a flight number already in use was taken anyway");
+
+        // the week arithmetic a drag uses: snapping, and Sunday night wrapping round to Monday
+        DayOfWeek d2; TimeSpan t2;
+        TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(7, 0, 0), 0, 8, out d2, out t2);
+        if (d2 != DayOfWeek.Monday || t2 != new TimeSpan(7, 15, 0)) fail("eight minutes on should snap up to the next quarter hour, got " + d2 + " " + t2);
+        TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(7, 0, 0), 0, -7, out d2, out t2);
+        if (d2 != DayOfWeek.Monday || t2 != new TimeSpan(7, 0, 0)) fail("seven minutes back should snap to the same quarter hour, got " + d2 + " " + t2);
+        TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(7, 0, 0), 2, 60, out d2, out t2);
+        if (d2 != DayOfWeek.Wednesday || t2 != new TimeSpan(8, 0, 0)) fail("two rows down and an hour on should be Wednesday 08:00, got " + d2 + " " + t2);
+        TimetableViewModel.DragTarget(DayOfWeek.Sunday, new TimeSpan(23, 0, 0), 0, 120, out d2, out t2);
+        if (d2 != DayOfWeek.Monday || t2 != new TimeSpan(1, 0, 0)) fail("past Sunday midnight should come round to Monday, got " + d2 + " " + t2);
+        TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(0, 30, 0), 0, -60, out d2, out t2);
+        if (d2 != DayOfWeek.Sunday || t2 != new TimeSpan(23, 30, 0)) fail("before Monday midnight should come round to Sunday, got " + d2 + " " + t2);
+        Console.WriteLine("  drag arithmetic: snapping and the week wrapping both ways");
+
+        Console.WriteLine("SCHEDULE TEST OK");
+    }
+
     static void NewRouteProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -4344,6 +4449,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("tripprobe")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("tripadvice")) { TripProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("schedule")) { ScheduleTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }

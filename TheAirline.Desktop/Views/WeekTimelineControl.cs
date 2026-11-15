@@ -20,9 +20,17 @@ namespace TheAirline.Desktop.Views
 
         private TimetableViewModel _vm;
 
+        // the flight being dragged, where the drag started, and where it would land
+        private TimelineBlock _drag;
+        private Point _pressed;
+        private bool _dragging;
+        private int _ghostDay;
+        private double _ghostStart;
+
         public WeekTimelineControl()
         {
             ClipToBounds = true;
+            Focusable = true;
             DataContextChanged += (s, e) => Attach();
         }
 
@@ -54,9 +62,31 @@ namespace TheAirline.Desktop.Views
 
         private Rect BlockRect(TimelineBlock b)
         {
-            double x1 = X(b.Start), x2 = X(b.End);
-            return new Rect(x1, Header + b.Day * RowHeight + 4, Math.Max(3, x2 - x1), RowHeight - 8);
+            return BlockRectAt(b.Day, b.Start, b.End);
         }
+
+        private Rect BlockRectAt(int day, double startMinutes, double endMinutes)
+        {
+            double x1 = X(startMinutes), x2 = X(endMinutes);
+            return new Rect(x1, Header + day * RowHeight + 4, Math.Max(3, x2 - x1), RowHeight - 8);
+        }
+
+        private double Minutes(double x)
+        {
+            double usable = Math.Max(1, Bounds.Width - Gutter - 6);
+            return (x - Gutter) * 1440.0 / usable;
+        }
+
+        private int DayAt(double y)
+        {
+            return Math.Max(0, Math.Min(6, (int) ((y - Header) / RowHeight)));
+        }
+
+        private static int DayIndexOf(DayOfWeek d)
+        {
+            return ((int) d + 6) % 7; // Monday first, as the rows are drawn
+        }
+
 
         private static FormattedText Text(string s, double size, IBrush brush)
         {
@@ -112,13 +142,34 @@ namespace TheAirline.Desktop.Views
                 var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
                 var r = BlockRect(b);
                 bool sel = _vm.SelectedBlock != null && _vm.SelectedBlock.Entry == b.Entry;
-                ctx.DrawRectangle(new SolidColorBrush(c), sel ? new Pen(Brushes.White, 2) : new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), 1), r, 4, 4);
+                bool moving = _dragging && _drag != null && _drag.Entry == b.Entry;
+                var fill = new SolidColorBrush(c, moving ? 0.35 : 1);
+                ctx.DrawRectangle(fill, sel ? new Pen(Brushes.White, 2) : new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), 1), r, 4, 4);
                 if (r.Width > 60)
                 {
                     using (ctx.PushClip(r))
                     {
                         ctx.DrawText(Text(b.Label, 10.5, Brushes.White), new Point(r.X + 4, r.Y + 5));
                     }
+                }
+            }
+
+            // where the dragged flight would land
+            if (_dragging && _drag != null)
+            {
+                var c = Color.Parse(Palette[_drag.ColorIndex % Palette.Length]);
+                var pen = new Pen(Brushes.White, 2, new DashStyle(new double[] { 4, 3 }, 0));
+                double end = _ghostStart + _drag.DurationMinutes;
+                var first = BlockRectAt(_ghostDay, _ghostStart, Math.Min(end, 1440));
+                ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(90, c.R, c.G, c.B)), pen, first, 4, 4);
+                if (end > 1440)
+                {
+                    ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(90, c.R, c.G, c.B)), pen, BlockRectAt((_ghostDay + 1) % 7, 0, end - 1440), 4, 4);
+                }
+
+                using (ctx.PushClip(first))
+                {
+                    ctx.DrawText(Text(DayNames[_ghostDay] + " " + TimeSpan.FromMinutes(_ghostStart).ToString(@"hh\:mm"), 10.5, Brushes.White), new Point(first.X + 4, first.Y + 5));
                 }
             }
         }
@@ -134,6 +185,77 @@ namespace TheAirline.Desktop.Views
             Point p = e.GetPosition(this);
             var hit = _vm.Blocks.ToList().FirstOrDefault(b => BlockRect(b).Contains(p));
             _vm.SelectedBlock = hit;
+            Focus();
+
+            _drag = null;
+            _dragging = false;
+            if (hit?.Entry != null && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                _drag = hit;
+                _pressed = p;
+                e.Pointer.Capture(this);
+            }
+        }
+
+        protected override void OnPointerMoved(PointerEventArgs e)
+        {
+            base.OnPointerMoved(e);
+            if (_drag?.Entry == null)
+            {
+                return;
+            }
+
+            Point p = e.GetPosition(this);
+            // a click shouldn't nudge a flight, so a few pixels have to be travelled first
+            if (!_dragging && Math.Abs(p.X - _pressed.X) < 4 && Math.Abs(p.Y - _pressed.Y) < 4)
+            {
+                return;
+            }
+
+            _dragging = true;
+            Target(_drag, p, out DayOfWeek day, out TimeSpan time);
+            _ghostDay = DayIndexOf(day);
+            _ghostStart = time.TotalMinutes;
+            InvalidateVisual();
+        }
+
+        // where the pointer would put the dragged flight: the whole week moves with the pointer, so dragging a block
+        // that ran past midnight works from either half of it
+        private void Target(TimelineBlock block, Point p, out DayOfWeek day, out TimeSpan time)
+        {
+            var entry = block.Entry;
+            TimetableViewModel.DragTarget(entry.Day, entry.Time, DayAt(p.Y) - DayAt(_pressed.Y), Minutes(p.X) - Minutes(_pressed.X), out day, out time);
+        }
+
+        protected override void OnPointerReleased(PointerReleasedEventArgs e)
+        {
+            base.OnPointerReleased(e);
+            var drag = _drag;
+            bool dragging = _dragging;
+            _drag = null;
+            _dragging = false;
+            e.Pointer.Capture(null);
+            if (!dragging || drag?.Entry == null || _vm == null)
+            {
+                InvalidateVisual();
+                return;
+            }
+
+            Target(drag, e.GetPosition(this), out DayOfWeek day, out TimeSpan time);
+            _vm.MoveEntry(drag.Entry, day, time);
+            InvalidateVisual();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.Key == Key.Escape && _drag != null)
+            {
+                _drag = null;
+                _dragging = false;
+                InvalidateVisual();
+                e.Handled = true;
+            }
         }
 
         protected override Size MeasureOverride(Size availableSize)
