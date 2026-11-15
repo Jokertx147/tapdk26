@@ -41,9 +41,9 @@
           </ComboBox>
           <TextBox Text="{Binding EditFlightCode}" MinWidth="100" Watermark="Flight no." VerticalAlignment="Center" />
           <Button Content="Apply" Command="{Binding ApplyEditCommand}" />
-          <Button Content="Remove this flight" Command="{Binding RemoveSelectedCommand}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="{Binding RemoveSelectedText}" Command="{Binding RemoveSelectedCommand}" IsVisible="{Binding HasSelection}" />
           <Button Content="Remove all flights" Command="{Binding RemoveAllFlightsCommand}" />
           <TextBlock Text="{Binding SelectedBlockText}" VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.85" />
         </StackPanel>

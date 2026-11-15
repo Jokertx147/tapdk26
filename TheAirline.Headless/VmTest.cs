@@ -2367,9 +2367,16 @@ static class VmTest
         if (picked.Entry.Day != DayOfWeek.Monday || picked.Entry.Time != new TimeSpan(7, 0, 0))
             fail("the pick isn't the first flight placed: " + picked.Entry.Day + " " + picked.Entry.Time);
         if (tt.SelectedRow?.Entry != picked.Entry) fail("the list didn't follow the timeline");
+        // all ten are picked as a group, so they can be moved or removed together straight away
+        if (tt.SelectedCount != 10) fail("expected the ten flights just placed to be picked, got " + tt.SelectedCount);
+        if (tt.CanEditSelected) fail("the day/time/number boxes should be hidden while all ten are picked");
+        Console.WriteLine("  picked " + tt.SelectedCount + " flights, first " + picked.Entry.Destination.FlightCode + " " + picked.Entry.Day + " " + picked.Entry.Time);
+
+        // picking one on its own brings the edit boxes back
+        tt.SelectedBlock = tt.Blocks.First(b => b.Entry == picked.Entry);
+        if (tt.SelectedCount != 1) fail("clicking one flight should pick only it, got " + tt.SelectedCount);
         if (!tt.CanEditSelected || tt.EditDay?.Day != picked.Entry.Day || tt.EditTime?.Time != picked.Entry.Time)
             fail("the edit boxes don't show the picked flight");
-        Console.WriteLine("  picked " + picked.Entry.Destination.FlightCode + " " + picked.Entry.Day + " " + picked.Entry.Time);
 
         // picking in the list picks the same flight on the timeline
         var otherRow = tt.Rows.First(r => r.Entry != picked.Entry);
@@ -2418,6 +2425,74 @@ static class VmTest
         TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(0, 30, 0), 0, -60, out d2, out t2);
         if (d2 != DayOfWeek.Sunday || t2 != new TimeSpan(23, 30, 0)) fail("before Monday midnight should come round to Sunday, got " + d2 + " " + t2);
         Console.WriteLine("  drag arithmetic: snapping and the week wrapping both ways");
+
+        // a group is shifted by one snapped amount, so odd times stay as they are and the flights keep their spacing
+        if (TimetableViewModel.SnapShift(7) != 0 || TimetableViewModel.SnapShift(8) != 15 || TimetableViewModel.SnapShift(-8) != -15)
+            fail("a drag should shift by whole quarter hours, got " + TimetableViewModel.SnapShift(7) + "/" + TimetableViewModel.SnapShift(8) + "/" + TimetableViewModel.SnapShift(-8));
+        TimetableViewModel.DragTarget(DayOfWeek.Monday, new TimeSpan(9, 16, 0), 1, 0, out d2, out t2, false);
+        if (d2 != DayOfWeek.Tuesday || t2 != new TimeSpan(9, 16, 0)) fail("a flight moved with its group should keep its own time, got " + d2 + " " + t2);
+
+        // picking several: ctrl-click adds one and takes it out again, shift-click picks everything between
+        tt.SelectedBlock = tt.Blocks.OrderBy(b => TimetableViewModel.WeekMinutes(b.Entry)).First();
+        var first = tt.SelectedBlock.Entry;
+        var second = tt.Blocks.Where(b => b.Entry != first).OrderBy(b => TimetableViewModel.WeekMinutes(b.Entry)).First().Entry;
+        tt.SelectAlso(tt.Blocks.First(b => b.Entry == second));
+        if (tt.SelectedCount != 2 || !tt.IsSelected(first) || !tt.IsSelected(second)) fail("ctrl-click didn't add a second flight, " + tt.SelectedCount + " picked");
+        tt.SelectAlso(tt.Blocks.First(b => b.Entry == second));
+        if (tt.SelectedCount != 1 || !tt.IsSelected(first)) fail("ctrl-clicking a picked flight didn't take it out, " + tt.SelectedCount + " picked");
+        var ordered = tt.Rows.Select(r => r.Entry).OrderBy(TimetableViewModel.WeekMinutes).ToList();
+        tt.SelectedBlock = tt.Blocks.First(b => b.Entry == ordered[0]);
+        tt.SelectRange(tt.Blocks.First(b => b.Entry == ordered[3]));
+        if (tt.SelectedCount != 4) fail("shift-click should pick the four flights from the first to the fourth, got " + tt.SelectedCount);
+        if (!tt.IsSelected(ordered[2])) fail("shift-click left out a flight in between");
+        Console.WriteLine("  picked " + tt.SelectedCount + " flights with shift-click; the remove button says \"" + tt.RemoveSelectedText + "\"");
+        if (tt.CanEditSelected) fail("the day/time/number boxes should be hidden while several are picked");
+
+        // a rubber band leaves exactly what it covered picked, and ctrl adds to it
+        tt.SelectBlocks(new[] { ordered[0], ordered[1] }, false);
+        if (tt.SelectedCount != 2 || !tt.IsSelected(ordered[1])) fail("a band over two flights picked " + tt.SelectedCount);
+        tt.SelectBlocks(new[] { ordered[4] }, true);
+        if (tt.SelectedCount != 3 || !tt.IsSelected(ordered[0])) fail("a band held with ctrl should add to what is picked, got " + tt.SelectedCount);
+
+        // the group moves together: a whole day later, keeping the flights the same distance apart
+        var group = tt.Rows.Select(r => r.Entry).Where(e => e.Day == DayOfWeek.Tuesday).ToList();
+        if (group.Count < 2) fail("expected at least two flights on the Tuesday to move together");
+        var before = group.Select(e => Tuple.Create(e, e.Day, e.Time)).ToList();
+        tt.SelectBlocks(group, false);
+        string groupMoved = tt.MoveEntries(group, 5, 0); // Tuesday to the empty Sunday, same times
+        Console.WriteLine("  moved " + group.Count + " Tuesday flights five days on: " + (groupMoved ?? tt.Status));
+        if (groupMoved != null) fail("moving the Tuesday flights to an empty Sunday was refused: " + groupMoved);
+        foreach (var b in before)
+        {
+            if (b.Item1.Day != DayOfWeek.Sunday || b.Item1.Time != b.Item3)
+                fail("a flight in the group landed on " + b.Item1.Day + " " + b.Item1.Time + " instead of Sunday " + b.Item3);
+        }
+
+        if (tt.SelectedCount != group.Count) fail("the group should stay picked after moving, " + tt.SelectedCount + " picked");
+
+        // a group move that cannot work moves none of them: the Wednesday pair onto the Thursday pair
+        var onWed = tt.Rows.Select(r => r.Entry).Where(e => e.Day == DayOfWeek.Wednesday).ToList();
+        if (onWed.Count < 2) fail("expected two flights on the Wednesday, got " + onWed.Count);
+        var was2 = onWed.Select(e => Tuple.Create(e, e.Day, e.Time)).ToList();
+        tt.SelectBlocks(onWed, false);
+        string refusedGroup = tt.MoveEntries(onWed, 1, 0);
+        Console.WriteLine("  the " + onWed.Count + " Wednesday flights onto the Thursday ones: " + (refusedGroup == null ? "ALLOWED" : "refused"));
+        if (refusedGroup == null) fail("a group move onto other flights was allowed");
+        foreach (var b in was2)
+        {
+            if (b.Item1.Day != b.Item2 || b.Item1.Time != b.Item3) fail("a refused group move still moved " + b.Item1.Destination.FlightCode);
+        }
+
+        // removing several at once, in one go rather than one at a time
+        var onFri = tt.Rows.Select(r => r.Entry).Where(e => e.Day == DayOfWeek.Friday).ToList();
+        if (onFri.Count < 2) fail("expected two flights on the Friday, got " + onFri.Count);
+        tt.SelectBlocks(onFri, false);
+        int had = tt.Rows.Count;
+        tt.RemoveSelectedCommand.Execute(null);
+        Console.WriteLine("  removed " + onFri.Count + " flights at once: " + tt.Status + " (" + tt.Rows.Count + " left)");
+        if (tt.Rows.Count != had - onFri.Count) fail("expected " + (had - onFri.Count) + " flights left, got " + tt.Rows.Count);
+        if (tt.Status != onFri.Count + " flights removed.") fail("expected one message for the lot, got: " + tt.Status);
+        if (tt.SelectedCount != 0) fail("nothing should be picked after removing the picked flights");
 
         Console.WriteLine("SCHEDULE TEST OK");
     }

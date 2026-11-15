@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Avalonia;
@@ -26,6 +27,13 @@ namespace TheAirline.Desktop.Views
         private bool _dragging;
         private int _ghostDay;
         private double _ghostStart;
+        private int _dragDays;
+        private double _dragMinutes;
+
+        // the rubber band drawn across empty space to pick several flights at once
+        private bool _banding;
+        private Point _bandFrom, _bandTo;
+        private bool _bandAdds;
 
         public WeekTimelineControl()
         {
@@ -141,10 +149,14 @@ namespace TheAirline.Desktop.Views
             {
                 var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
                 var r = BlockRect(b);
-                bool sel = _vm.SelectedBlock != null && _vm.SelectedBlock.Entry == b.Entry;
-                bool moving = _dragging && _drag != null && _drag.Entry == b.Entry;
+                bool sel = _vm.IsSelected(b.Entry);
+                bool primary = _vm.SelectedBlock != null && _vm.SelectedBlock.Entry == b.Entry;
+                bool moving = _dragging && sel && _vm.SelectedCount > 1 || _dragging && _drag != null && _drag.Entry == b.Entry;
                 var fill = new SolidColorBrush(c, moving ? 0.35 : 1);
-                ctx.DrawRectangle(fill, sel ? new Pen(Brushes.White, 2) : new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), 1), r, 4, 4);
+                var edge = primary ? new Pen(Brushes.White, 2.5)
+                    : sel ? new Pen(new SolidColorBrush(Color.FromArgb(235, 255, 255, 255)), 1.8)
+                    : new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), 1);
+                ctx.DrawRectangle(fill, edge, r, 4, 4);
                 if (r.Width > 60)
                 {
                     using (ctx.PushClip(r))
@@ -154,22 +166,53 @@ namespace TheAirline.Desktop.Views
                 }
             }
 
-            // where the dragged flight would land
+            // where the dragged flights would land: one outline each, the whole group moving together
             if (_dragging && _drag != null)
             {
-                var c = Color.Parse(Palette[_drag.ColorIndex % Palette.Length]);
                 var pen = new Pen(Brushes.White, 2, new DashStyle(new double[] { 4, 3 }, 0));
-                double end = _ghostStart + _drag.DurationMinutes;
-                var first = BlockRectAt(_ghostDay, _ghostStart, Math.Min(end, 1440));
-                ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(90, c.R, c.G, c.B)), pen, first, 4, 4);
-                if (end > 1440)
-                {
-                    ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(90, c.R, c.G, c.B)), pen, BlockRectAt((_ghostDay + 1) % 7, 0, end - 1440), 4, 4);
-                }
+                bool group = _vm.SelectedCount > 1 && _vm.IsSelected(_drag.Entry);
+                // the same shift the move will apply, so the outline is where the flights really land
+                double shift = TimetableViewModel.SnapShift(_dragMinutes);
+                var dragged = group
+                    ? _vm.Blocks.Where(b => b.Entry != null && _vm.IsSelected(b.Entry) && b.Start == b.Entry.Time.TotalMinutes).ToList()
+                    : new List<TimelineBlock> { _drag };
 
-                using (ctx.PushClip(first))
+                foreach (var b in dragged)
                 {
-                    ctx.DrawText(Text(DayNames[_ghostDay] + " " + TimeSpan.FromMinutes(_ghostStart).ToString(@"hh\:mm"), 10.5, Brushes.White), new Point(first.X + 4, first.Y + 5));
+                    int day = _ghostDay;
+                    double start = _ghostStart;
+                    if (group)
+                    {
+                        TimetableViewModel.DragTarget(b.Entry.Day, b.Entry.Time, _dragDays, shift, out DayOfWeek d, out TimeSpan t, false);
+                        day = DayIndexOf(d);
+                        start = t.TotalMinutes;
+                    }
+
+                    var c = Color.Parse(Palette[b.ColorIndex % Palette.Length]);
+                    var wash = new SolidColorBrush(Color.FromArgb(90, c.R, c.G, c.B));
+                    double end = start + b.DurationMinutes;
+                    var first = BlockRectAt(day, start, Math.Min(end, 1440));
+                    ctx.DrawRectangle(wash, pen, first, 4, 4);
+                    if (end > 1440)
+                    {
+                        ctx.DrawRectangle(wash, pen, BlockRectAt((day + 1) % 7, 0, end - 1440), 4, 4);
+                    }
+
+                    using (ctx.PushClip(first))
+                    {
+                        ctx.DrawText(Text(DayNames[day] + " " + TimeSpan.FromMinutes(start).ToString(@"hh\:mm"), 10.5, Brushes.White), new Point(first.X + 4, first.Y + 5));
+                    }
+                }
+            }
+
+            // the rubber band
+            if (_banding)
+            {
+                var band = new Rect(_bandFrom, _bandTo);
+                if (band.Width > 1 || band.Height > 1)
+                {
+                    ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(50, 255, 255, 255)),
+                                      new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1, new DashStyle(new double[] { 3, 3 }, 0)), band);
                 }
             }
         }
@@ -184,12 +227,37 @@ namespace TheAirline.Desktop.Views
 
             Point p = e.GetPosition(this);
             var hit = _vm.Blocks.ToList().FirstOrDefault(b => BlockRect(b).Contains(p));
-            _vm.SelectedBlock = hit;
             Focus();
+            bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+            bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
             _drag = null;
             _dragging = false;
-            if (hit?.Entry != null && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            _banding = false;
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                return;
+            }
+
+            if (hit?.Entry == null)
+            {
+                // empty space: a rubber band, which adds to what is picked while ctrl is held
+                if (!ctrl && !shift) _vm.SelectedBlock = null;
+                _banding = true;
+                _bandAdds = ctrl || shift;
+                _bandFrom = _bandTo = p;
+                _pressed = p;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
+                return;
+            }
+
+            if (ctrl) _vm.SelectAlso(hit);
+            else if (shift) _vm.SelectRange(hit);
+            else if (!_vm.IsSelected(hit.Entry)) _vm.SelectedBlock = hit; // a flight already picked keeps the group
+
+            // dragging starts from any picked flight and takes the whole group with it
+            if (_vm.IsSelected(hit.Entry))
             {
                 _drag = hit;
                 _pressed = p;
@@ -200,6 +268,13 @@ namespace TheAirline.Desktop.Views
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
+            if (_banding)
+            {
+                _bandTo = e.GetPosition(this);
+                InvalidateVisual();
+                return;
+            }
+
             if (_drag?.Entry == null)
             {
                 return;
@@ -213,6 +288,8 @@ namespace TheAirline.Desktop.Views
             }
 
             _dragging = true;
+            _dragDays = DayAt(p.Y) - DayAt(_pressed.Y);
+            _dragMinutes = Minutes(p.X) - Minutes(_pressed.X);
             Target(_drag, p, out DayOfWeek day, out TimeSpan time);
             _ghostDay = DayIndexOf(day);
             _ghostStart = time.TotalMinutes;
@@ -232,27 +309,53 @@ namespace TheAirline.Desktop.Views
             base.OnPointerReleased(e);
             var drag = _drag;
             bool dragging = _dragging;
+            bool banding = _banding;
             _drag = null;
             _dragging = false;
+            _banding = false;
             e.Pointer.Capture(null);
+
+            if (banding && _vm != null)
+            {
+                var band = new Rect(_bandFrom, _bandTo);
+                // a band of a few pixels is a click on empty space, which picks nothing
+                if (band.Width > 3 || band.Height > 3)
+                {
+                    _vm.SelectBlocks(_vm.Blocks.Where(b => b.Entry != null && BlockRect(b).Intersects(band)).Select(b => b.Entry), _bandAdds);
+                }
+
+                InvalidateVisual();
+                return;
+            }
+
             if (!dragging || drag?.Entry == null || _vm == null)
             {
                 InvalidateVisual();
                 return;
             }
 
-            Target(drag, e.GetPosition(this), out DayOfWeek day, out TimeSpan time);
-            _vm.MoveEntry(drag.Entry, day, time);
+            Point at = e.GetPosition(this);
+            if (_vm.SelectedCount > 1 && _vm.IsSelected(drag.Entry))
+            {
+                _vm.MoveEntries(_vm.SelectedEntries.ToList(), DayAt(at.Y) - DayAt(_pressed.Y), Minutes(at.X) - Minutes(_pressed.X));
+            }
+            else
+            {
+                Target(drag, at, out DayOfWeek day, out TimeSpan time);
+                _vm.MoveEntry(drag.Entry, day, time);
+            }
+
             InvalidateVisual();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
-            if (e.Key == Key.Escape && _drag != null)
+            if (e.Key == Key.Escape && (_drag != null || _banding))
             {
                 _drag = null;
                 _dragging = false;
+                _banding = false;
                 InvalidateVisual();
                 e.Handled = true;
             }

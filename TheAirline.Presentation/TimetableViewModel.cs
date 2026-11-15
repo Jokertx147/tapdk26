@@ -99,6 +99,7 @@ namespace TheAirline.Presentation
         private List<TimelineBlock> _preview = new List<TimelineBlock>();
         private TimelineBlock _selectedBlock;
         private List<RouteTimeTableEntry> _justAdded = new List<RouteTimeTableEntry>();
+        private readonly HashSet<RouteTimeTableEntry> _selected = new HashSet<RouteTimeTableEntry>();
         private TimetableRow _selectedRow;
         private DayChoice _editDay;
         private TimeChoice _editTime;
@@ -142,10 +143,8 @@ namespace TheAirline.Presentation
             RemoveAllFlightsCommand = new RelayCommand(AskRemoveAll);
             ConfirmRemoveAllCommand = new RelayCommand(RemoveAllFlights);
             CancelRemoveAllCommand = new RelayCommand(() => RemoveAllText = null);
-            RemoveSelectedCommand = new RelayCommand(
-                () => { if (_selectedBlock?.Entry != null) RemoveEntry(_selectedBlock.Entry); },
-                () => _selectedBlock?.Entry != null);
-            ApplyEditCommand = new RelayCommand(ApplyEdit, () => _selectedBlock?.Entry != null);
+            RemoveSelectedCommand = new RelayCommand(RemoveSelected, () => _selected.Count > 0);
+            ApplyEditCommand = new RelayCommand(ApplyEdit, () => _selected.Count == 1 && _selectedBlock?.Entry != null);
             DailyCommand = new RelayCommand(() => SetDays(Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().ToArray()));
             WeekdaysCommand = new RelayCommand(
                 () => SetDays(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday));
@@ -232,17 +231,114 @@ namespace TheAirline.Presentation
         public List<TimelineBlock> Blocks => _blocks;
         public List<TimelineBlock> Preview => _preview;
 
+        /// <summary>
+        ///     The flight the edit boxes act on: the last one clicked. Setting it picks that flight alone, as a plain
+        ///     click does; SelectAlso and SelectRange build a selection of several.
+        /// </summary>
         public TimelineBlock SelectedBlock
         {
             get { return _selectedBlock; }
             set
             {
-                if (SetProperty(ref _selectedBlock, value))
-                {
-                    AfterSelectionChanged();
-                    TimelineChanged?.Invoke();
-                }
+                _selected.Clear();
+                if (value?.Entry != null) _selected.Add(value.Entry);
+                _selectedBlock = value;
+                OnPropertyChanged(nameof(SelectedBlock));
+                AfterSelectionChanged();
+                TimelineChanged?.Invoke();
             }
+        }
+
+        /// <summary>Every flight picked, which a drag moves together and the remove button removes together.</summary>
+        public IReadOnlyCollection<RouteTimeTableEntry> SelectedEntries => _selected;
+
+        public int SelectedCount => _selected.Count;
+
+        public bool HasSelection => _selected.Count > 0;
+
+        /// <summary>The remove button says how many flights it would take away.</summary>
+        public string RemoveSelectedText => _selected.Count > 1 ? "Remove these " + _selected.Count + " flights" : "Remove this flight";
+
+        public bool IsSelected(RouteTimeTableEntry entry)
+        {
+            return entry != null && _selected.Contains(entry);
+        }
+
+        /// <summary>Adds a flight to the picked ones, or takes it out again: what ctrl-clicking does.</summary>
+        public void SelectAlso(TimelineBlock block)
+        {
+            var entry = block?.Entry;
+            if (entry == null) return;
+            if (!_selected.Remove(entry))
+            {
+                _selected.Add(entry);
+                _selectedBlock = block;
+            }
+            else if (_selectedBlock?.Entry == entry)
+            {
+                _selectedBlock = _blocks.FirstOrDefault(b => _selected.Contains(b.Entry));
+            }
+
+            OnPropertyChanged(nameof(SelectedBlock));
+            AfterSelectionChanged();
+            TimelineChanged?.Invoke();
+        }
+
+        /// <summary>Picks everything between the flight already picked and this one, as shift-clicking does.</summary>
+        public void SelectRange(TimelineBlock block)
+        {
+            if (block?.Entry == null) return;
+            var from = _selectedBlock?.Entry;
+            if (from == null)
+            {
+                SelectedBlock = block;
+                return;
+            }
+
+            double a = WeekMinutes(from), b = WeekMinutes(block.Entry);
+            double lo = Math.Min(a, b), hi = Math.Max(a, b);
+            Replace(AircraftEntries().Where(e => WeekMinutes(e) >= lo && WeekMinutes(e) <= hi), block);
+        }
+
+        /// <summary>Picks exactly these flights: what a rubber band drawn over the timeline leaves picked.</summary>
+        public void SelectBlocks(IEnumerable<RouteTimeTableEntry> entries, bool addToSelection)
+        {
+            var list = (entries ?? Enumerable.Empty<RouteTimeTableEntry>()).Where(e => e != null).ToList();
+            if (addToSelection) list.AddRange(_selected);
+            var primary = list.OrderBy(WeekMinutes).FirstOrDefault();
+            Replace(list, primary == null ? null : _blocks.FirstOrDefault(b => b.Entry == primary));
+        }
+
+        private void Replace(IEnumerable<RouteTimeTableEntry> entries, TimelineBlock primary)
+        {
+            _selected.Clear();
+            foreach (var e in entries) _selected.Add(e);
+            _selectedBlock = primary ?? _blocks.FirstOrDefault(b => _selected.Contains(b.Entry));
+            OnPropertyChanged(nameof(SelectedBlock));
+            AfterSelectionChanged();
+            TimelineChanged?.Invoke();
+        }
+
+        /// <summary>Where a flight sits in the week, counting from Monday morning, so flights can be put in order.</summary>
+        public static double WeekMinutes(RouteTimeTableEntry entry)
+        {
+            return DayIndex(entry.Day)*1440.0 + entry.Time.TotalMinutes;
+        }
+
+        private void RemoveSelected()
+        {
+            var going = _selected.ToList();
+            if (going.Count == 0) return;
+            if (going.Count == 1)
+            {
+                RemoveEntry(going[0]);
+                return;
+            }
+
+            foreach (var e in going) RemoveEntryQuietly(e);
+            _selected.Clear();
+            _selectedBlock = null;
+            Finish(going.Count + " flights removed.");
         }
 
         /// <summary>The flight picked in the list below the timeline; the two pick the same flight.</summary>
@@ -258,7 +354,7 @@ namespace TheAirline.Presentation
             }
         }
 
-        public bool CanEditSelected => _selectedBlock?.Entry != null;
+        public bool CanEditSelected => _selected.Count == 1 && _selectedBlock?.Entry != null;
 
         /// <summary>The day the selected flight would move to.</summary>
         public DayChoice EditDay
@@ -310,28 +406,108 @@ namespace TheAirline.Presentation
 
             OnPropertyChanged(nameof(SelectedBlockText));
             OnPropertyChanged(nameof(CanEditSelected));
+            OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(RemoveSelectedText));
             (RemoveSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (ApplyEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
-        public string SelectedBlockText => _selectedBlock == null
-            ? "Click a flight on the timeline to see it, or drag it to another day or time. The dashed blocks show the flights you are about to add."
-            : _selectedBlock.Detail;
+        public string SelectedBlockText
+        {
+            get
+            {
+                if (_selected.Count > 1) return _selected.Count + " flights picked. Drag any of them to move them all, keeping their days and times apart.";
+                if (_selectedBlock == null)
+                    return "Click a flight to pick it, or drag across empty space to pick several; ctrl-click adds one, shift-click picks everything between. Drag a flight to move it. The dashed blocks show the flights you are about to add.";
+                return _selectedBlock.Detail;
+            }
+        }
+
+        /// <summary>Flights are placed on the quarter hour, as the Add panel offers, so a drag snaps to one.</summary>
+        public const int SnapMinutes = 15;
+
+        /// <summary>
+        ///     How far a drag of so many minutes really shifts a flight: to the nearest quarter hour. A group is
+        ///     shifted by this one amount rather than each flight snapping on its own, so the flights in it stay
+        ///     exactly as far apart as they were.
+        /// </summary>
+        public static double SnapShift(double minutesMoved)
+        {
+            return Math.Round(minutesMoved/SnapMinutes)*SnapMinutes;
+        }
 
         /// <summary>
         ///     Where a flight lands when it is dragged across so many day rows and so many minutes. The whole week
         ///     moves with the pointer, so a flight dragged off Sunday evening comes back on Monday, and times snap to
         ///     the quarter hour, which is what the Add panel offers.
         /// </summary>
-        public static void DragTarget(DayOfWeek day, TimeSpan time, int daysMoved, double minutesMoved, out DayOfWeek newDay, out TimeSpan newTime)
+        public static void DragTarget(DayOfWeek day, TimeSpan time, int daysMoved, double minutesMoved, out DayOfWeek newDay, out TimeSpan newTime, bool snapToQuarter = true)
         {
-            const int week = 7*1440, snap = 15;
+            const int week = 7*1440;
             double at = DayIndex(day)*1440.0 + time.TotalMinutes + daysMoved*1440.0 + minutesMoved;
-            at = Math.Round(at/snap)*snap;
+            if (snapToQuarter) at = Math.Round(at/SnapMinutes)*SnapMinutes;
             at = ((at%week) + week)%week;
             int index = (int) (at/1440);
             newDay = (DayOfWeek) ((index + 1)%7); // Monday is row 0
             newTime = TimeSpan.FromMinutes(at - index*1440);
+        }
+
+        /// <summary>
+        ///     Moves every flight given by the same number of day rows and minutes, which is what dragging a picked
+        ///     group does: they keep their days and times apart from one another. Either all of them move or none
+        ///     does, so a group that would put two flights on top of each other is refused whole.
+        /// </summary>
+        public string MoveEntries(IEnumerable<RouteTimeTableEntry> entries, int daysMoved, double minutesMoved)
+        {
+            if (_aircraft == null) return "Pick an aircraft first.";
+            var going = (entries ?? Enumerable.Empty<RouteTimeTableEntry>()).Where(e => e != null).Distinct().ToList();
+            if (going.Count == 0) return null;
+            if (going.Count == 1)
+            {
+                DayOfWeek one; TimeSpan at;
+                DragTarget(going[0].Day, going[0].Time, daysMoved, minutesMoved, out one, out at);
+                return MoveEntry(going[0], one, at);
+            }
+
+            // where each one lands, worked out before any of them moves. The drag snaps once and every flight is
+            // shifted by that same amount, so the group keeps its own shape.
+            double shift = SnapShift(minutesMoved);
+            var was = going.Select(e => Tuple.Create(e, e.Day, e.Time)).ToList();
+            var to = new List<Tuple<RouteTimeTableEntry, DayOfWeek, TimeSpan>>();
+            foreach (var e in going)
+            {
+                DayOfWeek day; TimeSpan time;
+                DragTarget(e.Day, e.Time, daysMoved, shift, out day, out time, false);
+                to.Add(Tuple.Create(e, day, time));
+            }
+
+            if (to.All(x => x.Item1.Day == x.Item2 && x.Item1.Time == x.Item3)) return null;
+
+            foreach (var x in to)
+            {
+                x.Item1.Day = x.Item2;
+                x.Item1.Time = x.Item3;
+            }
+
+            if (!TimeTableHelpers.IsTimeTableValid(_aircraft.Airliner, AircraftEntries().ToList()))
+            {
+                foreach (var x in was)
+                {
+                    x.Item1.Day = x.Item2;
+                    x.Item1.Time = x.Item3;
+                }
+
+                string why = "Those " + going.Count + " flights stay where they are: moved together they would overlap "
+                             + "another flight of " + _aircraft.Airliner.Name + " (which needs the flight time plus its "
+                             + "time on the ground), or an airport has no free gate time then.";
+                Status = why;
+                return why;
+            }
+
+            _justAdded = going.OrderBy(WeekMinutes).ToList();
+            Finish(going.Count + " flights moved.");
+            return null;
         }
 
         /// <summary>
@@ -671,7 +847,7 @@ namespace TheAirline.Presentation
 
             _blocks = list;
             // what was just placed or moved is picked, so it can be seen and moved again straight away; otherwise
-            // whatever was picked before stays picked
+            // whatever was picked before stays picked, less any flight that has gone
             TimelineBlock pick = null;
             foreach (var e in _justAdded)
             {
@@ -679,8 +855,27 @@ namespace TheAirline.Presentation
                 if (pick != null) break;
             }
 
+            if (_justAdded.Count > 1)
+            {
+                // a group that was just moved stays picked as a group, so it can be moved again
+                _selected.Clear();
+                foreach (var e in _justAdded)
+                {
+                    if (list.Any(b => b.Entry == e)) _selected.Add(e);
+                }
+            }
+            else
+            {
+                _selected.RemoveWhere(e => list.All(b => b.Entry != e));
+                if (pick?.Entry != null)
+                {
+                    _selected.Clear();
+                    _selected.Add(pick.Entry);
+                }
+            }
+
             _justAdded = new List<RouteTimeTableEntry>();
-            _selectedBlock = pick ?? list.FirstOrDefault(b => b.Entry == keep);
+            _selectedBlock = pick ?? list.FirstOrDefault(b => b.Entry == keep) ?? list.FirstOrDefault(b => _selected.Contains(b.Entry));
             OnPropertyChanged(nameof(SelectedBlock));
             AfterSelectionChanged();
         }
@@ -731,11 +926,16 @@ namespace TheAirline.Presentation
 
         private void RemoveEntry(RouteTimeTableEntry entry)
         {
-            if (_aircraft == null)
-            {
-                return;
-            }
+            if (_aircraft == null) return;
+            string code = entry.Destination.FlightCode;
+            RemoveEntryQuietly(entry);
+            Finish("Flight " + code + " removed.");
+        }
 
+        // takes the flight out without reloading or saying so, for removing several at once
+        private void RemoveEntryQuietly(RouteTimeTableEntry entry)
+        {
+            if (_aircraft == null) return;
             var f = _aircraft.Airliner;
             var route = entry.TimeTable.Route;
             route.TimeTable.RemoveEntry(entry); // entries made by the route creator can still point at a temporary timetable
@@ -745,8 +945,6 @@ namespace TheAirline.Presentation
             {
                 f.RemoveRoute(route);
             }
-
-            Finish("Flight " + entry.Destination.FlightCode + " removed.");
         }
 
         private void RemoveRouteFlights()
