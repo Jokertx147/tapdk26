@@ -30,6 +30,23 @@ namespace TheAirline.Presentation
         public string Text { get; set; }
     }
 
+    /// <summary>One aircraft's week, kept so a change to it can be taken back.</summary>
+    internal class TimetableMemo
+    {
+        public string Label { get; set; }
+        public FleetAirliner Airliner { get; set; }
+        public List<MemoLine> Lines { get; set; }
+    }
+
+    internal class MemoLine
+    {
+        public Route Route { get; set; }
+        public DayOfWeek Day { get; set; }
+        public TimeSpan Time { get; set; }
+        public string Code { get; set; }
+        public Airport To { get; set; }
+    }
+
     public class DayChoice
     {
         public DayOfWeek Day { get; set; }
@@ -107,6 +124,11 @@ namespace TheAirline.Presentation
         // added. These hold the choice across that, so adding four flights on one route needs the route picked once.
         private Route _wantRoute;
         private Airport _wantFrom;
+
+        // One step back is this aircraft's whole week, which is a short list and makes every change undoable the same
+        // way, whether it added, moved, renumbered, copied or removed flights.
+        private readonly List<TimetableMemo> _memos = new List<TimetableMemo>();
+        private const int MemoDepth = 25;
         private TimetableRow _selectedRow;
         private DayChoice _editDay;
         private TimeChoice _editTime;
@@ -152,6 +174,7 @@ namespace TheAirline.Presentation
             CancelRemoveAllCommand = new RelayCommand(() => RemoveAllText = null);
             RemoveSelectedCommand = new RelayCommand(RemoveSelected, () => _selected.Count > 0);
             ApplyEditCommand = new RelayCommand(ApplyEdit, () => _selected.Count == 1 && _selectedBlock?.Entry != null);
+            UndoCommand = new RelayCommand(Undo, () => _memos.Count > 0);
             DailyCommand = new RelayCommand(() => SetDays(Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().ToArray()));
             WeekdaysCommand = new RelayCommand(
                 () => SetDays(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday));
@@ -204,14 +227,17 @@ namespace TheAirline.Presentation
             if (_aircraft == null) return;
             var f = _aircraft.Airliner;
             int n = f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f));
+            var memo = Snapshot("clearing " + f.Name + "'s week");
             foreach (var route in f.Routes.ToList())
             {
                 f.RemoveRoute(route);
             }
+            Remember(memo);
             Finish(n + " flight(s) removed from " + f.Name + ".");
         }
         public ICommand RemoveSelectedCommand { get; }
         public ICommand ApplyEditCommand { get; }
+        public ICommand UndoCommand { get; }
         public ICommand DailyCommand { get; }
         public ICommand WeekdaysCommand { get; }
         public ICommand WeekendCommand { get; }
@@ -342,7 +368,9 @@ namespace TheAirline.Presentation
                 return;
             }
 
+            var memo = Snapshot("removing " + going.Count + " flights");
             foreach (var e in going) RemoveEntryQuietly(e);
+            Remember(memo);
             _selected.Clear();
             _selectedBlock = null;
             Finish(going.Count + " flights removed.");
@@ -460,6 +488,113 @@ namespace TheAirline.Presentation
             newTime = TimeSpan.FromMinutes(at - index*1440);
         }
 
+        public bool CanUndo => _memos.Count > 0;
+
+        /// <summary>What the undo button offers to take back, named so it is clear what will happen.</summary>
+        public string UndoText => _memos.Count == 0 ? "Nothing to undo" : "Undo " + _memos[_memos.Count - 1].Label;
+
+        // this aircraft's week as it stands, to go back to
+        private TimetableMemo Snapshot(string label)
+        {
+            if (_aircraft == null) return null;
+            return new TimetableMemo
+            {
+                Label = label,
+                Airliner = _aircraft.Airliner,
+                Lines = AircraftEntries().Select(e => new MemoLine
+                {
+                    Route = e.TimeTable.Route, Day = e.Day, Time = e.Time,
+                    Code = e.Destination.FlightCode, To = e.Destination.Airport
+                }).ToList()
+            };
+        }
+
+        // kept only once the change it precedes has actually happened, so a refused move leaves nothing to undo
+        private void Remember(TimetableMemo memo)
+        {
+            if (memo == null) return;
+            _memos.Add(memo);
+            while (_memos.Count > MemoDepth) _memos.RemoveAt(0);
+            RaiseUndo();
+        }
+
+        private void RaiseUndo()
+        {
+            OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(UndoText));
+            (UndoCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void Undo()
+        {
+            if (_memos.Count == 0) return;
+            var memo = _memos[_memos.Count - 1];
+            _memos.RemoveAt(_memos.Count - 1);
+
+            var option = Aircraft.FirstOrDefault(a => a.Airliner == memo.Airliner);
+            if (option == null)
+            {
+                Status = "That aircraft has left the fleet, so this cannot be undone.";
+                RaiseUndo();
+                return;
+            }
+
+            SelectedAircraft = option; // the change may have been made to another aircraft
+            var f = memo.Airliner;
+            foreach (var e in AircraftEntries().ToList()) RemoveEntryQuietly(e);
+
+            int gone = 0;
+            foreach (var line in memo.Lines)
+            {
+                if (!Human.Routes.Contains(line.Route))
+                {
+                    gone++; // the route itself has been closed since
+                    continue;
+                }
+
+                var entry = new RouteTimeTableEntry(line.Route.TimeTable, line.Day, line.Time,
+                                                    new RouteEntryDestination(line.To, line.Code)) { Airliner = f };
+                line.Route.TimeTable.AddEntry(entry);
+                if (!f.Routes.Contains(line.Route)) f.AddRoute(line.Route);
+            }
+
+            _justAdded = new List<RouteTimeTableEntry>();
+            Finish("Undone: " + memo.Label + "." + (gone > 0 ? " " + gone + " flight(s) could not come back: their route has closed." : ""));
+            RaiseUndo();
+        }
+
+        /// <summary>
+        ///     Leaves a flight where it is and puts a copy of it at another day and time, with the next free flight
+        ///     number: what dragging a flight with shift held does. Returns null when the copy fits, or why it does not.
+        /// </summary>
+        public string CopyEntry(RouteTimeTableEntry entry, DayOfWeek day, TimeSpan time)
+        {
+            if (_aircraft == null || entry == null) return "Pick an aircraft first.";
+            var f = _aircraft.Airliner;
+            var route = entry.TimeTable.Route;
+            var memo = Snapshot("copying " + entry.Destination.FlightCode);
+            string code = Human.GetNextFlightCode(0);
+            var copy = new RouteTimeTableEntry(route.TimeTable, day, time,
+                                               new RouteEntryDestination(entry.Destination.Airport, code)) { Airliner = f };
+            route.TimeTable.AddEntry(copy);
+
+            if (!TimeTableHelpers.IsTimeTableValid(f, AircraftEntries().ToList()))
+            {
+                route.TimeTable.RemoveEntry(copy);
+                string why = "No copy of " + entry.Destination.FlightCode + " on " + day + " at " + time.ToString(@"hh\:mm")
+                             + ": it would overlap another flight of " + f.Name + " (which needs the flight time plus its "
+                             + "time on the ground), or the airport has no free gate time then.";
+                Status = why;
+                return why;
+            }
+
+            if (!f.Routes.Contains(route)) f.AddRoute(route);
+            Remember(memo);
+            _justAdded = new List<RouteTimeTableEntry> { copy };
+            Finish("Flight " + entry.Destination.FlightCode + " copied to " + day + " at " + time.ToString(@"hh\:mm") + " as " + code + ".");
+            return null;
+        }
+
         /// <summary>
         ///     Moves every flight given by the same number of day rows and minutes, which is what dragging a picked
         ///     group does: they keep their days and times apart from one another. Either all of them move or none
@@ -480,6 +615,7 @@ namespace TheAirline.Presentation
             // where each one lands, worked out before any of them moves. The drag snaps once and every flight is
             // shifted by that same amount, so the group keeps its own shape.
             double shift = SnapShift(minutesMoved);
+            var memo = Snapshot("moving " + going.Count + " flights");
             var was = going.Select(e => Tuple.Create(e, e.Day, e.Time)).ToList();
             var to = new List<Tuple<RouteTimeTableEntry, DayOfWeek, TimeSpan>>();
             foreach (var e in going)
@@ -512,6 +648,7 @@ namespace TheAirline.Presentation
                 return why;
             }
 
+            Remember(memo);
             _justAdded = going.OrderBy(WeekMinutes).ToList();
             Finish(going.Count + " flights moved.");
             return null;
@@ -527,6 +664,7 @@ namespace TheAirline.Presentation
             if (entry.Day == day && entry.Time == time) return null;
 
             var f = _aircraft.Airliner;
+            var memo = Snapshot("moving " + entry.Destination.FlightCode);
             DayOfWeek wasDay = entry.Day;
             TimeSpan wasTime = entry.Time;
             entry.Day = day;
@@ -542,6 +680,7 @@ namespace TheAirline.Presentation
                 return why;
             }
 
+            Remember(memo);
             _justAdded = new List<RouteTimeTableEntry> { entry };
             Finish("Flight " + entry.Destination.FlightCode + " moved to " + day + " at " + time.ToString(@"hh\:mm") + ".");
             return null;
@@ -574,7 +713,15 @@ namespace TheAirline.Presentation
 
             if (entry.Day == _editDay.Day && entry.Time == _editTime.Time)
             {
-                if (codeChanged) Finish("Flight " + wasCode + " is now " + code + ".");
+                if (codeChanged)
+                {
+                    entry.Destination.FlightCode = wasCode;
+                    var memoC = Snapshot("renumbering " + wasCode);
+                    entry.Destination.FlightCode = code;
+                    Remember(memoC);
+                    Finish("Flight " + wasCode + " is now " + code + ".");
+                }
+
                 return;
             }
 
@@ -944,7 +1091,9 @@ namespace TheAirline.Presentation
         {
             if (_aircraft == null) return;
             string code = entry.Destination.FlightCode;
+            var memo = Snapshot("removing " + code);
             RemoveEntryQuietly(entry);
+            Remember(memo);
             Finish("Flight " + code + " removed.");
         }
 
@@ -972,7 +1121,9 @@ namespace TheAirline.Presentation
 
             var f = _aircraft.Airliner;
             int n = _route.Route.TimeTable.Entries.Count(e => e.Airliner == f);
+            var memo = Snapshot("clearing " + _route.Route.Destination1.Profile.IATACode + "-" + _route.Route.Destination2.Profile.IATACode);
             f.RemoveRoute(_route.Route);
+            Remember(memo);
             Finish(n + " flight(s) removed from " + _route.Text + ".");
         }
 
@@ -994,6 +1145,7 @@ namespace TheAirline.Presentation
             var route = _route.Route;
             Airport from = _from.Airport;
             Airport to = from == route.Destination1 ? route.Destination2 : route.Destination1;
+            var memo = Snapshot("adding flights");
 
             // flight numbers: typed by the player, or the next free ones
             string code1 = _flightCode.Trim();
@@ -1055,6 +1207,8 @@ namespace TheAirline.Presentation
                 f.AddRoute(route);
             }
 
+            memo.Label = "adding " + rt.Entries.Count + " flight(s)";
+            Remember(memo);
             _justAdded = rt.Entries.OrderBy(e => DayIndex(e.Day)).ThenBy(e => e.Time).ToList();
             Finish(string.Format("{0} flight(s) added ({1}).", rt.Entries.Count, roundTrip ? "round trips" : "one way"));
         }

@@ -30,6 +30,9 @@ namespace TheAirline.Desktop.Views
         private int _dragDays;
         private double _dragMinutes;
 
+        // shift held when the drag began: the flight is copied to where it lands instead of moved there
+        private bool _copying;
+
         // the rubber band drawn across empty space to pick several flights at once
         private bool _banding;
         private Point _bandFrom, _bandTo;
@@ -151,7 +154,7 @@ namespace TheAirline.Desktop.Views
                 var r = BlockRect(b);
                 bool sel = _vm.IsSelected(b.Entry);
                 bool primary = _vm.SelectedBlock != null && _vm.SelectedBlock.Entry == b.Entry;
-                bool moving = _dragging && sel && _vm.SelectedCount > 1 || _dragging && _drag != null && _drag.Entry == b.Entry;
+                bool moving = !_copying && (_dragging && sel && _vm.SelectedCount > 1 || _dragging && _drag != null && _drag.Entry == b.Entry);
                 var fill = new SolidColorBrush(c, moving ? 0.35 : 1);
                 var edge = primary ? new Pen(Brushes.White, 2.5)
                     : sel ? new Pen(new SolidColorBrush(Color.FromArgb(235, 255, 255, 255)), 1.8)
@@ -170,7 +173,7 @@ namespace TheAirline.Desktop.Views
             if (_dragging && _drag != null)
             {
                 var pen = new Pen(Brushes.White, 2, new DashStyle(new double[] { 4, 3 }, 0));
-                bool group = _vm.SelectedCount > 1 && _vm.IsSelected(_drag.Entry);
+                bool group = !_copying && _vm.SelectedCount > 1 && _vm.IsSelected(_drag.Entry);
                 // the same shift the move will apply, so the outline is where the flights really land
                 double shift = TimetableViewModel.SnapShift(_dragMinutes);
                 var dragged = group
@@ -200,7 +203,7 @@ namespace TheAirline.Desktop.Views
 
                     using (ctx.PushClip(first))
                     {
-                        ctx.DrawText(Text(DayNames[day] + " " + TimeSpan.FromMinutes(start).ToString(@"hh\:mm"), 10.5, Brushes.White), new Point(first.X + 4, first.Y + 5));
+                        ctx.DrawText(Text((_copying ? "copy to " : "") + DayNames[day] + " " + TimeSpan.FromMinutes(start).ToString(@"hh\:mm"), 10.5, Brushes.White), new Point(first.X + 4, first.Y + 5));
                     }
                 }
             }
@@ -252,12 +255,15 @@ namespace TheAirline.Desktop.Views
                 return;
             }
 
+            // Shift does two things, told apart by whether the pointer moves: shift-clicking a flight picks
+            // everything between it and the last one picked, while shift-dragging one copies it. So shift on its own
+            // decides nothing yet; the range is picked on release if the pointer never moved.
+            _copying = shift && !ctrl;
             if (ctrl) _vm.SelectAlso(hit);
-            else if (shift) _vm.SelectRange(hit);
-            else if (!_vm.IsSelected(hit.Entry)) _vm.SelectedBlock = hit; // a flight already picked keeps the group
+            else if (!shift && !_vm.IsSelected(hit.Entry)) _vm.SelectedBlock = hit; // a flight already picked keeps the group
 
-            // dragging starts from any picked flight and takes the whole group with it
-            if (_vm.IsSelected(hit.Entry))
+            // dragging starts from any picked flight and takes the whole group with it; a copy takes only the one
+            if (_copying || _vm.IsSelected(hit.Entry))
             {
                 _drag = hit;
                 _pressed = p;
@@ -328,13 +334,31 @@ namespace TheAirline.Desktop.Views
                 return;
             }
 
-            if (!dragging || drag?.Entry == null || _vm == null)
+            bool copying = _copying;
+            _copying = false;
+            if (drag?.Entry == null || _vm == null)
             {
                 InvalidateVisual();
                 return;
             }
 
+            if (!dragging)
+            {
+                // shift and no movement: pick everything between this flight and the last one picked
+                if (copying) _vm.SelectRange(drag);
+                InvalidateVisual();
+                return;
+            }
+
             Point at = e.GetPosition(this);
+            if (copying)
+            {
+                Target(drag, at, out DayOfWeek copyDay, out TimeSpan copyTime);
+                _vm.CopyEntry(drag.Entry, copyDay, copyTime);
+                InvalidateVisual();
+                return;
+            }
+
             if (_vm.SelectedCount > 1 && _vm.IsSelected(drag.Entry))
             {
                 _vm.MoveEntries(_vm.SelectedEntries.ToList(), DayAt(at.Y) - DayAt(_pressed.Y), Minutes(at.X) - Minutes(_pressed.X));
@@ -356,7 +380,15 @@ namespace TheAirline.Desktop.Views
                 _drag = null;
                 _dragging = false;
                 _banding = false;
+                _copying = false;
                 InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Control) && _vm?.UndoCommand?.CanExecute(null) == true)
+            {
+                _vm.UndoCommand.Execute(null);
                 e.Handled = true;
             }
         }

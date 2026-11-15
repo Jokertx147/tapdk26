@@ -2633,6 +2633,79 @@ static class VmTest
         if (tt.Status != onFri.Count + " flights removed.") fail("expected one message for the lot, got: " + tt.Status);
         if (tt.SelectedCount != 0) fail("nothing should be picked after removing the picked flights");
 
+        // copying a flight: shift held while dragging leaves it where it is and puts a copy at the new day and time
+        var toCopy = tt.Rows.Select(r => r.Entry).First(e => e.Day == DayOfWeek.Thursday);
+        int rowsBefore = tt.Rows.Count;
+        string copyWas = toCopy.Destination.FlightCode;
+        var copyDay = toCopy.Day; var copyTime = toCopy.Time;
+        string copied = tt.CopyEntry(toCopy, DayOfWeek.Sunday, new TimeSpan(18, 0, 0));
+        Console.WriteLine("  copied " + copyWas + " to Sunday 18:00: " + (copied ?? tt.Status));
+        if (copied != null) fail("copying to an empty Sunday evening was refused: " + copied);
+        if (tt.Rows.Count != rowsBefore + 1) fail("expected one more flight after copying, got " + tt.Rows.Count);
+        if (toCopy.Day != copyDay || toCopy.Time != copyTime) fail("copying moved the flight it copied");
+        var theCopy = tt.Rows.Select(r => r.Entry).FirstOrDefault(e => e.Day == DayOfWeek.Sunday && e.Time == new TimeSpan(18, 0, 0));
+        if (theCopy == null) fail("the copy is not on the timetable");
+        if (theCopy.Destination.FlightCode == copyWas) fail("the copy kept the same flight number, " + copyWas);
+        if (theCopy.Destination.Airport != toCopy.Destination.Airport) fail("the copy flies somewhere else");
+        if (tt.SelectedBlock?.Entry != theCopy) fail("the copy is not picked");
+        Console.WriteLine("  the copy is " + theCopy.Destination.FlightCode + ", the original still " + copyWas + " on " + copyDay);
+
+        // a copy that cannot fit is refused and nothing is added
+        int rows2 = tt.Rows.Count;
+        string refusedCopy = tt.CopyEntry(toCopy, toCopy.Day, toCopy.Time);
+        if (refusedCopy == null) fail("a copy on top of the flight itself was allowed");
+        if (tt.Rows.Count != rows2) fail("a refused copy still added a flight");
+
+        // undo: the copy, then the group move, then the removal, each taken back in turn
+        if (!tt.CanUndo) fail("there should be something to undo");
+        Console.WriteLine("  undo offers: " + tt.UndoText);
+        tt.UndoCommand.Execute(null);
+        Console.WriteLine("  after undo: " + tt.Status + " (" + tt.Rows.Count + " flights)");
+        if (tt.Rows.Count != rowsBefore) fail("undoing the copy left " + tt.Rows.Count + " flights, expected " + rowsBefore);
+        if (tt.Rows.Any(r => r.Entry.Day == DayOfWeek.Sunday && r.Entry.Time == new TimeSpan(18, 0, 0))) fail("the copy is still there after undo");
+
+        // undoing a removal brings the flights back, numbers and all
+        var toGo = tt.Rows.Select(r => r.Entry).Where(e => e.Day == DayOfWeek.Thursday).ToList();
+        var codesGone = toGo.Select(e => e.Destination.FlightCode).OrderBy(x => x).ToList();
+        int had2 = tt.Rows.Count;
+        tt.SelectBlocks(toGo, false);
+        tt.RemoveSelectedCommand.Execute(null);
+        if (tt.Rows.Count != had2 - toGo.Count) fail("the flights were not removed");
+        tt.UndoCommand.Execute(null);
+        Console.WriteLine("  undid removing " + toGo.Count + ": " + tt.Status + " (" + tt.Rows.Count + " flights)");
+        if (tt.Rows.Count != had2) fail("undoing the removal left " + tt.Rows.Count + " flights, expected " + had2);
+        var codesBack = tt.Rows.Select(r => r.Entry).Where(e => e.Day == DayOfWeek.Thursday).Select(e => e.Destination.FlightCode).OrderBy(x => x).ToList();
+        if (!codesBack.SequenceEqual(codesGone)) fail("the flights came back with different numbers: " + string.Join(",", codesBack) + " instead of " + string.Join(",", codesGone));
+
+        // undoing a move puts the flight back where it was
+        var toShift = tt.Rows.Select(r => r.Entry).First(e => e.Day == DayOfWeek.Thursday);
+        var shiftDay = toShift.Day; var shiftTime = toShift.Time; var shiftCode = toShift.Destination.FlightCode;
+        if (tt.MoveEntry(toShift, DayOfWeek.Sunday, new TimeSpan(20, 0, 0)) != null) fail("could not move a flight to an empty Sunday evening");
+        tt.UndoCommand.Execute(null);
+        var backAgain = tt.Rows.Select(r => r.Entry)
+                           .FirstOrDefault(e => e.Day == shiftDay && e.Time == shiftTime && e.Destination.FlightCode == shiftCode);
+        if (backAgain == null) fail("undoing the move did not put " + shiftCode + " back on " + shiftDay + " at " + shiftTime);
+        if (tt.Rows.Any(r => r.Entry.Day == DayOfWeek.Sunday && r.Entry.Time == new TimeSpan(20, 0, 0)))
+            fail("the flight is still on Sunday evening after undoing the move");
+        Console.WriteLine("  undid a move: " + shiftCode + " back on " + backAgain.Day + " " + backAgain.Time.ToString(@"hh\:mm"));
+
+        // undoing clearing the week brings every flight back
+        int whole = tt.Rows.Count;
+        tt.RemoveAllFlightsCommand.Execute(null);
+        tt.ConfirmRemoveAllCommand.Execute(null);
+        Console.WriteLine("  cleared the week: " + tt.Status + " (" + tt.Rows.Count + " flights)");
+        if (tt.Rows.Count != 0) fail("the week was not cleared, " + tt.Rows.Count + " left");
+        tt.UndoCommand.Execute(null);
+        Console.WriteLine("  undid clearing the week: " + tt.Rows.Count + " flights back");
+        if (tt.Rows.Count != whole) fail("undoing the clearing brought back " + tt.Rows.Count + " of " + whole);
+
+        // undo runs out, and says so
+        int steps = 0;
+        while (tt.CanUndo && steps < 40) { tt.UndoCommand.Execute(null); steps++; }
+        Console.WriteLine("  undid everything in " + steps + " more steps; now: " + tt.UndoText);
+        if (tt.CanUndo) fail("undo never ran out");
+        if (tt.UndoText != "Nothing to undo") fail("the button should say there is nothing to undo, it says " + tt.UndoText);
+
         // The route box used to go back to the first route after every flight added, so adding four flights on one
         // route meant finding it four times. Rebuilding the aircraft list empties the box bound to it and the empty
         // box writes its own null back, which is what lost the choice; that is what this repeats.
