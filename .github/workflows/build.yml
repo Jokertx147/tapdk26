@@ -201,6 +201,11 @@ jobs:
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm aiempty 2>&1 | tee aiempty.log
           grep -q "EMPTY ROUTE TEST OK" aiempty.log || { grep -m8 -iE "FAILED|timeout|exception|   at " aiempty.log | sed 's/^/::error::/'; exit 1; }
 
+      - name: Cabins test (every aircraft can say which cabin a passenger sits in)
+        run: |
+          timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm cabins 2>&1 | tee cabins.log
+          grep -q "CABINS TEST OK" cabins.log || { grep -m8 -iE "FAILED|timeout|exception|   at " cabins.log | sed 's/^/::error::/'; exit 1; }
+
       - name: Break-even fare test
         run: |
           timeout 900 dotnet run --no-build -c Release --project TheAirline.Headless -- vm breakeven 2>&1 | tee breakeven.log

@@ -45,7 +45,13 @@ namespace TheAirline.Models.Airliners
 
             Classes = new List<AirlinerClass>();
 
-            if (Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger)
+            // Everything that carries passengers gets a cabin: an airliner, a helicopter, and a combi, which carries
+            // cargo as well. All three are an AirlinerPassengerType. Helicopters and combis used to be left with no
+            // cabin at all, and an aircraft with no cabin cannot be asked which cabin a passenger sits in, so flying
+            // one threw as soon as its passengers were counted.
+            if (Type.TypeAirliner == AirlinerType.TypeOfAirliner.Passenger
+                || Type.TypeAirliner == AirlinerType.TypeOfAirliner.Helicopter
+                || Type.TypeAirliner == AirlinerType.TypeOfAirliner.Mixed)
             {
                 var aClass = new AirlinerClass(
                     AirlinerClass.ClassType.EconomyClass,
@@ -74,6 +80,16 @@ namespace TheAirline.Models.Airliners
             {
                 var dClass = Classes.Last(c => c.Type == doubleClassType);
                 Classes.Remove(dClass);
+            }
+
+            // A helicopter or a combi saved before they were given a cabin has none, and flying it would throw, so it
+            // is given the one it should have had.
+            if (Classes.Count == 0 && Type is AirlinerPassengerType seats
+                && Type.TypeAirliner != AirlinerType.TypeOfAirliner.Cargo)
+            {
+                var aClass = new AirlinerClass(AirlinerClass.ClassType.EconomyClass, seats.MaxSeatingCapacity);
+                aClass.CreateBasicFacilities(Airline);
+                Classes.Add(aClass);
             }
 
             if (Version == 1)
@@ -236,13 +252,19 @@ namespace TheAirline.Models.Airliners
         //returns the total amount of seat capacity
 
         //returns the airliner class for the airliner
+        /// <summary>
+        ///     The cabin of this class, or the first cabin the aircraft has when it has none of that class, or null
+        ///     when it has no cabin at all. Callers that want the real seat count of a class should use
+        ///     GetAirlinerClasses or look in Classes themselves: the first cabin is a different cabin with a different
+        ///     number of seats, and counting it as the one asked for overstates the aircraft.
+        /// </summary>
         public AirlinerClass GetAirlinerClass(AirlinerClass.ClassType type)
         {
             if (Classes.Exists(c => c.Type == type))
             {
                 return Classes.Find(c => c.Type == type);
             }
-            return Classes[0];
+            return Classes.Count > 0 ? Classes[0] : null;
         }
 
         public double GetCargoCapacity()

@@ -2244,6 +2244,60 @@ static class VmTest
     }
 
     // "vm newprobe": a new route's forecast when it opens against its first full month
+    // vm cabins: every aircraft in the game can say which cabin a passenger sits in. Helicopters and combis were
+    // built with no cabin at all, so counting the passengers on one threw and took the game's day with it.
+    static void CabinsTest()
+    {
+        Console.WriteLine("CABINS TEST");
+        Action<string> fail = m => { Console.WriteLine("  FAILED " + m); Environment.Exit(1); };
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        var types = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes();
+        if (types.Count < 50) fail("only " + types.Count + " aircraft types loaded");
+
+        var byKind = types.GroupBy(t => t.TypeAirliner).OrderBy(k => k.Key.ToString()).ToList();
+        Console.WriteLine("  " + types.Count + " types: " + string.Join(", ", byKind.Select(k => k.Count() + " " + k.Key)));
+
+        var noCabin = new System.Collections.Generic.List<string>();
+        var noSeats = new System.Collections.Generic.List<string>();
+        foreach (var t in types)
+        {
+            var al = new TheAirline.Models.Airliners.Airliner("cab", t, "N-CAB", g.GameTime.AddYears(-1));
+            if (al.Classes.Count == 0)
+            {
+                noCabin.Add(t.Name + " (" + t.TypeAirliner + ")");
+                continue;
+            }
+
+            // what the passenger count asks of every aircraft it carries people on
+            foreach (TheAirline.Models.Airliners.AirlinerClass.ClassType c in Enum.GetValues(typeof(TheAirline.Models.Airliners.AirlinerClass.ClassType)))
+            {
+                var cabin = al.GetAirlinerClass(c);
+                if (cabin == null) fail(t.Name + " has " + al.Classes.Count + " cabins but answers nothing for " + c);
+            }
+
+            if (t.TypeAirliner != TheAirline.Models.Airliners.AirlinerType.TypeOfAirliner.Cargo && al.GetTotalSeatCapacity() <= 0)
+                noSeats.Add(t.Name + " (" + t.TypeAirliner + ")");
+        }
+
+        if (noCabin.Count > 0)
+            fail(noCabin.Count + " types have no cabin, so flying one throws: " + string.Join(", ", noCabin.Take(8)));
+        if (noSeats.Count > 0)
+            fail(noSeats.Count + " types that carry passengers have no seats: " + string.Join(", ", noSeats.Take(8)));
+
+        // the kinds that carry passengers really are in the data, so this test is not passing by having nothing to check
+        foreach (var kind in new[] { TheAirline.Models.Airliners.AirlinerType.TypeOfAirliner.Passenger,
+                                     TheAirline.Models.Airliners.AirlinerType.TypeOfAirliner.Helicopter })
+        {
+            if (!types.Any(t => t.TypeAirliner == kind)) fail("no " + kind + " aircraft in the data to check");
+        }
+
+        var heli = types.First(t => t.TypeAirliner == TheAirline.Models.Airliners.AirlinerType.TypeOfAirliner.Helicopter);
+        var h = new TheAirline.Models.Airliners.Airliner("cab", heli, "N-CAB", g.GameTime.AddYears(-1));
+        Console.WriteLine("  " + heli.Name + ": " + h.Classes.Count + " cabin(s), " + h.GetTotalSeatCapacity() + " seats");
+
+        Console.WriteLine("CABINS TEST OK");
+    }
+
     // vm breakeven: the break-even fare against what a month of real flying cost. A route sells classes the aircraft
     // may have no cabin for, and counting the aircraft once per such class made break-even many times too low, which
     // is the floor the computer airlines price against.
@@ -4214,7 +4268,11 @@ static class VmTest
             Console.WriteLine("  their recent load: average " + (loads.Count > 0 ? loads.Average() * 100 : 0).ToString("0") + "% over " + loads.Count + " routes");
 
             // a rival undercuts: the other airline answers at its next review
-            var byPair = aiR.GroupBy(r => string.Join("|", new[] { r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode }.OrderBy(x => x))).FirstOrDefault(g => g.Select(r => r.Airline).Distinct().Count() >= 2);
+            // A route two computer airlines share, and one whose costs leave room for a cut: a route that can only
+            // break even at the top of the band has its fare pinned there and cannot be cut at all, so picking any
+            // shared route made this check pass or fail with the world it was given.
+            var byPair = aiR.GroupBy(r => string.Join("|", new[] { r.Destination1.Profile.IATACode, r.Destination2.Profile.IATACode }.OrderBy(x => x)))
+                            .FirstOrDefault(g => g.Select(r => r.Airline).Distinct().Count() >= 2);
             if (byPair == null) Console.WriteLine("  no shared computer route to test the rival answer");
             else
             {
@@ -4246,14 +4304,24 @@ static class VmTest
                 var mineN = list2[0]; var rivalP = list2.First(r => r.Airline != mineN.Airline);
                 gP.SetHumanAirline(mineN.Airline);
                 double mk = TheAirline.Helpers.PricingService.MarketFare(mineN.Destination1, mineN.Destination2, TheAirline.Models.Airliners.AirlinerClass.ClassType.EconomyClass);
-                foreach (var c in mineN.Classes) c.FarePrice = mk * 1.05 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
-                foreach (var c in rivalP.Classes) c.FarePrice = mk * 1.1 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                // The rival starts above anything its review would ever charge: above the top of its band, and above
+                // what this route needs to break even at the load given below. Whatever the review decides is then a
+                // cut, on any route and in any world, and the player sits higher still, so the cut undercuts it and
+                // the alert is due. The check is that the alert is raised, not that the cut is of any size.
+                double floorP = TheAirline.Helpers.PricingService.BreakEvenFare(rivalP, 0.55);
+                double startP = Math.Max(mk*1.5, floorP*1.25);
+                foreach (var c in rivalP.Classes) c.FarePrice = startP * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                foreach (var c in mineN.Classes) c.FarePrice = startP * 1.5 * TheAirline.Helpers.GeneralHelpers.ClassToPriceFactor(c.Type);
+                double mineFare = TheAirline.Helpers.AIPricingService.EconomyFare(mineN);
                 TheAirline.Helpers.CompetitorService.Clear();
                 int keyP = gP.GameTime.Year * 12 + gP.GameTime.Month - 1;
                 rivalP.ConnectMonth = keyP; rivalP.ConnectLastAllPassengers = 550; rivalP.ConnectLastSeats = 1000;
                 TheAirline.Helpers.AIPricingService.ForgetReviews();
                 int newsBefore = gP.NewsBox.GetNews().Count;
                 Console.WriteLine("  rival on your route: " + TheAirline.Helpers.AIPricingService.Review(rivalP.Airline, rivalP));
+                Console.WriteLine("  your fare " + mineFare.ToString("0.00") + ", the rival now " + TheAirline.Helpers.AIPricingService.EconomyFare(rivalP).ToString("0.00")
+                                  + " (it started at " + startP.ToString("0.00") + ", market " + mk.ToString("0.00")
+                                  + ", break-even at the load given " + floorP.ToString("0.00") + ")");
                 var n = gP.NewsBox.GetNews().LastOrDefault();
                 Console.WriteLine("  news: " + (n == null ? "none" : n.Subject + ": " + n.Body));
                 bool okNews = gP.NewsBox.GetNews().Count == newsBefore + 1 && n.Subject.Contains("undercuts you") && n.Type == TheAirline.Models.General.News.NewsType.RivalNews;
@@ -4736,6 +4804,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("newprobe")) { NewRouteProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("schedule")) { ScheduleTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("breakeven")) { BreakEvenTest(av); return; }
+            if (Environment.GetCommandLineArgs().Contains("cabins")) { CabinsTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
