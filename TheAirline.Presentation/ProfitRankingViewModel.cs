@@ -131,9 +131,10 @@ namespace TheAirline.Presentation
             string shown = Worst.Count == 0
                 ? "All of them are shown, the best at the top."
                 : "The " + Best.Count + " best and the " + Worst.Count + " worst are shown.";
+            string what = _what == Aircraft ? "aircraft" : ordered.Count == 1 ? "route" : "routes";
             Summary = string.Format(
                 "{0} {1}, {2} losing money. Together {3} {4}. {5}",
-                ordered.Count, _what == Aircraft ? "aircraft" : "routes", losing, Money(total), AmountHeading, shown);
+                ordered.Count, what, losing, Money(total), AmountHeading, shown);
             Raise();
         }
 
