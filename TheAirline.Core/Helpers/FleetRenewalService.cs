@@ -41,6 +41,9 @@ namespace TheAirline.Helpers
 
     public class RenewalSettings
     {
+        /// <summary>Whose fleet is renewed. Left unset it is the player's, which is what the renewal screen means.</summary>
+        public Airline Airline { get; set; }
+
         public AirlinerType OldType { get; set; }
         public AirlinerType NewType { get; set; }
         public MissingSource Source { get; set; } = MissingSource.BuyUsed;
@@ -138,9 +141,15 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>The aircraft types in the player's fleet, with how many of each.</summary>
-        public static List<Tuple<AirlinerType, int>> FleetTypes()
+        /// <summary>Whose fleet this is about: the airline given, or the player's when none is.</summary>
+        private static Airline Whose(Airline airline)
         {
-            Airline airline = GameObject.GetInstance().HumanAirline;
+            return airline ?? GameObject.GetInstance().HumanAirline;
+        }
+
+        public static List<Tuple<AirlinerType, int>> FleetTypes(Airline of = null)
+        {
+            Airline airline = Whose(of);
             return airline.DeliveredFleet.GroupBy(f => f.Airliner.Type).OrderByDescending(g => g.Count()).ThenBy(g => g.Key.Name)
                           .Select(g => Tuple.Create(g.Key, g.Count())).ToList();
         }
@@ -192,9 +201,9 @@ namespace TheAirline.Helpers
         ///     The types that can replace the old one: the same kind (passenger, cargo, helicopter), idle in the fleet, on the
         ///     market, or built new now. With how many are idle and for sale, and the price new.
         /// </summary>
-        public static List<RenewalTypeOption> NewTypes(AirlinerType oldType)
+        public static List<RenewalTypeOption> NewTypes(AirlinerType oldType, Airline of = null)
         {
-            Airline airline = GameObject.GetInstance().HumanAirline;
+            Airline airline = Whose(of);
             DateTime now = GameObject.GetInstance().GameTime;
             var idle = airline.DeliveredFleet.Where(f => f.Routes.Count == 0 && Usable(f) && f.Airliner.Type != oldType && KindMatches(oldType, f.Airliner.Type))
                               .GroupBy(f => f.Airliner.Type).ToDictionary(g => g.Key, g => g.Count());
@@ -216,9 +225,9 @@ namespace TheAirline.Helpers
         }
 
         /// <summary>The new aircraft from earlier renewals still waiting for delivery, one line each.</summary>
-        public static List<string> Pending()
+        public static List<string> Pending(Airline of = null)
         {
-            Airline airline = GameObject.GetInstance().HumanAirline;
+            Airline airline = Whose(of);
             return airline.Fleet.Where(f => f.ReplacesOnDelivery != null).OrderBy(f => f.Airliner.BuiltDate)
                           .Select(f => f.Name + " (" + f.Airliner.Type.Name + "), delivery " + f.Airliner.BuiltDate.ToString("d MMM yyyy") + ": takes over "
                                        + (f.ReplacesOnDelivery.Routes.Count > 0 ? string.Join(", ", f.ReplacesOnDelivery.Routes.Select(Code)) + " from " : "from ")
@@ -235,7 +244,7 @@ namespace TheAirline.Helpers
         /// <summary>What a renewal would do, aircraft by aircraft (nothing is changed).</summary>
         public static RenewalPlan Plan(RenewalSettings s)
         {
-            Airline airline = GameObject.GetInstance().HumanAirline;
+            Airline airline = Whose(s?.Airline);
             var plan = new RenewalPlan {Settings = s};
             if (s.OldType == null || s.NewType == null || s.OldType == s.NewType)
             {
@@ -466,7 +475,7 @@ namespace TheAirline.Helpers
         /// <summary>Carries out the plan (worked out again first, as the fleet or the market may have changed). Returns what happened.</summary>
         public static List<string> Renew(RenewalSettings settings)
         {
-            Airline airline = GameObject.GetInstance().HumanAirline;
+            Airline airline = Whose(settings?.Airline);
             RenewalPlan plan = Plan(settings);
             var report = new List<string>();
             DateTime now = GameObject.GetInstance().GameTime;

@@ -1284,6 +1284,90 @@ namespace TheAirline.Helpers
             // idle owned aircraft cost money: sell what the airline has no use for
             using (Profiler.Measure("ai: idle aircraft, sell surplus"))
                 OwnershipService.SellSurplus(airline);
+
+            // and an old fleet costs money every time it flies
+            using (Profiler.Measure("ai: fleet renewal"))
+                CheckForFleetRenewal(airline);
+        }
+
+        /// <summary>How old an aircraft must be before an airline thinks about replacing it.</summary>
+        public const int RenewAfterYears = 25;
+
+        /// <summary>Renewals that went ahead, and the aircraft they replaced, for the tests.</summary>
+        public static int Renewals, RenewedAircraft;
+
+        /// <summary>
+        ///     Now and then an airline replaces its oldest out-of-date type with a newer one bought second-hand. The
+        ///     computer airlines used to sell only the aircraft they had no use for, and never replace one that was
+        ///     still flying, so their fleets only aged: measured ten years in, the aircraft they were flying averaged
+        ///     21 years old, two thirds of them were types no longer built, and they burned nearly three times the fuel
+        ///     per seat of the thriftiest type then in production. One airline was still flying 1939 DC-3s.
+        ///
+        ///     Only the market is used, never an order, so this needs none of the delivery machinery: a used aircraft
+        ///     takes over the routes the day it is bought. The money must be there twice over, since an airline that
+        ///     renews itself broke is worse off than one flying something old.
+        /// </summary>
+        private static void CheckForFleetRenewal(Airline airline)
+        {
+            if (!Chance(RenewalInterval(airline))) return;
+
+            DateTime now = GameObject.GetInstance().GameTime;
+            var oldest = airline.DeliveredFleet
+                                .Where(f => f.HasRoute && (now - f.Airliner.BuiltDate).TotalDays/365.25 >= RenewAfterYears)
+                                .GroupBy(f => f.Airliner.Type)
+                                .Where(g => g.Key.Produced.To < now) // a type still being built is not out of date
+                                .OrderByDescending(g => g.Average(f => (now - f.Airliner.BuiltDate).TotalDays))
+                                .FirstOrDefault();
+            if (oldest == null) return;
+
+            // the thriftiest type it could have instead, of those there are enough of on the market to buy
+            int want = oldest.Count();
+            var options = FleetRenewalService.NewTypes(oldest.Key, airline)
+                                             .Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0)
+                                             .OrderBy(o => o.Type.FuelConsumption/Math.Max(1, Seats(o.Type)))
+                                             .ToList();
+            if (options.Count == 0) return;
+
+            RenewalTypeOption pick = options[0];
+            if (pick.Type.FuelConsumption/Math.Max(1, Seats(pick.Type))
+                >= oldest.Key.FuelConsumption/Math.Max(1, Seats(oldest.Key))) return; // no thriftier than what it flies
+
+            double cost = pick.UsedFrom*want;
+            if (cost*2 > airline.Money) return;
+
+            var settings = new RenewalSettings
+            {
+                Airline = airline,
+                OldType = oldest.Key,
+                NewType = pick.Type,
+                Source = MissingSource.BuyUsed,
+                Slower = SlowerChoice.ShiftOrKeep,
+                AfterOld = OldAircraftChoice.Sell
+            };
+
+            RenewalPlan plan = FleetRenewalService.Plan(settings);
+            if (plan.Replacing == 0 || plan.Cost*2 > airline.Money) return;
+
+            FleetRenewalService.Renew(settings);
+            System.Threading.Interlocked.Increment(ref Renewals);
+            System.Threading.Interlocked.Add(ref RenewedAircraft, plan.Replacing);
+        }
+
+        private static int Seats(AirlinerType t)
+        {
+            var p = t as AirlinerPassengerType;
+            return p == null ? 1 : Math.Max(1, p.MaxSeatingCapacity);
+        }
+
+        // how often an airline looks at the age of its fleet, by how boldly it is run
+        private static double RenewalInterval(Airline airline)
+        {
+            switch (airline.Mentality)
+            {
+                case Airline.AirlineMentality.Aggressive: return 400;
+                case Airline.AirlineMentality.Moderate: return 800;
+                default: return 1600;
+            }
         }
 
         private static void CheckForInviteToAlliance(Airline airline)

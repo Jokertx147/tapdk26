@@ -3071,6 +3071,8 @@ static class VmTest
                 f.Airliner.Type.Produced.To.Year > 2190 ? "still" : f.Airliner.Type.Produced.To.Year.ToString(),
                 f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f))));
 
+        Console.WriteLine(string.Format("  renewals: {0} went ahead, {1} aircraft replaced",
+            TheAirline.Helpers.AIHelpers.Renewals, TheAirline.Helpers.AIHelpers.RenewedAircraft));
         Console.WriteLine("FLEETAGE " + flying.Count + " flying, average " + flying.Average(age).ToString("0.0") + " years");
     }
 
