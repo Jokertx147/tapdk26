@@ -183,7 +183,7 @@ namespace TheAirline.Desktop.Views
             if (_dragging && _drag != null)
             {
                 var pen = new Pen(Brushes.White, 2, new DashStyle(new double[] { 4, 3 }, 0));
-                bool group = !_copying && _vm.SelectedCount > 1 && _vm.IsSelected(_drag.Entry);
+                bool group = _vm.SelectedCount > 1 && _vm.IsSelected(_drag.Entry);
                 // the same shift the move will apply, so the outline is where the flights really land
                 double shift = TimetableViewModel.SnapShift(_dragMinutes);
                 var dragged = group
@@ -374,8 +374,17 @@ namespace TheAirline.Desktop.Views
             Point at = e.GetPosition(this);
             if (copying)
             {
-                Target(drag, at, out DayOfWeek copyDay, out TimeSpan copyTime);
-                _vm.CopyEntry(drag.Entry, copyDay, copyTime);
+                // a whole picked group is copied together, keeping its shape
+                if (_vm.SelectedCount > 1 && _vm.IsSelected(drag.Entry))
+                {
+                    _vm.CopyEntries(_vm.SelectedEntries.ToList(), DayAt(at.Y) - DayAt(_pressed.Y), Minutes(at.X) - Minutes(_pressed.X));
+                }
+                else
+                {
+                    Target(drag, at, out DayOfWeek copyDay, out TimeSpan copyTime);
+                    _vm.CopyEntry(drag.Entry, copyDay, copyTime);
+                }
+
                 InvalidateVisual();
                 return;
             }

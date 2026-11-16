@@ -2821,6 +2821,52 @@ static class VmTest
         if (refusedCopy == null) fail("a copy on top of the flight itself was allowed");
         if (tt.Rows.Count != rows2) fail("a refused copy still added a flight");
 
+        // copying several at once: shift held while dragging a picked group copies the lot, keeping its shape
+        Func<DayOfWeek, int> dayIndex = d => ((int) d + 6)%7;
+        var busiest = tt.Rows.Select(r => r.Entry).GroupBy(e => e.Day).OrderByDescending(grp => grp.Count()).First();
+        var used = tt.Rows.Select(r => r.Entry.Day).Distinct().ToList();
+        var freeDay = Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().FirstOrDefault(d => !used.Contains(d));
+        if (busiest.Count() < 2) fail("expected a day with at least two flights to copy");
+        if (used.Count >= 7) fail("no empty day to copy a group onto");
+        var groupSrc = busiest.OrderBy(TimetableViewModel.WeekMinutes).ToList();
+        var srcTimes = groupSrc.Select(e => e.Time).ToList();
+        var srcCodes = groupSrc.Select(e => e.Destination.FlightCode).ToList();
+        int rowsWas = tt.Rows.Count;
+        tt.SelectBlocks(groupSrc, false);
+        string groupCopied = tt.CopyEntries(groupSrc, dayIndex(freeDay) - dayIndex(busiest.Key), 0);
+        Console.WriteLine("  copied the " + groupSrc.Count + " flights of " + busiest.Key + " onto " + freeDay + ": " + (groupCopied ?? tt.Status));
+        if (groupCopied != null) fail("copying a group onto an empty day was refused: " + groupCopied);
+        if (tt.Rows.Count != rowsWas + groupSrc.Count) fail("expected " + (rowsWas + groupSrc.Count) + " flights, got " + tt.Rows.Count);
+
+        var madeCopies = tt.Rows.Select(r => r.Entry).Where(e => e.Day == freeDay).OrderBy(TimetableViewModel.WeekMinutes).ToList();
+        if (madeCopies.Count != groupSrc.Count) fail("expected " + groupSrc.Count + " copies on " + freeDay + ", got " + madeCopies.Count);
+        for (int i = 0; i < madeCopies.Count; i++)
+        {
+            if (madeCopies[i].Time != srcTimes[i]) fail("a copy landed at " + madeCopies[i].Time + " instead of " + srcTimes[i] + ", so the group lost its shape");
+            if (madeCopies[i].Destination.Airport != groupSrc[i].Destination.Airport) fail("a copy flies somewhere else");
+        }
+
+        if (madeCopies.Select(e => e.Destination.FlightCode).Distinct().Count() != madeCopies.Count)
+            fail("the copies share a flight number: " + string.Join(",", madeCopies.Select(e => e.Destination.FlightCode)));
+        if (madeCopies.Any(e => srcCodes.Contains(e.Destination.FlightCode)))
+            fail("a copy kept an original's flight number");
+        for (int i = 0; i < groupSrc.Count; i++)
+            if (groupSrc[i].Day != busiest.Key || groupSrc[i].Time != srcTimes[i]) fail("copying moved one of the originals");
+        if (tt.SelectedCount != madeCopies.Count) fail("the copies should be picked as a group, " + tt.SelectedCount + " picked");
+        Console.WriteLine("  the copies are " + string.Join(", ", madeCopies.Select(e => e.Destination.FlightCode)) + ", the originals still " + string.Join(", ", srcCodes));
+
+        // a group copy that cannot fit makes none of them
+        int rowsNow = tt.Rows.Count;
+        string refusedCopies = tt.CopyEntries(groupSrc, 0, 0); // on top of themselves
+        if (refusedCopies == null) fail("copying a group on top of itself was allowed");
+        if (tt.Rows.Count != rowsNow) fail("a refused group copy still added flights");
+
+        // and undoing takes all the copies away again
+        tt.UndoCommand.Execute(null);
+        if (tt.Rows.Count != rowsWas) fail("undoing the group copy left " + tt.Rows.Count + " flights, expected " + rowsWas);
+        if (tt.Rows.Any(r => r.Entry.Day == freeDay)) fail("a copy survived the undo");
+        Console.WriteLine("  undid the group copy: back to " + tt.Rows.Count + " flights");
+
         // undo: the copy, then the group move, then the removal, each taken back in turn
         if (!tt.CanUndo) fail("there should be something to undo");
         Console.WriteLine("  undo offers: " + tt.UndoText);

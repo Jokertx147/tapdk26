@@ -468,7 +468,7 @@ namespace TheAirline.Presentation
         {
             get
             {
-                if (_selected.Count > 1) return _selected.Count + " flights picked. Drag any of them to move them all, keeping their days and times apart.";
+                if (_selected.Count > 1) return _selected.Count + " flights picked. Drag any of them to move them all, or hold shift while dragging to copy them all, keeping their days and times apart.";
                 if (_selectedBlock == null)
                     return "Click a flight to pick it, or drag across empty space to pick several; ctrl-click adds one, shift-click picks everything between. Drag a flight to move it. The dashed blocks show the flights you are about to add.";
                 return _selectedBlock.Detail;
@@ -608,6 +608,64 @@ namespace TheAirline.Presentation
             Remember(memo);
             _justAdded = new List<RouteTimeTableEntry> { copy };
             Finish("Flight " + entry.Destination.FlightCode + " copied to " + day + " at " + time.ToString(@"hh\:mm") + " as " + code + ".");
+            return null;
+        }
+
+        /// <summary>
+        ///     Copies every flight given, each landing the same number of day rows and minutes from where it is, so
+        ///     the copies keep the shape of the group: a whole day's flying can be copied onto another day at once.
+        ///     Each copy gets its own free flight number. Either all of them are made or none is.
+        /// </summary>
+        public string CopyEntries(IEnumerable<RouteTimeTableEntry> entries, int daysMoved, double minutesMoved)
+        {
+            if (_aircraft == null) return "Pick an aircraft first.";
+            var going = (entries ?? Enumerable.Empty<RouteTimeTableEntry>()).Where(e => e != null).Distinct().OrderBy(WeekMinutes).ToList();
+            if (going.Count == 0) return null;
+            if (going.Count == 1)
+            {
+                DayOfWeek one; TimeSpan at;
+                DragTarget(going[0].Day, going[0].Time, daysMoved, minutesMoved, out one, out at);
+                return CopyEntry(going[0], one, at);
+            }
+
+            var f = _aircraft.Airliner;
+            var free = Human.GetFlightCodes();
+            if (free.Count < going.Count)
+                return "There are not enough free flight numbers left to copy " + going.Count + " flights.";
+
+            var memo = Snapshot("copying " + going.Count + " flights");
+            double shift = SnapShift(minutesMoved);
+            var copies = new List<Tuple<Route, RouteTimeTableEntry>>();
+            for (int i = 0; i < going.Count; i++)
+            {
+                var e = going[i];
+                DayOfWeek day; TimeSpan time;
+                DragTarget(e.Day, e.Time, daysMoved, shift, out day, out time, false);
+                var route = e.TimeTable.Route;
+                var copy = new RouteTimeTableEntry(route.TimeTable, day, time,
+                                                   new RouteEntryDestination(e.Destination.Airport, free[i])) { Airliner = f };
+                route.TimeTable.AddEntry(copy);
+                copies.Add(Tuple.Create(route, copy));
+            }
+
+            if (!TimeTableHelpers.IsTimeTableValid(f, AircraftEntries().ToList()))
+            {
+                foreach (var c in copies) c.Item1.TimeTable.RemoveEntry(c.Item2);
+                string why = "No copies made: those " + going.Count + " flights would overlap each other or another "
+                             + "flight of " + f.Name + " where they landed (each needs the flight time plus its time "
+                             + "on the ground), or an airport has no free gate time then.";
+                Status = why;
+                return why;
+            }
+
+            foreach (var c in copies)
+            {
+                if (!f.Routes.Contains(c.Item1)) f.AddRoute(c.Item1);
+            }
+
+            Remember(memo);
+            _justAdded = copies.Select(c => c.Item2).OrderBy(WeekMinutes).ToList();
+            Finish(going.Count + " flights copied, numbered " + free[0] + " to " + free[going.Count - 1] + ".");
             return null;
         }
 
