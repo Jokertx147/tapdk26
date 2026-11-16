@@ -383,22 +383,15 @@ namespace TheAirline.Helpers
             int fits = Convert.ToInt16(maxHours*60/(2*minFlightTime.TotalMinutes));
             int flightsPerDay = fits;
 
-            // Fly the number of round trips the forecast says earns most, rather than as many as the day will hold.
-            // Filling the day splits the same passengers over more flights: measured over the computer airlines'
-            // loss-making routes, they flew 3.1 round trips where the forecast chose 1.4, which took them from 77%
-            // full and a forecast profit to 43% full and a real loss of 11,000 a day each. The forecast was right
-            // about the timetable it was asked about; the airline then flew a different one.
-            var owner = airliner.Airliner.Airline;
-            var passenger = route as PassengerRoute;
-            if (passenger != null && owner != null && !owner.IsHuman && fits > 0)
-            {
-                RouteForecast forecast = AIRouteChoice.Best(
-                    owner, route.Destination1, route.Destination2, airliner, route, AIRouteChoice.IsBusiness(passenger, airliner));
-                if (forecast != null && forecast.RoundTrips > 0)
-                {
-                    flightsPerDay = Math.Max(1, Math.Min(fits, forecast.RoundTrips));
-                }
-            }
+            // Flying the number of round trips the forecast chose, rather than as many as the day holds, was tried
+            // and measured over four games of five years each way. It did what it was meant to: the loss-making
+            // routes the review keeps fell from 89 to 20 and their losses from 979,000 a day to 83,000. But the
+            // computer airlines then flew a third less (39 flights a week an aircraft to 26) and the industry earned
+            // 874 million a month instead of 713, ranges that do not overlap, so it destroyed about five times the
+            // profit it saved in losses. The forecast picks the trips that earn most for a route nobody knows yet,
+            // and a route's demand grows as the airline becomes known there; setting the timetable once by that
+            // figure leaves a matured route under-served for good. Adjusting the trips as a route matures, rather
+            // than fixing them at creation, is the version worth trying.
 
             if (AIRouteChoice.RecordCreation != null && route is PassengerRoute && airliner.Airliner.Airline != null && !airliner.Airliner.Airline.IsHuman)
             {
