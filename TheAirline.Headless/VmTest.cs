@@ -3071,6 +3071,46 @@ static class VmTest
                 f.Airliner.Type.Produced.To.Year > 2190 ? "still" : f.Airliner.Type.Produced.To.Year.ToString(),
                 f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f))));
 
+        // why the oldest types are still flying: the policy's own conditions, one by one
+        var worst = new System.Collections.Generic.List<Tuple<TheAirline.Models.Airlines.Airline, TheAirline.Models.Airliners.AirlinerType, int, double>>();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            if (a.IsHuman) continue;
+            foreach (var grp in a.DeliveredFleet.Where(f => f.HasRoute).GroupBy(f => f.Airliner.Type))
+            {
+                double oldestYears = grp.Max(f => (now - f.Airliner.BuiltDate).TotalDays/365.25);
+                if (oldestYears >= 40) worst.Add(Tuple.Create(a, grp.Key, grp.Count(), oldestYears));
+            }
+        }
+
+        foreach (var w in worst.OrderByDescending(x => x.Item4).Take(5))
+        {
+            var airline = w.Item1; var type = w.Item2; int want = w.Item3;
+            var opts = TheAirline.Helpers.FleetRenewalService.NewTypes(type, airline);
+            var enough = opts.Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0).ToList();
+            Console.WriteLine(string.Format("    {0} {1} x{2} ({3:0.0} yrs): {4} types offered, {5} with {2} to be had used",
+                airline.Profile.IATACode, type.Name, want, w.Item4, opts.Count, enough.Count));
+            if (enough.Count == 0)
+            {
+                var any = opts.Where(o => o.UsedFrom > 0).OrderByDescending(o => o.Idle + o.ForSale).FirstOrDefault();
+                Console.WriteLine("      most of one type to be had used: " + (any == null ? "none on the market at all" : any.Idle + any.ForSale + " " + any.Type.Name));
+                continue;
+            }
+
+            var pickBest = enough.OrderBy(o => o.Type.FuelConsumption/Math.Max(1, o.Type is TheAirline.Models.Airliners.AirlinerPassengerType pt2 ? pt2.MaxSeatingCapacity : 1)).First();
+            var settings = new TheAirline.Helpers.RenewalSettings
+            {
+                Airline = airline, OldType = type, NewType = pickBest.Type,
+                Source = TheAirline.Helpers.MissingSource.BuyUsed,
+                Slower = TheAirline.Helpers.SlowerChoice.ShiftOrKeep,
+                AfterOld = TheAirline.Helpers.OldAircraftChoice.Sell
+            };
+            var plan = TheAirline.Helpers.FleetRenewalService.Plan(settings);
+            Console.WriteLine(string.Format("      best {0}: plan replaces {1} of {2}, costs {3:#,0}, airline has {4:#,0} | {5}",
+                pickBest.Type.Name, plan.Replacing, want, plan.Cost, airline.Money, plan.Summary));
+            foreach (var row in plan.Rows.Where(r => !r.Ok).Take(2)) Console.WriteLine("        skipped: " + row.Text);
+        }
+
         Console.WriteLine(string.Format("  renewals: {0} went ahead, {1} aircraft replaced",
             TheAirline.Helpers.AIHelpers.Renewals, TheAirline.Helpers.AIHelpers.RenewedAircraft));
         Console.WriteLine("FLEETAGE " + flying.Count + " flying, average " + flying.Average(age).ToString("0.0") + " years");
