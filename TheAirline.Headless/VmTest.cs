@@ -808,21 +808,27 @@ static class VmTest
         var g = TheAirline.Models.General.GameObject.GetInstance();
         TheAirline.Presentation.MapAircraft m = null;
         DateTime at = default(DateTime);
-        for (int i = 0; i < 60 && m == null; i++)
+        // The computer airlines fly the round trips their forecast chose rather than filling the day, so fewer
+        // aircraft are in the air at the moment a headless day ends; this looks over more days, and takes a shorter
+        // flight, rather than giving up.
+        int looked = 0, flying = 0;
+        for (int i = 0; i < 300 && m == null; i++)
         {
             TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
             foreach (var f in TheAirline.Models.Airlines.Airlines.GetAllAirlines().SelectMany(a => a.Fleet.ToList()))
             {
+                looked++;
                 var fl = f.CurrentFlight;
                 if (fl?.Entry == null || f.Status == TheAirline.Models.Airliners.FleetAirliner.AirlinerStatus.Stopped) continue;
+                flying++;
                 var landing = fl.GetExpectedLandingTime();
-                if ((landing - fl.FlightTime).TotalMinutes < 60) continue;
+                if ((landing - fl.FlightTime).TotalMinutes < 40) continue;
                 at = fl.FlightTime + TimeSpan.FromTicks((landing - fl.FlightTime).Ticks / 2);
                 var x = TheAirline.Presentation.WorldMapViewModel.Place(f, at);
                 if (x != null && x.InFlight && x.HasFlight) { m = x; break; }
             }
         }
-        if (m == null) fail("no aircraft with a flight");
+        if (m == null) fail("no aircraft with a flight: looked at " + looked + " aircraft over 300 days, " + flying + " of them in the air at the time");
         Console.WriteLine("  " + m.Name + ": " + m.Info);
         double u, v, h;
         if (!m.At(at, out u, out v, out h)) fail("not flying at the read");
