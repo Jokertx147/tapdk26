@@ -3001,6 +3001,79 @@ static class VmTest
         return aircraft == 0 ? 0 : (double) flights/aircraft;
     }
 
+    // vm fleetage: how old the computer airlines' aircraft get, and what the age costs them. They sell idle aircraft
+    // but never replace one that is still flying, so a fleet only ages.
+    static void FleetAgeProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int months = int.Parse(Environment.GetEnvironmentVariable("TAP_MONTHS") ?? "120");
+        int m0 = -1;
+        int done = 0;
+        while (done < months)
+        {
+            TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+            if (g.GameTime.Month != m0) { m0 = g.GameTime.Month; done++; }
+        }
+
+        DateTime now = g.GameTime;
+        var types = TheAirline.Models.Airliners.AirlinerTypes.GetAllTypes();
+        // every type still being built today, for comparing against
+        var current = types.Where(t => t.Produced.From <= now && t.Produced.To >= now).ToList();
+
+        var flying = new System.Collections.Generic.List<TheAirline.Models.Airliners.FleetAirliner>();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            if (a.IsHuman) continue;
+            foreach (var f in a.DeliveredFleet.ToList())
+            {
+                if (f.Routes.Any(r => r.TimeTable.Entries.Any(e => e.Airliner == f))) flying.Add(f);
+            }
+        }
+
+        if (flying.Count == 0) { Console.WriteLine("FLEETAGE: nothing flying"); return; }
+        Func<TheAirline.Models.Airliners.FleetAirliner, double> age = f => (now - f.Airliner.BuiltDate).TotalDays/365.25;
+        Console.WriteLine(string.Format("  {0:MMM yyyy}, {1} months on: {2} aircraft flying for the computer airlines, average {3:0.0} years old, oldest {4:0.0}",
+            now, months, flying.Count, flying.Average(age), flying.Max(age)));
+
+        var byDecade = flying.GroupBy(f => f.Airliner.BuiltDate.Year/10*10).OrderBy(k => k.Key);
+        Console.WriteLine("  built: " + string.Join(", ", byDecade.Select(k => k.Key + "s " + k.Count())));
+        int outOfProduction = flying.Count(f => f.Airliner.Type.Produced.To < now);
+        Console.WriteLine(string.Format("  of types no longer built: {0} of {1} ({2:0}%); {3} types in production today",
+            outOfProduction, flying.Count, 100.0*outOfProduction/flying.Count, current.Count));
+
+        // what the age costs: fuel per seat per km against the thriftiest type in production the aircraft could
+        // stand in for (as many seats, as much range, no longer a runway)
+        double excessSum = 0; int compared = 0, couldDo = 0;
+        foreach (var f in flying)
+        {
+            var old = f.Airliner.Type;
+            int seats = f.Airliner.GetTotalSeatCapacity();
+            if (seats <= 0 || old.FuelConsumption <= 0) continue;
+            var swap = current.OfType<TheAirline.Models.Airliners.AirlinerPassengerType>()
+                              .Where(t => t.MaxSeatingCapacity >= seats && t.Range >= old.Range && t.MinRunwaylength <= old.MinRunwaylength)
+                              .OrderBy(t => t.FuelConsumption/Math.Max(1, t.MaxSeatingCapacity)).FirstOrDefault();
+            if (swap == null) continue;
+            couldDo++;
+            double oldPerSeat = old.FuelConsumption/seats;
+            double newPerSeat = swap.FuelConsumption/Math.Max(1, swap.MaxSeatingCapacity);
+            if (newPerSeat <= 0) continue;
+            excessSum += oldPerSeat/newPerSeat;
+            compared++;
+        }
+
+        if (compared > 0)
+            Console.WriteLine(string.Format("  fuel per seat: the aircraft flying burn {0:0.00} times what the thriftiest type in production would, on {1} of {2} that have a replacement available",
+                excessSum/compared, couldDo, flying.Count));
+
+        foreach (var f in flying.OrderByDescending(age).Take(8))
+            Console.WriteLine(string.Format("    {0,-26} {1,5:0.0} years, built {2}, {3} last built {4}, {5} flights a week",
+                f.Airliner.Type.Name, age(f), f.Airliner.BuiltDate.Year, f.Airliner.Airline.Profile.IATACode,
+                f.Airliner.Type.Produced.To.Year > 2190 ? "still" : f.Airliner.Type.Produced.To.Year.ToString(),
+                f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f))));
+
+        Console.WriteLine("FLEETAGE " + flying.Count + " flying, average " + flying.Average(age).ToString("0.0") + " years");
+    }
+
     class Optimism
     {
         public double Best, AtFlown, Real, BestLoad, RealLoad;
@@ -5279,6 +5352,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("ranking")) { RankingTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("optimism")) { OptimismProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("fleetage")) { FleetAgeProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }
