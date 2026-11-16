@@ -2995,6 +2995,81 @@ static class VmTest
         return aircraft == 0 ? 0 : (double) flights/aircraft;
     }
 
+    class Optimism
+    {
+        public double Best, AtFlown, Real, BestLoad, RealLoad;
+        public int BestTrips, Flies;
+        public TheAirline.Models.Routes.PassengerRoute Route;
+    }
+
+    // vm optimism: for the computer airlines' loss-making routes that the forecast still says could pay, the forecast
+    // at the trips it would choose, the forecast at the trips the airline really flies, and what the route earned.
+    // If the second matches reality and the first does not, the forecast is answering about a timetable nobody flies.
+    static void OptimismProbe()
+    {
+        var g = TheAirline.Models.General.GameObject.GetInstance();
+        int warm = int.Parse(Environment.GetEnvironmentVariable("TAP_WARM") ?? "400");
+        for (int i = 0; i < warm; i++) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        int m0 = g.GameTime.Month;
+        while (g.GameTime.Month == m0) TheAirline.Helpers.GameObjectHelpers.SimulateTurn();
+        var last = g.GameTime.AddMonths(-1);
+        int dim = DateTime.DaysInMonth(last.Year, last.Month);
+
+        var rows = new System.Collections.Generic.List<Optimism>();
+        foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
+        {
+            if (a.IsHuman) continue;
+            foreach (var route in a.Routes.ToList())
+            {
+                var r = route as TheAirline.Models.Routes.PassengerRoute;
+                if (r == null || !r.HasAirliner || r.TimeTable.Entries.Count == 0) continue;
+                var airliners = r.GetAirliners();
+                if (airliners.Count != 1) continue;
+                var f = airliners[0];
+                double real = TheAirline.Helpers.RouteProfitService.Month(r, last.Year, last.Month)/dim;
+                if (real >= 0) continue;
+
+                double own = TheAirline.Helpers.OwnershipService.MonthlyCost(f)/30.4;
+                bool business = TheAirline.Helpers.AIRouteChoice.IsBusiness(r, f);
+                var best = TheAirline.Helpers.AIRouteChoice.Best(a, r.Destination1, r.Destination2, f, r, business);
+                // only the ones the review keeps because the forecast says they could pay
+                if (best.ProfitPerDay + own < 0) continue;
+
+                int flies = Math.Max(1, TheAirline.Helpers.AIRouteChoice.CurrentTrips(r));
+                var atFlown = TheAirline.Helpers.RouteForecastService.Forecast(a, r.Destination1, r.Destination2, f, flies, r,
+                                                                               TheAirline.Helpers.AIRouteChoice.FareFactor(a));
+                rows.Add(new Optimism
+                {
+                    Best = best.ProfitPerDay, AtFlown = atFlown.ProfitPerDay, Real = real,
+                    BestTrips = best.RoundTrips, Flies = flies, BestLoad = best.Load,
+                    RealLoad = TheAirline.Helpers.ConnectionService.MonthLoad(r), Route = r
+                });
+            }
+        }
+
+        if (rows.Count == 0) { Console.WriteLine("OPTIMISM: no such routes this run"); return; }
+        Func<System.Collections.Generic.IEnumerable<double>, double> avg = xs => { var l = xs.ToList(); return l.Count == 0 ? 0 : l.Average(); };
+        Console.WriteLine(string.Format("  {0:MMM yyyy}: {1} loss-making routes the forecast says could pay, together {2:+#,0;-#,0} a day",
+            last, rows.Count, rows.Sum(x => x.Real)));
+        Console.WriteLine(string.Format("  forecast at the trips it would choose: {0,10:+#,0;-#,0} a day, {1,3:0}% full, {2:0.0} round trips",
+            avg(rows.Select(x => x.Best)), 100*avg(rows.Select(x => x.BestLoad)), avg(rows.Select(x => (double) x.BestTrips))));
+        Console.WriteLine(string.Format("  forecast at the trips it really flies: {0,10:+#,0;-#,0} a day,          {1:0.0} round trips",
+            avg(rows.Select(x => x.AtFlown)), avg(rows.Select(x => (double) x.Flies))));
+        Console.WriteLine(string.Format("  what it really earned:                 {0,10:+#,0;-#,0} a day, {1,3:0}% full",
+            avg(rows.Select(x => x.Real)), 100*avg(rows.Select(x => x.RealLoad))));
+        Console.WriteLine(string.Format("  {0} of {1} fly more round trips than the forecast would choose; the forecast at the flown trips is nearer the truth on {2}; it is itself a loss on {3}",
+            rows.Count(x => x.Flies > x.BestTrips), rows.Count,
+            rows.Count(x => Math.Abs(x.AtFlown - x.Real) < Math.Abs(x.Best - x.Real)),
+            rows.Count(x => x.AtFlown < 0)));
+
+        foreach (var x in rows.OrderBy(x => x.Real).Take(8))
+            Console.WriteLine(string.Format("    {0}-{1} {2}: real {3,9:+#,0;-#,0} ({4,3:0}% full, {5} trips) | best {6,9:+#,0;-#,0} ({7,3:0}% full, {8} trips) | at {5} trips {9,9:+#,0;-#,0}",
+                x.Route.Destination1.Profile.IATACode, x.Route.Destination2.Profile.IATACode, x.Route.Airline.Profile.IATACode,
+                x.Real, 100*x.RealLoad, x.Flies, x.Best, 100*x.BestLoad, x.BestTrips, x.AtFlown));
+
+        Console.WriteLine("OPTIMISM " + rows.Count + " routes");
+    }
+
     static void DropProbe()
     {
         var g = TheAirline.Models.General.GameObject.GetInstance();
@@ -5197,6 +5272,7 @@ static class VmTest
             if (Environment.GetCommandLineArgs().Contains("groundtime")) { GroundTimeTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("ranking")) { RankingTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("dropprobe")) { DropProbe(); return; }
+            if (Environment.GetCommandLineArgs().Contains("optimism")) { OptimismProbe(); return; }
             if (Environment.GetCommandLineArgs().Contains("fastdemand")) { FastDemandTest(); return; }
             if (Environment.GetCommandLineArgs().Contains("rivalmap")) { RivalMapTest(av); return; }
             if (Environment.GetCommandLineArgs().Contains("competitors")) { CompetitorsTest(av); return; }

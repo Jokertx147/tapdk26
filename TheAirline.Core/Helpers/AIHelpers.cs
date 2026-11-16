@@ -380,7 +380,26 @@ namespace TheAirline.Helpers
 
             const int maxHours = 22 - 6; //from 06.00 to 22.00
 
-            int flightsPerDay = Convert.ToInt16(maxHours*60/(2*minFlightTime.TotalMinutes));
+            int fits = Convert.ToInt16(maxHours*60/(2*minFlightTime.TotalMinutes));
+            int flightsPerDay = fits;
+
+            // Fly the number of round trips the forecast says earns most, rather than as many as the day will hold.
+            // Filling the day splits the same passengers over more flights: measured over the computer airlines'
+            // loss-making routes, they flew 3.1 round trips where the forecast chose 1.4, which took them from 77%
+            // full and a forecast profit to 43% full and a real loss of 11,000 a day each. The forecast was right
+            // about the timetable it was asked about; the airline then flew a different one.
+            var owner = airliner.Airliner.Airline;
+            var passenger = route as PassengerRoute;
+            if (passenger != null && owner != null && !owner.IsHuman && fits > 0)
+            {
+                RouteForecast forecast = AIRouteChoice.Best(
+                    owner, route.Destination1, route.Destination2, airliner, route, AIRouteChoice.IsBusiness(passenger, airliner));
+                if (forecast != null && forecast.RoundTrips > 0)
+                {
+                    flightsPerDay = Math.Max(1, Math.Min(fits, forecast.RoundTrips));
+                }
+            }
+
             if (AIRouteChoice.RecordCreation != null && route is PassengerRoute && airliner.Airliner.Airline != null && !airliner.Airliner.Airline.IsHuman)
             {
                 try { AIRouteChoice.RecordCreation(route, airliner, flightsPerDay); } catch (Exception) { }
