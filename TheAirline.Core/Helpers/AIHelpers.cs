@@ -1372,9 +1372,13 @@ namespace TheAirline.Helpers
         {
             switch (airline.Mentality)
             {
-                case Airline.AirlineMentality.Aggressive: return 400;
-                case Airline.AirlineMentality.Moderate: return 800;
-                default: return 1600;
+                // A fire renews one type for one airline, and is wasted when the market happens to hold nothing
+                // suitable that day, so an airline needs a good many of them to keep up with a fleet that has
+                // several ageing types. At one in four hundred it fired about nine times a decade and the oldest
+                // aircraft outlived it.
+                case Airline.AirlineMentality.Aggressive: return 60;
+                case Airline.AirlineMentality.Moderate: return 120;
+                default: return 240;
             }
         }
 
