@@ -1336,9 +1336,15 @@ namespace TheAirline.Helpers
                                              .ToList();
             if (options.Count == 0) return;
 
+            // The gain must be worth the trouble. Merely thriftier let an airline swap one old type for another
+            // barely better one again and again: at six checks a decade it made 2,022 replacements in a fleet of
+            // 978, each aircraft changed about twice, and the fleet came out no younger and no less out of date.
+            // A fifth less fuel a seat is a real gain and there is no chain of those to walk along.
+            const double worthwhile = 0.8;
             RenewalTypeOption pick = options[0];
-            if (pick.Type.FuelConsumption/Math.Max(1, Seats(pick.Type))
-                >= oldest.Key.FuelConsumption/Math.Max(1, Seats(oldest.Key))) return; // no thriftier than what it flies
+            double was = oldest.Key.FuelConsumption/Math.Max(1, Seats(oldest.Key));
+            double now2 = pick.Type.FuelConsumption/Math.Max(1, Seats(pick.Type));
+            if (now2 > worthwhile*was) return;
 
             double cost = pick.UsedFrom*want;
             if (cost*2 > airline.Money) return;
