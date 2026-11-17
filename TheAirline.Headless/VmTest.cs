@@ -3071,7 +3071,8 @@ static class VmTest
                 f.Airliner.Type.Produced.To.Year > 2190 ? "still" : f.Airliner.Type.Produced.To.Year.ToString(),
                 f.Routes.Sum(r => r.TimeTable.Entries.Count(e => e.Airliner == f))));
 
-        // why the oldest types are still flying: the policy's own conditions, one by one
+        // what a renewal would do with the oldest types, were the computer airlines given one: the same conditions
+        // a policy would have to apply, so a later attempt can be judged without writing one first
         var worst = new System.Collections.Generic.List<Tuple<TheAirline.Models.Airlines.Airline, TheAirline.Models.Airliners.AirlinerType, int, double>>();
         foreach (var a in TheAirline.Models.Airlines.Airlines.GetAllAirlines())
         {
@@ -3115,8 +3116,6 @@ static class VmTest
             foreach (var row in plan.Rows.Where(r => !r.Ok).Take(2)) Console.WriteLine("        skipped: " + row.Text);
         }
 
-        Console.WriteLine(string.Format("  renewals: {0} went ahead, {1} aircraft replaced",
-            TheAirline.Helpers.AIHelpers.Renewals, TheAirline.Helpers.AIHelpers.RenewedAircraft));
         Console.WriteLine("FLEETAGE " + flying.Count + " flying, average " + flying.Average(age).ToString("0.0") + " years");
     }
 

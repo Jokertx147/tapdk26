@@ -1284,109 +1284,21 @@ namespace TheAirline.Helpers
             // idle owned aircraft cost money: sell what the airline has no use for
             using (Profiler.Measure("ai: idle aircraft, sell surplus"))
                 OwnershipService.SellSurplus(airline);
-
-            // and an old fleet costs money every time it flies
-            using (Profiler.Measure("ai: fleet renewal"))
-                CheckForFleetRenewal(airline);
         }
 
-        /// <summary>How old an aircraft must be before an airline thinks about replacing it.</summary>
-        public const int RenewAfterYears = 25;
-
-        /// <summary>Renewals that went ahead, and the aircraft they replaced, for the tests.</summary>
-        public static int Renewals, RenewedAircraft;
-
-        /// <summary>
-        ///     Now and then an airline replaces its oldest out-of-date type with a newer one bought second-hand. The
-        ///     computer airlines used to sell only the aircraft they had no use for, and never replace one that was
-        ///     still flying, so their fleets only aged: measured ten years in, the aircraft they were flying averaged
-        ///     21 years old, two thirds of them were types no longer built, and they burned nearly three times the fuel
-        ///     per seat of the thriftiest type then in production. One airline was still flying 1939 DC-3s.
-        ///
-        ///     Only the market is used, never an order, so this needs none of the delivery machinery: a used aircraft
-        ///     takes over the routes the day it is bought. The money must be there twice over, since an airline that
-        ///     renews itself broke is worse off than one flying something old.
-        /// </summary>
-        private static void CheckForFleetRenewal(Airline airline)
-        {
-            if (!Chance(RenewalInterval(airline))) return;
-
-            DateTime now = GameObject.GetInstance().GameTime;
-            var oldest = airline.DeliveredFleet
-                                .Where(f => f.HasRoute && (now - f.Airliner.BuiltDate).TotalDays/365.25 >= RenewAfterYears)
-                                .GroupBy(f => f.Airliner.Type)
-                                .Where(g => g.Key.Produced.To < now) // a type still being built is not out of date
-                                .OrderByDescending(g => g.Average(f => (now - f.Airliner.BuiltDate).TotalDays))
-                                .FirstOrDefault();
-            if (oldest == null) return;
-
-            // The thriftiest type of a similar size that could fly the same routes, out of those there are enough of
-            // on the market. Thrift per seat alone picks the largest aircraft in the game: it chose an A380 to replace
-            // a 21 seat DC-3 and a 737-200, which is both absurd and useless, since an A380 cannot land at the
-            // airports those aircraft serve. So it must seat between 60% and twice what the old type seats, reach as
-            // far, and manage as short a runway.
-            int want = oldest.Count();
-            int oldSeats = Seats(oldest.Key);
-            var options = FleetRenewalService.NewTypes(oldest.Key, airline)
-                                             .Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0
-                                                         && Seats(o.Type) >= 0.6*oldSeats && Seats(o.Type) <= 2.0*oldSeats
-                                                         && o.Type.Range >= oldest.Key.Range
-                                                         && o.Type.MinRunwaylength <= oldest.Key.MinRunwaylength)
-                                             .OrderBy(o => o.Type.FuelConsumption/Math.Max(1, Seats(o.Type)))
-                                             .ToList();
-            if (options.Count == 0) return;
-
-            // The gain must be worth the trouble. Merely thriftier let an airline swap one old type for another
-            // barely better one again and again: at six checks a decade it made 2,022 replacements in a fleet of
-            // 978, each aircraft changed about twice, and the fleet came out no younger and no less out of date.
-            // A fifth less fuel a seat is a real gain and there is no chain of those to walk along.
-            const double worthwhile = 0.8;
-            RenewalTypeOption pick = options[0];
-            double was = oldest.Key.FuelConsumption/Math.Max(1, Seats(oldest.Key));
-            double now2 = pick.Type.FuelConsumption/Math.Max(1, Seats(pick.Type));
-            if (now2 > worthwhile*was) return;
-
-            double cost = pick.UsedFrom*want;
-            if (cost*2 > airline.Money) return;
-
-            var settings = new RenewalSettings
-            {
-                Airline = airline,
-                OldType = oldest.Key,
-                NewType = pick.Type,
-                Source = MissingSource.BuyUsed,
-                Slower = SlowerChoice.ShiftOrKeep,
-                AfterOld = OldAircraftChoice.Sell
-            };
-
-            RenewalPlan plan = FleetRenewalService.Plan(settings);
-            if (plan.Replacing == 0 || plan.Cost*2 > airline.Money) return;
-
-            FleetRenewalService.Renew(settings);
-            System.Threading.Interlocked.Increment(ref Renewals);
-            System.Threading.Interlocked.Add(ref RenewedAircraft, plan.Replacing);
-        }
-
-        private static int Seats(AirlinerType t)
-        {
-            var p = t as AirlinerPassengerType;
-            return p == null ? 1 : Math.Max(1, p.MaxSeatingCapacity);
-        }
-
-        // how often an airline looks at the age of its fleet, by how boldly it is run
-        private static double RenewalInterval(Airline airline)
-        {
-            switch (airline.Mentality)
-            {
-                // A fire renews one type for one airline, and is wasted when the market happens to hold nothing
-                // suitable that day, so an airline needs a good many of them to keep up with a fleet that has
-                // several ageing types. At one in four hundred it fired about nine times a decade and the oldest
-                // aircraft outlived it.
-                case Airline.AirlineMentality.Aggressive: return 60;
-                case Airline.AirlineMentality.Moderate: return 120;
-                default: return 240;
-            }
-        }
+        // Giving the computer airlines the player's fleet renewal was tried and taken out again. It worked: it
+        // chose sensible replacements once told to (a Fokker 50 for a DC-3, an A318 for a 737-200) and replaced
+        // every aircraft of a type rather than skipping those whose airports it could not serve. But buying
+        // second-hand cannot modernise a fleet, because a used aircraft is itself old: over ten years with twenty
+        // opponents it replaced 673 aircraft out of 1,077 and the fleet came out 21.3 years old against 21.1
+        // without it, with 64% of types no longer built against 64-68%. It also crashed the day's flying now and
+        // then, a null in FleetAirlinerHelpers.SetFlightStats as an aircraft landed, which is what happens when a
+        // fleet is rearranged under aircraft that are in the air.
+        //
+        // Worth doing properly rather than tuning: let an airline order new aircraft, which needs the deliveries
+        // the player's renewal processes and the computer airlines have not got, and leave an aircraft alone until
+        // it is on the ground. vm fleetage measures the fleet's age and FleetRenewalService already takes the
+        // airline it works for, so both halves of the measurement are still here.
 
         private static void CheckForInviteToAlliance(Airline airline)
         {
