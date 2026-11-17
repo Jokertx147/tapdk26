@@ -1320,10 +1320,18 @@ namespace TheAirline.Helpers
                                 .FirstOrDefault();
             if (oldest == null) return;
 
-            // the thriftiest type it could have instead, of those there are enough of on the market to buy
+            // The thriftiest type of a similar size that could fly the same routes, out of those there are enough of
+            // on the market. Thrift per seat alone picks the largest aircraft in the game: it chose an A380 to replace
+            // a 21 seat DC-3 and a 737-200, which is both absurd and useless, since an A380 cannot land at the
+            // airports those aircraft serve. So it must seat between 60% and twice what the old type seats, reach as
+            // far, and manage as short a runway.
             int want = oldest.Count();
+            int oldSeats = Seats(oldest.Key);
             var options = FleetRenewalService.NewTypes(oldest.Key, airline)
-                                             .Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0)
+                                             .Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0
+                                                         && Seats(o.Type) >= 0.6*oldSeats && Seats(o.Type) <= 2.0*oldSeats
+                                                         && o.Type.Range >= oldest.Key.Range
+                                                         && o.Type.MinRunwaylength <= oldest.Key.MinRunwaylength)
                                              .OrderBy(o => o.Type.FuelConsumption/Math.Max(1, Seats(o.Type)))
                                              .ToList();
             if (options.Count == 0) return;

@@ -3087,7 +3087,11 @@ static class VmTest
         {
             var airline = w.Item1; var type = w.Item2; int want = w.Item3;
             var opts = TheAirline.Helpers.FleetRenewalService.NewTypes(type, airline);
-            var enough = opts.Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0).ToList();
+            int oldSeats = type is TheAirline.Models.Airliners.AirlinerPassengerType po ? Math.Max(1, po.MaxSeatingCapacity) : 1;
+            Func<TheAirline.Models.Airliners.AirlinerType, int> seatsOf = t => t is TheAirline.Models.Airliners.AirlinerPassengerType pp ? Math.Max(1, pp.MaxSeatingCapacity) : 1;
+            var enough = opts.Where(o => o.Idle + o.ForSale >= want && o.UsedFrom > 0
+                                         && seatsOf(o.Type) >= 0.6*oldSeats && seatsOf(o.Type) <= 2.0*oldSeats
+                                         && o.Type.Range >= type.Range && o.Type.MinRunwaylength <= type.MinRunwaylength).ToList();
             Console.WriteLine(string.Format("    {0} {1} x{2} ({3:0.0} yrs): {4} types offered, {5} with {2} to be had used",
                 airline.Profile.IATACode, type.Name, want, w.Item4, opts.Count, enough.Count));
             if (enough.Count == 0)
@@ -3097,7 +3101,7 @@ static class VmTest
                 continue;
             }
 
-            var pickBest = enough.OrderBy(o => o.Type.FuelConsumption/Math.Max(1, o.Type is TheAirline.Models.Airliners.AirlinerPassengerType pt2 ? pt2.MaxSeatingCapacity : 1)).First();
+            var pickBest = enough.OrderBy(o => o.Type.FuelConsumption/(double) seatsOf(o.Type)).First();
             var settings = new TheAirline.Helpers.RenewalSettings
             {
                 Airline = airline, OldType = type, NewType = pickBest.Type,
