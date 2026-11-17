@@ -1,0 +1,33 @@
+01:59:11 started; window 1100x720 at scale 1
+01:59:13 saved 00-new-game.png (1440x900)
+01:59:14 saved 00-new-game-2.png (1440x900)
+01:59:14 saved 00-new-game-3.png (1440x900)
+01:59:15 saved 00-new-game-4.png (1440x900)
+01:59:20 game created: Delta Air Lines, 2007-01-01
+01:59:20 route ATL-TPA with N002DL  Il-62M: opened
+01:59:30 played to 2007-03-14; routes 1, fleet 2, idle 1
+01:59:31 saved 01-statistics-passengers.png (1440x900)
+01:59:31 saved 01-statistics-passengers-2.png (1440x900)
+01:59:32 saved 02-statistics-result.png (1440x900)
+01:59:32 saved 02-statistics-result-2.png (1440x900)
+01:59:32 statistics: log scale True
+01:59:33 saved 02b-statistics-result-other-scale.png (1440x900)
+01:59:33 saved 03-statistics-seats-filled.png (1440x900)
+01:59:34 saved 04-statistics-cash-by-year.png (1440x900)
+01:59:34 saved 05-monthly-report.png (1440x900)
+01:59:35 saved 06-route-suggestions.png (1440x900)
+01:59:36 saved 06-route-suggestions-2.png (1440x900)
+01:59:36 saved 06b-airports-near.png (1440x900)
+01:59:37 saved 07-competitors.png (1440x900)
+01:59:37 saved 08-news-report-link.png (1440x900)
+01:59:38 saved 11-timetable-gate-time.png (1440x900)
+01:59:38 saved 11-timetable-gate-time-2.png (1440x900)
+01:59:39 saved 11-timetable-gate-time-3.png (1440x900)
+01:59:39 saved 11-timetable-gate-time-4.png (1440x900)
+01:59:39 timetable: N002DL: 70 flights a week, about 60 hours in the air. The faint band after each flight is the 30 minutes it needs at the gate before it can leave again.
+01:59:40 saved 10-best-and-worst-routes.png (1440x900)
+01:59:40 saved 10b-best-and-worst-aircraft.png (1440x900)
+01:59:40 best and worst: 2 aircraft, 1 losing money. Together $1,245,837.81 in the month. All of them are shown, the best at the top.
+01:59:41 saved 09-new-aircraft-engines.png (1440x900)
+01:59:41 saved 09-new-aircraft-engines-2.png (1440x900)
+01:59:41 done
